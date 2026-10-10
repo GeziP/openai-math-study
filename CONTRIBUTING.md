@@ -4,7 +4,7 @@
 
 ## 最快的方式
 
-- **发现讲错了、讲得不清楚、链接失效**：在任何问题页底部点“报告问题”，会带着页面信息打开一个 [Issue](../../issues/new?template=correction.yml)。
+- **发现讲错了、讲得不清楚、链接失效**：在任何问题页底部点“报告问题”，会带着页面信息打开一个 [Issue](https://github.com/GeziP/openai-math-study/issues/new?template=correction.yml)。
 - **你知道怎么讲得更好**：在问题页底部点“在 GitHub 上直接改”，编辑对应的源文件，GitHub 会替你建好分支和 PR。
 - **论文本身的问题**（证明是否正确、Lean 覆盖范围）：这不归本站管，请看上游 [openai/math](https://github.com/openai/math)。
 
