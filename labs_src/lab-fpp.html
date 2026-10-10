@@ -1,0 +1,203 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>想象一座无限大的方格城市：每条街的通行时间是<b>随机</b>的，一旦确定就不再变。从正中央的路口出发，到每个路口的"最快用时"都可以用 Dijkstra 算法算出来。拖动"时间 $t$"：上色的区域就是 $t$ 时间内到得了的路口，从蓝（刚出发）到红（刚到达），一块不规则的"球"在长大。</li>
+<li>在球里<b>点一下</b>，会画出从中心到那里的最快路线；点"放出 30 条最快路线"，从中心到球边缘的 30 个随机地点的最快路线一次画出来——你会发现它们在靠近中心的地方<b>挤成同一条"高速公路"</b>，到外面才分叉。</li>
+<li>点"统计 300 次"：页面重新抽 300 张随机路况，每张记下"沿横轴走 8、16、32、64 格"的最快用时，算出平均值与<b>波动大小</b>（标准差），画在对数坐标上。请看斜率。</li>
+<li>换一种路况的分布：指数分布、均匀分布，或"只取 1 或 3、1 的概率是 0.8"（有"原子"：大多数街的用时恰好都是最小值 1）。看看球的形状，以及"沿对角线走"和"沿横轴走"的用时之比。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>球不是规则的圆，边界毛毛糙糙；但"放大后的整体形状"每次几乎一样，这就是<b>极限形状</b>。读数里"对角线 ÷ 横轴"的用时之比：一个真正的圆是 $\sqrt2\approx1.414$，菱形是 2，正方形是 1。我多次点"统计"，得到的数大致是：指数分布 1.40–1.42，均匀分布 1.42–1.44，都几乎就是圆；"只取 1 或 3"（取 1 的概率 0.8）约 1.70——这时球明显变成了一个<b>边是直线的菱形</b>（把时间 $t$ 拉到最大看看）。每次统计会有 ±0.02 左右的上下波动。</p>
+<p>"最快用时"的波动比你想象的小：如果像"独立随机变量的和"那样累加，走 $n$ 格的波动应当是 $\sqrt n$ 量级（斜率 $\tfrac12$）；页面实测的斜率小得多，我测到的常在 0.24–0.32 之间（只量到 64 格，抽样次数也有限，误差大约 ±0.03），更接近物理学预言的 $\tfrac13$——这是所谓 KPZ 普适类的特征。要注意，这是数值现象：对这里"可以朝任何方向走"的模型，指数 $\tfrac13$ 至今没有被严格证明（据我所知，严格的结果只有波动的方差至多约 $n/\log n$、至少约 $\log n$ 这样很宽的夹逼）；对"只许朝右或朝上走、并且改求用时最长的那条路线"的近亲模型（叫最后通过渗流），Johansson 在 2000 年对指数分布等特殊情形证明了 $\tfrac13$。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>这个模型叫<b>首次通过渗流</b>（first-passage percolation）：给每条边一个独立同分布的非负随机"通行时间"，$T(x,y)$ 是两点之间所有路线中用时最短的那一条的用时，最短的路线叫<b>测地线</b>。次可加遍历定理保证：$T(0,nx)/n$ 几乎必然收敛到一个常数（"时间常数"），因此 $t$ 时间能到达的区域缩小 $t$ 倍后收敛到一个固定的凸形状——<b>极限形状</b>。问题是：这个形状到底是什么？据我所知，除了少数特殊的分布，人们既不知道它的显式形状，也不知道它是否严格凸、边界是否光滑。</p>
+<p>另一个核心问题是：有没有"双向测地线"——两头无限延伸、其中任意两点间都走的是最快路线的路径？研究者普遍相信没有（这也和你看到的"高速公路在远处分叉"相符），但长期没有严格证明。页面下方列出的问题 212，稿件宣称在没有"原子"、有二阶矩的条件下几乎必然不存在双向测地线，并且对指数分布，极限形状严格凸、边界光滑。这是稿件的宣称，需要独立审查。有"原子"的分布则不同：据我所知，Durrett 与 Liggett（1981）证明了——当"最小可能用时"出现的概率大到超过"有向渗流"的阈值（约 0.645）时，极限形状的边界上会有一段笔直的线。页面里"取 1 的概率 0.8"就是这种情形，你能亲眼看到菱形的直边；所以"无原子"这个条件并不是装饰。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 400), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 230), x2 = c2.ctx;
+  var L = 121, H = 60, NN = L * L, SC = 3, X0 = 138, Y0 = 8;
+  var wR = new Float32Array(NN), wD = new Float32Array(NN), dist = new Float64Array(NN), prev = new Int32Array(NN);
+  var kind = 'exp', t = 24, tMax = 40, geos = [], stat = null, circ = true, bm = Lab.bitmap(L, L), info = {};
+
+  var sK = Lab.select(panel, {
+    label: '每条街的通行时间服从', value: 'exp',
+    options: [['exp', '指数分布（平均 1）'], ['unif', '均匀分布 [0, 2]（平均 1）'], ['two', '只取 1 或 3（取 1 的概率 0.8）']],
+    onChange: function (v) { kind = v; fresh(true); }
+  });
+  var sT = Lab.slider(panel, { label: '时间 t', min: 2, max: 55, step: 0.5, value: t, fmt: function (v) { return Lab.fmt(v, 1); }, onInput: function (v) { t = v; geos = []; draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '重新抽一张路况', function () { fresh(); }, 'pri');
+  Lab.button(row, '放出 30 条最快路线', function () { highways(); });
+  Lab.button(row, '清除路线', function () { geos = []; draw(); });
+  var ck = Lab.check(panel, { label: '画出一个同样大小的圆做对比', checked: true, onChange: function (v) { circ = v; draw(); } });
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '统计 300 次（一两秒）', function () { doStat(); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：在球里点一下，画出从中心到该点的最快路线。"对角线 ÷ 横轴"指到达点 (k,k) 与点 (k,0) 的最快用时之比（k = 40，取全部 300 次的平均）。');
+  Lab.onTheme(function () { draw(); });
+
+  /* ---------- 随机路况与 Dijkstra ---------- */
+  function wgen(r) {
+    if (kind === 'exp') return -Math.log(1 - r());
+    if (kind === 'unif') return 2 * r();
+    return r() < 0.8 ? 1 : 3;
+  }
+  function fillW(ln, ww, ddw) {
+    var i, n2 = ln * ln;
+    for (i = 0; i < n2; i++) { ww[i] = wgen(Math.random); ddw[i] = wgen(Math.random); }
+  }
+  /* 二叉堆 */
+  function Heap(cap) {
+    var K = new Float64Array(cap), V = new Int32Array(cap), n = 0;
+    this.size = function () { return n; };
+    this.push = function (k, v) {
+      var i = n++, p;
+      while (i > 0) { p = (i - 1) >> 1; if (K[p] <= k) break; K[i] = K[p]; V[i] = V[p]; i = p; }
+      K[i] = k; V[i] = v;
+    };
+    this.pop = function () {
+      var rk = K[0], rv = V[0], k = K[--n], v = V[n], i = 0, c;
+      while ((c = 2 * i + 1) < n) {
+        if (c + 1 < n && K[c + 1] < K[c]) c++;
+        if (K[c] >= k) break;
+        K[i] = K[c]; V[i] = V[c]; i = c;
+      }
+      K[i] = k; V[i] = v;
+      this.k = rk; return rv;
+    };
+  }
+  function dijkstra(ln, ww, ddw, src, dd, pv) {
+    var n2 = ln * ln, heap = new Heap(5 * n2 + 10), i, u, x, y, nd, v;
+    for (i = 0; i < n2; i++) dd[i] = Infinity;
+    dd[src] = 0; pv[src] = -1; heap.push(0, src);
+    while (heap.size() > 0) {
+      u = heap.pop();
+      if (heap.k > dd[u]) continue;
+      x = u % ln; y = (u / ln) | 0;
+      if (x + 1 < ln)  { v = u + 1;  nd = dd[u] + ww[u];      if (nd < dd[v]) { dd[v] = nd; pv[v] = u; heap.push(nd, v); } }
+      if (x > 0)       { v = u - 1;  nd = dd[u] + ww[u - 1];  if (nd < dd[v]) { dd[v] = nd; pv[v] = u; heap.push(nd, v); } }
+      if (y + 1 < ln)  { v = u + ln; nd = dd[u] + ddw[u];     if (nd < dd[v]) { dd[v] = nd; pv[v] = u; heap.push(nd, v); } }
+      if (y > 0)       { v = u - ln; nd = dd[u] + ddw[u - ln]; if (nd < dd[v]) { dd[v] = nd; pv[v] = u; heap.push(nd, v); } }
+    }
+  }
+  function fresh(resetT) {
+    var k, minB = Infinity;
+    fillW(L, wR, wD);
+    dijkstra(L, wR, wD, H * L + H, dist, prev);
+    /* 让"球"始终待在格子里面：时间上限取"最先碰到边界的那一刻"稍早一点 */
+    for (k = 0; k < L; k++) minB = Math.min(minB, dist[k], dist[(L - 1) * L + k], dist[k * L], dist[k * L + L - 1]);
+    tMax = Math.max(4, Math.floor(minB * 2) / 2 - 0.5);
+    sT.el.max = tMax;
+    if (resetT) t = Math.round(tMax * 0.7 * 2) / 2; else if (t > tMax) t = tMax;
+    sT.set(t, true);
+    geos = [];
+    draw();
+  }
+  function pathTo(v) { var p = [], u = v; while (u >= 0) { p.push(u); u = prev[u]; } return p; }
+  function highways() {
+    var k, a, rr, x, y, best, tries;
+    geos = [];
+    for (k = 0; k < 30; k++) {
+      for (tries = 0; tries < 200; tries++) {
+        a = Math.random() * Lab.TAU; rr = 0.97 * info.ra;
+        x = Math.round(H + rr * Math.cos(a)); y = Math.round(H + rr * Math.sin(a));
+        if (x >= 0 && x < L && y >= 0 && y < L && dist[y * L + x] <= t) { geos.push(pathTo(y * L + x)); break; }
+      }
+    }
+    draw();
+  }
+
+  /* ---------- 统计 ---------- */
+  function doStat() {
+    var Ls = 161, h = 80, n2 = Ls * Ls, ww = new Float32Array(n2), ddw = new Float32Array(n2), dd = new Float64Array(n2), pv = new Int32Array(n2), S = 300,
+        xs = [8, 16, 32, 64], sum = [0, 0, 0, 0], sq = [0, 0, 0, 0], rs = 0, s, k, v, src = h * Ls + h, t0 = performance.now(), mean = [], sd = [], lx = [], ly = [], sl, ic;
+    for (s = 0; s < S; s++) {
+      fillW(Ls, ww, ddw);
+      dijkstra(Ls, ww, ddw, src, dd, pv);
+      for (k = 0; k < 4; k++) { v = dd[src + xs[k]]; sum[k] += v; sq[k] += v * v; }
+      rs += dd[(h + 40) * Ls + (h + 40)] / dd[src + 40];
+    }
+    for (k = 0; k < 4; k++) { mean.push(sum[k] / S); sd.push(Math.sqrt(Math.max(1e-12, sq[k] / S - mean[k] * mean[k]))); lx.push(Math.log(xs[k]) / Math.LN2); ly.push(Math.log(sd[k]) / Math.LN2); }
+    var sx = 0, sy = 0, sxx = 0, sxy = 0;
+    for (k = 0; k < 4; k++) { sx += lx[k]; sy += ly[k]; sxx += lx[k] * lx[k]; sxy += lx[k] * ly[k]; }
+    sl = (4 * sxy - sx * sy) / (4 * sxx - sx * sx); ic = (sy - sl * sx) / 4;
+    stat = { xs: xs, mean: mean, sd: sd, slope: sl, ic: ic, ratio: rs / S, kind: kind, ms: Math.round(performance.now() - t0), S: S };
+    draw();
+  }
+
+  /* ---------- 绘制 ---------- */
+  function drawChart() {
+    var C = Lab.colors(), box = { x: 66, y: 12, w: 540, h: 170 }, ax, k, f, y0;
+    c2.clear(C.card);
+    ax = Lab.axes(x2, box, [2.6, 6.6], [-2.5, 3.5], {
+      xticks: [3, 4, 5, 6], yticks: [-2, -1, 0, 1, 2, 3],
+      fx: function (v) { return String(Math.round(Math.pow(2, v))); }, fy: function (v) { return Lab.fmt(Math.pow(2, v), v < 0 ? 2 : 0); },
+      xlabel: '沿横轴走的格数 x（对数刻度）', ylabel: '最快用时的波动（标准差）'
+    });
+    if (!stat) { Lab.label(x2, '点"统计 300 次"，这里会画出波动随距离增长的实测点', box.x + box.w / 2, box.y + box.h / 2, C.ink2, 'center', 13.5); return; }
+    /* 参考斜率：过第一个点画 1/2 与 1/3 */
+    var p0x = Math.log(stat.xs[0]) / Math.LN2, p0y = Math.log(stat.sd[0]) / Math.LN2;
+    x2.setLineDash([5, 4]);
+    Lab.line(x2, ax.X(2.6), ax.Y(p0y + 0.5 * (2.6 - p0x)), ax.X(6.6), ax.Y(p0y + 0.5 * (6.6 - p0x)), C.bad, 1.3);
+    Lab.line(x2, ax.X(2.6), ax.Y(p0y + (1 / 3) * (2.6 - p0x)), ax.X(6.6), ax.Y(p0y + (1 / 3) * (6.6 - p0x)), C.good, 1.3);
+    x2.setLineDash([]);
+    Lab.line(x2, ax.X(2.6), ax.Y(stat.ic + stat.slope * 2.6), ax.X(6.6), ax.Y(stat.ic + stat.slope * 6.6), C.accent, 2);
+    for (k = 0; k < 4; k++) Lab.dot(x2, ax.X(Math.log(stat.xs[k]) / Math.LN2), ax.Y(Math.log(stat.sd[k]) / Math.LN2), 5, C.accent, C.card);
+    Lab.label(x2, '实线：实测斜率 ' + Lab.fmt(stat.slope, 2), box.x + 12, box.y + box.h - 50, C.accent, 'left', 13);
+    Lab.label(x2, '- - 红色虚线：斜率 1/2（独立变量相加）', box.x + 12, box.y + box.h - 32, C.bad, 'left', 12);
+    Lab.label(x2, '- - 绿色虚线：斜率 1/3（KPZ 预言）', box.x + 12, box.y + box.h - 15, C.good, 'left', 12);
+  }
+  function draw() {
+    var C = Lab.colors(), d = bm.data, i, x, y, bg = Lab.parseColor(C.card), rgb, f, ra = 0, rd = 0, cnt = 0, dirs, k, step, e, hh, g, path, ex, ey;
+    for (i = 0; i < NN; i++) {
+      if (dist[i] <= t) { f = dist[i] / t; rgb = Lab.rgb(220 - 215 * f, 70, Lab.isDark() ? 60 - 14 * f : 56 - 8 * f); cnt++; }
+      else rgb = bg;
+      d[4 * i] = rgb[0]; d[4 * i + 1] = rgb[1]; d[4 * i + 2] = rgb[2]; d[4 * i + 3] = 255;
+    }
+    bm.flush();
+    c1.clear(C.card);
+    x1.imageSmoothingEnabled = false;
+    bm.blit(x1, X0, Y0, L * SC, L * SC);
+    x1.strokeStyle = C.line; x1.lineWidth = 1; x1.strokeRect(X0 + 0.5, Y0 + 0.5, L * SC, L * SC);
+    /* 四个轴向与四个对角方向上能走到的最远格数 */
+    dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    dirs.forEach(function (dv) { k = 0; while (k < H && dist[(H + dv[1] * (k + 1)) * L + H + dv[0] * (k + 1)] <= t) k++; ra += k / 4; });
+    [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(function (dv) { k = 0; while (k < H && dist[(H + dv[1] * (k + 1)) * L + H + dv[0] * (k + 1)] <= t) k++; rd += k * Math.SQRT2 / 4; });
+    info.ra = Math.max(ra, 1);
+    if (circ && ra > 0) {
+      x1.strokeStyle = C.ink; x1.lineWidth = 1.4; x1.setLineDash([5, 4]); x1.beginPath(); x1.arc(X0 + (H + 0.5) * SC, Y0 + (H + 0.5) * SC, ra * SC, 0, Lab.TAU); x1.stroke(); x1.setLineDash([]);
+    }
+    for (g = 0; g < geos.length; g++) {
+      path = geos[g];
+      x1.strokeStyle = C.ink; x1.globalAlpha = geos.length > 3 ? 0.55 : 0.95; x1.lineWidth = geos.length > 3 ? 1.4 : 2.2; x1.beginPath();
+      for (i = 0; i < path.length; i++) { ex = X0 + ((path[i] % L) + 0.5) * SC; ey = Y0 + (((path[i] / L) | 0) + 0.5) * SC; if (i === 0) x1.moveTo(ex, ey); else x1.lineTo(ex, ey); }
+      x1.stroke(); x1.globalAlpha = 1;
+      Lab.dot(x1, X0 + ((path[0] % L) + 0.5) * SC, Y0 + (((path[0] / L) | 0) + 0.5) * SC, 3.2, C.bad, C.card);
+    }
+    Lab.dot(x1, X0 + (H + 0.5) * SC, Y0 + (H + 0.5) * SC, 4.5, C.card, C.ink);
+    Lab.label(x1, '白点：出发的路口；颜色 = 到达时间（蓝 → 红）；点一下球内任意位置 = 画出最快路线', 320, 388, C.muted, 'center', 12.5);
+    drawChart();
+    out.html('路况：' + (kind === 'exp' ? '指数分布' : kind === 'unif' ? '均匀分布 [0,2]' : '只取 1 或 3（P(1)=0.8）') + '\n时间 t = ' + Lab.fmt(t, 1) + '：球里共 ' + Lab.big(cnt) + ' 个路口\n沿横轴方向走得最远 ≈ ' + Lab.fmt(ra, 1) + ' 格；沿对角线方向（折成直线距离）≈ ' + Lab.fmt(rd, 1) + ' 格\n' +
+      (stat ? '\n统计（' + stat.S + ' 次，' + (stat.kind === kind ? '当前分布' : '注意：这是另一种分布的结果') + '）：\n  走 8 / 16 / 32 / 64 格的平均用时 ' + stat.mean.map(function (v) { return Lab.fmt(v, 1); }).join(' / ') + '\n  波动（标准差）' + stat.sd.map(function (v) { return Lab.fmt(v, 2); }).join(' / ') + '\n  波动随距离增长的斜率 ≈ ' + Lab.fmt(stat.slope, 2) + '\n  对角线 ÷ 横轴 的用时之比 ≈ ' + Lab.fmt(stat.ratio, 3) + '（圆 1.414，菱形 2，正方形 1）' : ''));
+  }
+  c1.cv.addEventListener('click', function (e) {
+    var p = c1.pos(e), cx = Math.floor((p.x - X0) / SC), cy = Math.floor((p.y - Y0) / SC), v;
+    if (cx < 0 || cx >= L || cy < 0 || cy >= L) return;
+    v = cy * L + cx;
+    if (dist[v] > t) return;
+    geos.push(pathTo(v)); if (geos.length > 60) geos.shift();
+    draw();
+  });
+
+  fresh(true);
+})();
+</script>

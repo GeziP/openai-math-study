@@ -1,0 +1,123 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>拖动"范围上限 N"，从一千一直拉到两百万。上图里实线是真实的素数个数 $\pi(x)$（不超过 $x$ 的素数有几个），它是一级一级的台阶，看上去却越来越光滑。</li>
+<li>对比另外两条线：粗略估计 $x/\ln x$，以及更精确的对数积分 $\mathrm{Li}(x)$。哪条更贴近真实曲线？</li>
+<li>看下图的"间隙直方图"：把相邻两个素数的距离，除以"当地的平均间隙" $\ln p$，数一数各种大小的间隙有多少。它几乎贴在曲线 $e^{-t}$ 上。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>在你能画出的整个范围里，$x/\ln x$ 总是偏低，$\mathrm{Li}(x)$ 却几乎和真实曲线重合。间隙直方图则说明：素数的"空隙"看上去就像随机的：随机模型预测，比平均间隙大 2 倍的空隙约占 13.5%，大 4 倍的约占 1.8%，大 6 倍的约占 0.25%，真实数据和这些数字相当接近，而且真的会出现很大的空隙。但素数并不是真的随机：除了 2 和 3 之外，素数间隙永远是偶数，所以直方图最左边会有一段空白。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>素数定理</b>说 $\pi(x)\approx x/\ln x$。直觉是：在 $x$ 附近，随便挑一个数，它是素数的"概率"大约是 $1/\ln x$，所以相邻素数的平均距离约为 $\ln x$。如果把素数想成"一个一个独立地以这个概率冒出来"，那么相邻素数的距离就应该服从指数分布，这就是 Cramér 的随机模型，也正是你在下图看到的 $e^{-t}$ 曲线。</p>
+<p>真实的素数当然是确定的，不是掷骰子掷出来的。数学家想弄清楚：这个随机模型在多大程度上是对的？比如，"比平均间隙大很多倍的空隙到底占多大比例"，就属于这一类问题。左上方关于素数间隔的问题，问的正是这类"大空隙"的比例。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var cv = Lab.canvas(stage, 640, 480), ctx = cv.ctx;
+  var MAXN = 2000000;
+  var sv = Lab.sieve(MAXN);
+  var cum = new Int32Array(MAXN + 1), primes = [];
+  for (var i = 2, c = 0; i <= MAXN; i++) { if (sv[i]) { c++; primes.push(i); } cum[i] = c; }
+  var N = 10000, showLi = true, showApprox = true;
+
+  Lab.slider(panel, {
+    label: '范围上限 N', min: 3, max: 6.3, step: 0.02, value: 4,
+    fmt: function (v) { return Lab.big(Math.pow(10, v)); },
+    onInput: function (v) { N = Math.min(MAXN, Math.round(Math.pow(10, v))); draw(); }
+  });
+  Lab.check(panel, { label: '画出 $x/\\ln x$（粗略估计）', checked: true, onChange: function (v) { showApprox = v; draw(); } });
+  Lab.check(panel, { label: '画出 Li(x)（对数积分）', checked: true, onChange: function (v) { showLi = v; draw(); } });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '小提示：直方图的横轴是 t = 间隙 ÷ ln p，纵轴是占比（已除以格宽，所以指数曲线从 1 出发）。');
+  Lab.onTheme(draw);
+
+  function li(a, b) {
+    var n = 8, h = (b - a) / n, s = 1 / Math.log(a) + 1 / Math.log(b);
+    for (var k = 1; k < n; k++) s += (k % 2 ? 4 : 2) / Math.log(a + k * h);
+    return s * h / 3;
+  }
+
+  function draw() {
+    var C = Lab.colors();
+    cv.clear(C.card);
+
+    /* ---------- 上图：π(x) ---------- */
+    var box = { x: 66, y: 30, w: 556, h: 200 };
+    var piN = cum[N], appr = N / Math.log(N);
+    var xs = [], L = [], acc = 0, M = 160;
+    for (var i = 0; i <= M; i++) { xs.push(2 + (N - 2) * i / M); }
+    L.push(0);
+    for (i = 1; i <= M; i++) { acc += li(xs[i - 1], xs[i]); L.push(acc); }
+    var ymax = Math.max(piN, L[M]) * 1.08;
+    var ax = Lab.axes(ctx, box, [0, N], [0, ymax], { nx: 5, ny: 4, fx: Lab.big, fy: Lab.big, xlabel: 'x' });
+    var step = Math.max(1, Math.floor(N / 600));
+    ctx.lineWidth = 2.2; ctx.strokeStyle = C.accent; ctx.beginPath();
+    for (var x = 0; x <= N; x += step) { var px = ax.X(x), py = ax.Y(cum[x]); if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
+    ctx.lineTo(ax.X(N), ax.Y(cum[N]));
+    ctx.stroke();
+    if (showApprox) {
+      ctx.lineWidth = 1.8; ctx.strokeStyle = C.warn; ctx.setLineDash([6, 4]); ctx.beginPath();
+      for (i = 0; i <= M; i++) { var xx = Math.max(2, xs[i]); var yy = xx / Math.log(xx); if (i === 0) ctx.moveTo(ax.X(xx), ax.Y(yy)); else ctx.lineTo(ax.X(xx), ax.Y(yy)); }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (showLi) {
+      ctx.lineWidth = 1.6; ctx.strokeStyle = C.good; ctx.beginPath();
+      for (i = 0; i <= M; i++) { if (i === 0) ctx.moveTo(ax.X(xs[i]), ax.Y(L[i])); else ctx.lineTo(ax.X(xs[i]), ax.Y(L[i])); }
+      ctx.stroke();
+    }
+    // 图例
+    var lx = box.x + 12, ly = box.y + 14;
+    Lab.line(ctx, lx, ly, lx + 22, ly, C.accent, 2.4); Lab.label(ctx, '真实的 π(x)', lx + 28, ly, C.ink2, 'left', 12.5);
+    if (showApprox) { ctx.setLineDash([6, 4]); Lab.line(ctx, lx, ly + 18, lx + 22, ly + 18, C.warn, 1.8); ctx.setLineDash([]); Lab.label(ctx, 'x / ln x', lx + 28, ly + 18, C.ink2, 'left', 12.5); }
+    if (showLi) { Lab.line(ctx, lx, ly + 36, lx + 22, ly + 36, C.good, 1.8); Lab.label(ctx, 'Li(x)', lx + 28, ly + 36, C.ink2, 'left', 12.5); }
+
+    /* ---------- 下图：归一化间隙直方图 ---------- */
+    var NB = 36, TMAX = 6, cnt = new Array(NB).fill(0), tot = 0, rawGap = {}, big = 0, maxGap = 0, maxAt = 0;
+    for (i = 0; i + 1 < primes.length && primes[i + 1] <= N; i++) {
+      var g = primes[i + 1] - primes[i], t = g / Math.log(primes[i]);
+      var b = Math.floor(t / TMAX * NB);
+      if (b < NB) cnt[b]++;
+      tot++;
+      if (t > 2) big++;
+      rawGap[g] = (rawGap[g] || 0) + 1;
+      if (g > maxGap) { maxGap = g; maxAt = primes[i]; }
+    }
+    var box2 = { x: 66, y: 290, w: 556, h: 140 };
+    var bw = TMAX / NB, dens = cnt.map(function (v) { return tot ? v / tot / bw : 0; });
+    var dmax = Math.max(1.05, Math.max.apply(null, dens) * 1.05);
+    var ax2 = Lab.axes(ctx, box2, [0, TMAX], [0, dmax], { nx: 6, ny: 3, fx: function (v) { return Lab.fmt(v, 1); }, fy: function (v) { return Lab.fmt(v, 2); }, xlabel: 't = 间隙 ÷ ln p' });
+    ctx.fillStyle = C.soft;
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 1;
+    for (i = 0; i < NB; i++) {
+      var x0 = ax2.X(i * bw), x1 = ax2.X((i + 1) * bw), y0 = ax2.Y(dens[i]), yb = ax2.Y(0);
+      ctx.fillStyle = C.accent; ctx.globalAlpha = 0.45; ctx.fillRect(x0 + 1, y0, x1 - x0 - 2, yb - y0); ctx.globalAlpha = 1;
+      ctx.strokeRect(x0 + 1.5, y0 + 0.5, x1 - x0 - 3, yb - y0 - 1);
+    }
+    ctx.strokeStyle = C.warn; ctx.lineWidth = 2; ctx.beginPath();
+    for (i = 0; i <= 120; i++) { var tt = TMAX * i / 120; if (i === 0) ctx.moveTo(ax2.X(tt), ax2.Y(Math.exp(-tt))); else ctx.lineTo(ax2.X(tt), ax2.Y(Math.exp(-tt))); }
+    ctx.stroke();
+    Lab.label(ctx, '随机模型：e^(−t)', box2.x + box2.w - 8, box2.y + 14, C.warn, 'right', 12.5);
+    Lab.label(ctx, '相邻素数间隙的分布（已按当地平均值归一）', box2.x, box2.y - 12, C.ink2, 'left', 13);
+
+    var common = 0, cc = -1;
+    for (var k in rawGap) { if (rawGap[k] > cc) { cc = rawGap[k]; common = +k; } }
+    out.html(
+      'N = <b>' + Lab.big(N) + '</b>\n' +
+      'π(N) = <b>' + Lab.big(piN) + '</b>\n' +
+      'N/ln N ≈ ' + Lab.big(appr) + '（偏低 ' + Lab.fmt((piN - appr) / piN * 100, 1) + '%）\n' +
+      'Li(N) ≈ ' + Lab.big(L[M]) + '（偏高 ' + Lab.fmt((L[M] - piN) / piN * 100, 2) + '%）\n' +
+      '最大的间隙：<b>' + maxGap + '</b>（' + Lab.big(maxAt) + ' 与 ' + Lab.big(maxAt + maxGap) + ' 之间）\n' +
+      '最常见的间隙：<b>' + common + '</b>\n' +
+      '大于 2 倍平均的间隙：<b>' + Lab.fmt(big / tot * 100, 1) + '%</b>（随机模型预测 13.5%）'
+    );
+  }
+  draw();
+})();
+</script>

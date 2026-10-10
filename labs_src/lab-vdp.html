@@ -1,0 +1,145 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上图是一个"风场"：横轴是位置 $x$，纵轴是速度 $y=\dot x$，每个点上的小短线（带小圆点的一端是前进方向）表示"此刻会往哪个方向流"。几条彩色的轨道正从不同起点出发，顺着风场流动；<b>在图上点一下</b>，就会从那个点再放出一条轨道。</li>
+<li>先看"范德波尔振子"（默认 $\mu=1$）：不管从圆心附近出发、还是从很远的地方出发，轨道最后都盘到<b>同一条闭曲线</b>上——这就是<b>极限环</b>。下图是 $x$ 随时间的变化：最后变成了稳定的、周而复始的振荡。</li>
+<li>拖动 $\mu$：$\mu$ 很小时，极限环几乎是个圆、振幅约 2、周期约 $2\pi\approx6.28$；$\mu$ 变大后，波形变成"缓慢爬升、突然跳变"的锯齿（弛豫振荡），周期随 $\mu$ 变长。读数里写着页面测出的周期与振幅。</li>
+<li>换成"五次 Liénard 系统"：这个例子里有<b>两条</b>闭曲线——里面一条是稳定的（轨道会被它吸住），外面一条是不稳定的（像分水岭）。从外环外面出发的轨道不再回来，会飞向无穷。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>极限环和"圆周运动"最大的区别是：圆周运动（比如无阻尼的弹簧）有无穷多条同心的闭轨道，初始位置决定半径；极限环却是<b>孤立</b>的——附近的轨道都会靠过来（稳定）或离开（不稳定），振幅是系统自己"选"的，与初始条件无关。这正是心跳、电子振荡器、蟋蟀鸣叫能"自己维持节律"的原因。</p>
+<p>五次例子里，里面的稳定极限环大约在 $|x|\approx1$，外面的不稳定极限环大约在 $|x|\approx2$（$\varepsilon$ 小时尤其准确）。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>范德波尔方程是 $\ddot x-\mu(1-x^2)\dot x+x=0$：当 $|x|<1$ 时"阻尼为负"（系统在给自己加能量），$|x|>1$ 时阻尼为正（在耗散能量）。两种效应在某个振幅处刚好抵消，就形成极限环。经典的 Liénard 定理说明：在一些条件下（范德波尔方程满足这些条件），系统有且只有一个极限环，而且是稳定的。更一般的 Liénard 系统 $\dot x=y-F(x),\ \dot y=-x$（$F$ 是多项式）里，极限环最多有几个，是 Hilbert 第 16 问题的一个经典分支。</p>
+<p>Hilbert 第 16 问题的整体问法是：次数为 $n$ 的平面多项式系统，极限环个数有没有一个只依赖 $n$ 的上界？据我所知这仍是公开问题（二次系统也没有解决）。页面下方列出的问题 143，稿件宣称证明了这样的上界存在，并且对经典的五次 Liénard 系统，极限环最多恰好是 2 个。这些是稿件的宣称，需要独立审查；本页的五次例子只是说明"2 个"是能够出现的。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 380), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 170), x2 = c2.ctx;
+  var type = 'vdp', mu = 1, eps = 0.25, speed = 4, trajs = [], yR = 3.2, XR = 3.2, ts = [], tNow = 0, showField = true;
+  var COLS = [Lab.hsl(220, 85, 58), Lab.hsl(12, 85, 58), Lab.hsl(150, 65, 42), Lab.hsl(280, 65, 60), Lab.hsl(40, 90, 50), Lab.hsl(190, 75, 45)];
+  var box = { x: 46, y: 14, w: 580, h: 340 };
+
+  var sT = Lab.select(panel, { label: '系统', value: 'vdp', options: [['vdp', '范德波尔振子：x″ − μ(1−x²)x′ + x = 0'], ['q', '五次 Liénard 系统（有两条闭曲线的例子）']], onChange: function (v) { type = v; sP.el.parentNode.firstChild.innerHTML = v === 'vdp' ? '非线性强度 μ' : '非线性强度 ε × 10'; sP.set(v === 'vdp' ? mu : eps * 10, true); setup(); } });
+  var sP = Lab.slider(panel, { label: '非线性强度 μ', min: 0.05, max: 6, step: 0.05, value: 1, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { if (type === 'vdp') mu = v; else eps = v / 6 * 0.6; setup(); } });
+  var sS = Lab.slider(panel, { label: '播放速度', min: 1, max: 10, step: 1, value: 4, onInput: function (v) { speed = v; } });
+  var ck = Lab.check(panel, { label: '显示风场（小短线）', checked: true, onChange: function (v) { showField = v; draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '重新开始', function () { setup(); }, 'pri');
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：五次系统里，ε 滑块的实际取值是 ε = 滑块值 ÷ 10（0.005~0.6）。ε 越小，两条闭曲线越接近半径 1 和 2 的圆。');
+  Lab.onTheme(draw);
+
+  function deriv(x, y) {
+    if (type === 'vdp') return [y, -x - mu * (x * x - 1) * y];
+    return [y, -x - eps * (-1 + 5 * x * x - 2 * x * x * x * x) * y];
+  }
+  function rk(t, h) {
+    var x = t.x, y = t.y, a = deriv(x, y), b = deriv(x + h / 2 * a[0], y + h / 2 * a[1]), c = deriv(x + h / 2 * b[0], y + h / 2 * b[1]), d = deriv(x + h * c[0], y + h * c[1]);
+    t.x = x + h / 6 * (a[0] + 2 * b[0] + 2 * c[0] + d[0]); t.y = y + h / 6 * (a[1] + 2 * b[1] + 2 * c[1] + d[1]);
+  }
+  function mk(x, y, i) { return { x: x, y: y, trail: [[x, y]], alive: true, col: COLS[i % COLS.length], crossT: [], amp: 0, lastX: x }; }
+  function calibrate() {                         // 先偷偷跑一条，量出极限环有多大，用来定画面范围
+    if (type !== 'vdp') { XR = 3.2; yR = 3.2; return; }
+    var t = { x: 0.05, y: 0 }, k, ym = 0, xm = 0;
+    for (k = 0; k < 14000; k++) { rk(t, 0.01); if (k > 7000) { ym = Math.max(ym, Math.abs(t.y)); xm = Math.max(xm, Math.abs(t.x)); } }
+    yR = Math.max(3, Math.ceil(ym * 1.35)); XR = 3.2;
+  }
+  function setup() {
+    calibrate();
+    var seeds = type === 'vdp' ? [[0.05, 0], [3, 2.2], [-2.8, -1.5], [1, -2.5]] : [[0.05, 0], [1.6, 0], [2.4, 0], [-1.4, 0.5]];
+    trajs = seeds.map(function (s, i) { return mk(s[0], s[1], i); });
+    ts = []; tNow = 0;
+    draw();
+  }
+
+  var loop = Lab.loop(function () {
+    var k, j, t, h = 0.01, n = speed + 2, ref = trajs[0];
+    for (j = 0; j < trajs.length; j++) {
+      t = trajs[j]; if (!t.alive) continue;
+      for (k = 0; k < n; k++) {
+        t.lastX = t.x; rk(t, h);
+        if (!(Math.abs(t.x) < 8 && Math.abs(t.y) < 60)) { t.alive = false; break; }
+        if (t.lastX < 0 && t.x >= 0) { t.crossT.push(tNow + (k + (-t.lastX) / (t.x - t.lastX)) * h); if (t.crossT.length > 6) t.crossT.shift(); }
+        if (Math.abs(t.x) > t.amp) t.amp = Math.abs(t.x);
+      }
+      t.trail.push([t.x, t.y]); if (t.trail.length > 900) t.trail.shift();
+    }
+    tNow += n * h;
+    ts.push([tNow, ref.x]); if (ts.length > 700) ts.shift();
+    draw();
+  }, 60);
+  loop.start();
+
+  function PX(x) { return box.x + (x + XR) / (2 * XR) * box.w; }
+  function PY(y) { return box.y + box.h - (y + yR) / (2 * yR) * box.h; }
+  function draw() {
+    var C = Lab.colors(), i, j, ax, tr, a, b, len;
+    c1.clear(C.card);
+    ax = Lab.axes(x1, box, [-XR, XR], [-yR, yR], { nx: 8, ny: 6, xlabel: '位置 x', ylabel: '速度 y = x′', fx: function (v) { return Lab.fmt(v, 1); }, fy: function (v) { return Lab.fmt(v, 1); } });
+    if (showField) {
+      x1.strokeStyle = C.muted; x1.globalAlpha = 0.55; x1.lineWidth = 1; x1.beginPath();
+      for (i = -7; i <= 7; i++) for (j = -4; j <= 4; j++) {
+        var gx = i * XR / 7.4, gy = j * yR / 4.4, d = deriv(gx, gy);
+        var px = PX(gx), py = PY(gy), dxp = d[0] * (box.w / (2 * XR)), dyp = -d[1] * (box.h / (2 * yR)), L = Math.hypot(dxp, dyp) || 1, sc = 12 / L;
+        x1.moveTo(px - dxp * sc * 0.5, py - dyp * sc * 0.5); x1.lineTo(px + dxp * sc * 0.5, py + dyp * sc * 0.5);
+        x1.moveTo(px + dxp * sc * 0.5 + 1.8, py + dyp * sc * 0.5); x1.arc(px + dxp * sc * 0.5, py + dyp * sc * 0.5, 1.8, 0, Lab.TAU);
+      }
+      x1.stroke(); x1.globalAlpha = 1;
+    }
+    x1.save(); x1.beginPath(); x1.rect(box.x, box.y, box.w, box.h); x1.clip();
+    for (j = 0; j < trajs.length; j++) {
+      tr = trajs[j].trail; len = tr.length;
+      for (i = 0; i < 3; i++) {
+        var s0 = Math.floor(len * i / 3), s1 = Math.min(len, Math.floor(len * (i + 1) / 3) + 1);
+        x1.strokeStyle = trajs[j].alive ? trajs[j].col : C.muted; x1.globalAlpha = 0.25 + 0.35 * i + (i === 2 ? 0.1 : 0); x1.lineWidth = 2;
+        x1.beginPath();
+        for (a = s0; a < s1; a++) { if (a === s0) x1.moveTo(PX(tr[a][0]), PY(tr[a][1])); else x1.lineTo(PX(tr[a][0]), PY(tr[a][1])); }
+        x1.stroke();
+      }
+      x1.globalAlpha = 1;
+      Lab.dot(x1, PX(trajs[j].x), PY(trajs[j].y), 5, trajs[j].alive ? trajs[j].col : C.muted, C.card);
+    }
+    x1.restore();
+    Lab.label(x1, '点击图中任意位置：放出一条新轨道', box.x + 8, box.y + 12, C.muted, 'left', 12.5);
+
+    /* 时间序列 */
+    var b2 = { x: 46, y: 14, w: 580, h: 112 }, t0 = ts.length ? ts[0][0] : 0, t1 = ts.length ? ts[ts.length - 1][0] : 1;
+    c2.clear(C.card);
+    var ax2 = Lab.axes(x2, b2, [t0, Math.max(t1, t0 + 1)], [-XR, XR], { nx: 6, ny: 4, xlabel: '时间 t（第一条轨道的 x 随 t 变化）', fx: function (v) { return Lab.fmt(v, 0); }, fy: function (v) { return Lab.fmt(v, 0); } });
+    x2.save(); x2.beginPath(); x2.rect(b2.x, b2.y, b2.w, b2.h); x2.clip();
+    x2.strokeStyle = COLS[0]; x2.lineWidth = 2; x2.beginPath();
+    for (i = 0; i < ts.length; i++) { if (i === 0) x2.moveTo(ax2.X(ts[i][0]), ax2.Y(ts[i][1])); else x2.lineTo(ax2.X(ts[i][0]), ax2.Y(ts[i][1])); }
+    x2.stroke(); x2.restore();
+
+    /* 读数 */
+    var ref = trajs[0], per = '', s;
+    if (ref && ref.crossT.length >= 3) {
+      var p1 = ref.crossT[ref.crossT.length - 1] - ref.crossT[ref.crossT.length - 2], p0 = ref.crossT[ref.crossT.length - 2] - ref.crossT[ref.crossT.length - 3];
+      per = '最近一圈的周期 ≈ ' + Lab.fmt(p1, 3) + (Math.abs(p1 - p0) < 0.01 ? '（已经稳定下来了）' : '（还在变化）');
+    }
+    s = (type === 'vdp' ? 'μ = ' + Lab.fmt(mu, 2) : 'ε = ' + Lab.fmt(eps, 3)) + '\n' + per;
+    if (ref) s += '\n第一条轨道目前的最大 |x| ≈ ' + Lab.fmt(ref.amp, 2) + (type === 'vdp' ? '（μ 小时极限环的 |x| 约 2）' : '');
+    var dead = trajs.filter(function (t) { return !t.alive; }).length;
+    if (type === 'q') s += '\n共 ' + trajs.length + ' 条轨道，其中 ' + dead + ' 条已经逃向无穷（灰色）';
+    if (type === 'vdp') s += '\n参考：μ → 0 时周期 → 2π ≈ 6.283；μ 很大时周期约为 (3 − 2ln2)·μ ≈ 1.614μ。';
+    out.html(s);
+  }
+
+  c1.cv.addEventListener('click', function (e) {
+    var p = c1.pos(e);
+    if (p.x < box.x || p.x > box.x + box.w || p.y < box.y || p.y > box.y + box.h) return;
+    var x = (p.x - box.x) / box.w * 2 * XR - XR, y = -((p.y - box.y) / box.h * 2 * yR - yR);
+    trajs.push(mk(x, y, trajs.length)); if (trajs.length > 12) trajs.splice(1, 1);
+  });
+  setup();
+})();
+</script>

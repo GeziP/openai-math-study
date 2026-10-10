@@ -1,0 +1,144 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上面的圆盘像一个有 $p$ 个刻度的钟，刻度是余数 $0,1,\dots,p-1$。从 1 出发，每一步<b>乘以 $a$ 再取余数</b>：$1\to a\to a^2\to a^3\to\cdots\pmod p$。彩色折线就是你走过的路线，颜色由蓝到红表示步数越来越多。</li>
+<li>默认的 $p=7,\ a=3$：依次走到 $3,2,6,4,5$ 再回到 1，把所有非零余数都走遍了，所以 3 是 7 的<b>原根</b>。把 $a$ 改成 2，只走 $2,4,1$ 三步就回家了——2 不是 7 的原根。</li>
+<li>拖动 $p$ 换不同的钟，改 $a$ 试试 2、3、5、10。有的钟能被走遍，有的不能。</li>
+<li>下面的曲线是更大的实验：对所有素数 $3\le p\le N$ 都试一遍，统计"$a$ 是原根"的素数所占的比例（蓝紫线）。橙色虚线是"把 $a$ 当随机元素"的理论预期，灰色点线是阿廷常数。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>起初曲线抖得厉害（素数少），但随着 $N$ 变大，蓝紫线会稳稳地落在 37% 上下，并且紧紧贴着橙色虚线——也就是说，"$a$ 是不是模 $p$ 的原根"的表现，很像一个随机元素。换成 $a=4$（完全平方数）会掉到 0%：平方数永远走不遍。换成 $a=5$，比例会略高于其他 $a$，约 39%，这是一个有趣的小修正（见下）。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>$a$ 是模 $p$ 的原根，当且仅当 $a$ 的幂恰好在 $p-1$ 步后才第一次回到 1。判断的捷径：对 $p-1$ 的每个素因子 $q$，检查 $a^{(p-1)/q}\not\equiv1\pmod p$，这正是本页统计时用的方法。</p>
+<p>阿廷（Artin）在 1927 年猜想：只要 $a$ 不是 $-1$ 也不是完全平方数，就有<b>无穷多个</b>素数 $p$ 以 $a$ 为原根，并且占全体素数的比例是一个固定的数：$A=\prod_q\bigl(1-\frac1{q(q-1)}\bigr)\approx0.3740$（对多数 $a$）。对 $a\equiv1\pmod 4$ 且无平方因子的 $a$（如 5、13），比例要乘一个小的修正因子，$a=5$ 时约为 $0.394$。这个猜想在广义黎曼假设下由 Hooley 证明；无条件的结果长期只能覆盖很少的 $a$。页面下方列出的问题 029，稿件宣称无条件地对每个整数 $a$ 证明了"无穷多个"，这需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 400), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 290), x2 = c2.ctx;
+  var ARTIN = 0.3739558136;
+
+  /* ---------- 预处理：小素数、最小素因子、每个素数 p 的 p-1 的素因子 ---------- */
+  var MAXN = 1000000, sv = Lab.sieve(MAXN), spf = new Int32Array(MAXN + 1), i, j;
+  for (i = 2; i <= MAXN; i++) if (!spf[i]) for (j = i; j <= MAXN; j += i) if (!spf[j]) spf[j] = i;
+  var PR = [], facStart = [], facs = [], cumRat = [];
+  var acc = 0;
+  for (i = 3; i <= MAXN; i += 2) if (sv[i]) {
+    PR.push(i); facStart.push(facs.length);
+    var m = i - 1, rat = 1;
+    while (m > 1) { var q = spf[m]; facs.push(q); rat *= (1 - 1 / q); while (m % q === 0) m = m / q; }
+    acc += rat; cumRat.push(acc);
+  }
+  facStart.push(facs.length);
+  function pw(b, e, md) { var r = 1; b %= md; while (e > 0) { if (e & 1) r = (r * b) % md; b = (b * b) % md; e = Math.floor(e / 2); } return r; }
+  function logIdx(x) {                       // 小于等于 x 的素数个数（PR 中的下标上界）
+    var lo = 0, hi = PR.length;
+    while (lo < hi) { var mid = (lo + hi) >> 1; if (PR[mid] <= x) lo = mid + 1; else hi = mid; }
+    return lo;
+  }
+  var cumHit = null, hitBase = 0;
+  function computeHits(a) {
+    cumHit = new Int32Array(PR.length); var h = 0, k, t;
+    for (k = 0; k < PR.length; k++) {
+      var p = PR[k], r = a % p, ok = r !== 0;
+      for (t = facStart[k]; ok && t < facStart[k + 1]; t++) if (pw(r, (p - 1) / facs[t], p) === 1) ok = false;
+      if (ok) h++;
+      cumHit[k] = h;
+    }
+    hitBase = a;
+  }
+
+  /* ---------- 控件 ---------- */
+  var DP = []; (function () { var s = Lab.sieve(200); for (var k = 3; k <= 199; k += 2) if (s[k]) DP.push(k); })();
+  var sP = Lab.slider(panel, { label: '圆盘的模数 p（素数）', min: 0, max: DP.length - 1, step: 1, value: DP.indexOf(7), fmt: function (v) { return 'p = ' + DP[v]; }, onInput: function () { drawDial(); } });
+  var nA = Lab.number(panel, { label: '底数 a（正整数，2 ~ 1000）', min: 2, max: 1000, value: 3, onInput: function () { update(); } });
+  var sN = Lab.slider(panel, { label: '统计的素数范围 3 ≤ p ≤ N', min: 2, max: 6, step: 0.05, value: 6, fmt: function (v) { return Lab.big(Math.pow(10, v)); }, onInput: function () { drawChart(); } });
+  var out1 = Lab.out(panel), out2 = Lab.out(panel);
+  Lab.legend(stage, [[Lab.hsl(250, 80, 60), '实际：a 是原根的素数所占比例'], [Lab.hsl(30, 90, 55), '随机模型'], ['#888', '阿廷常数 0.3740']]);
+  Lab.onTheme(function () { drawDial(); drawChart(); });
+
+  function A() { var v = Math.round(nA.get()); return v >= 2 ? Math.min(v, 1000) : 2; }
+  function update() { if (hitBase !== A()) computeHits(A()); drawDial(); drawChart(); }
+
+  /* ---------- 圆盘 ---------- */
+  function drawDial() {
+    var C = Lab.colors(), p = DP[sP.get()], a = A(), cx = 320, cy = 200, R = 150, ang;
+    c1.clear(C.card);
+    function P(r) { ang = -Math.PI / 2 + Lab.TAU * r / p; return [cx + R * Math.cos(ang), cy + R * Math.sin(ang)]; }
+    x1.strokeStyle = C.line; x1.lineWidth = 1; x1.beginPath(); x1.arc(cx, cy, R, 0, Lab.TAU); x1.stroke();
+    var r0 = a % p, seq = [1], x = r0;
+    if (r0 !== 0) { while (x !== 1 && seq.length < p) { seq.push(x); x = (x * a) % p; } }
+    var ord = r0 === 0 ? 0 : seq.length, vis = {}, k;
+    seq.forEach(function (v) { vis[v] = true; });
+    if (r0 !== 0) {
+      x1.lineWidth = p > 80 ? 1.1 : 1.8;
+      for (k = 0; k < ord; k++) {
+        var s0 = P(seq[k]), s1 = P(seq[(k + 1) % ord]);
+        x1.strokeStyle = Lab.hsl(230 - 230 * k / Math.max(1, ord), 80, 58, 0.85);
+        x1.beginPath(); x1.moveTo(s0[0], s0[1]); x1.lineTo(s1[0], s1[1]); x1.stroke();
+      }
+    }
+    for (var r = 0; r < p; r++) {
+      var pt = P(r), big = p <= 60;
+      if (vis[r] && r0 !== 0) { var kk = seq.indexOf(r); Lab.dot(x1, pt[0], pt[1], big ? 5 : 3, Lab.hsl(230 - 230 * kk / Math.max(1, ord), 80, 58), C.card); }
+      else Lab.dot(x1, pt[0], pt[1], big ? 3.2 : 1.8, C.muted);
+      if (p <= 37 || r === 0 || r === 1) {
+        var lx = cx + (R + 18) * Math.cos(ang), ly = cy + (R + 18) * Math.sin(ang);
+        Lab.label(x1, String(r), lx, ly, r === 1 ? C.accentInk : C.ink2, 'center', r === 1 ? 14 : 12);
+      }
+    }
+    Lab.label(x1, '起点 1', cx, cy - 6, C.accentInk, 'center', 12.5);
+    Lab.label(x1, 'p = ' + p + '，a = ' + a, cx, cy + 14, C.ink, 'center', 15);
+    // 读数
+    var root = r0 !== 0 && ord === p - 1, lst = seq.slice(1, 13).concat(seq.length > 13 ? ['…'] : []);
+    var prim = 0, g;
+    for (g = 2; g < p; g++) { var o = 1, y = g; while (y !== 1) { y = y * g % p; o++; } if (o === p - 1) prim++; }
+    if (p === 3) prim = 1;
+    out1.html(
+      r0 === 0 ? '<span class="no">a 是 p 的倍数，a 的幂永远是 0，谈不上"回到 1"。</span>' :
+      'a 的幂依次是：<b>' + (seq.length > 1 ? seq.slice(1, 13).join(', ') + (seq.length > 13 ? ', …' : '') + ', 1' : '1') + '</b>\n' +
+      'a 在模 p 下的"周期"（阶）= <b>' + ord + '</b>；p − 1 = ' + (p - 1) + '\n' +
+      (root ? '<span class="ok">a 是模 ' + p + ' 的原根 ✓</span>' : '<span class="no">a 不是原根</span>（只走了 ' + ord + ' 个点）') + '\n' +
+      '模 ' + p + ' 共有 ' + prim + ' 个原根（=φ(' + (p - 1) + ')）'
+    );
+  }
+
+  /* ---------- 比例曲线 ---------- */
+  function drawChart() {
+    if (!cumHit) return;
+    var C = Lab.colors(), a = A(), xm = sN.get(), N = Math.pow(10, xm), cnt = logIdx(N), t;
+    c2.clear(C.card);
+    var box = { x: 64, y: 28, w: 556, h: 200 };
+    var ax = Lab.axes(x2, box, [1, xm], [0, 0.8], { nx: 5, ny: 4, fx: function (v) { return '10^' + Lab.fmt(v, 1); }, fy: function (v) { return Lab.fmt(100 * v, 0) + '%'; }, xlabel: '素数范围 p ≤ x（对数刻度）', ylabel: '所占比例' });
+    Lab.label(x2, '"a = ' + a + '" 是原根的素数所占的比例', box.x, 12, C.ink2, 'left', 13);
+    x2.setLineDash([2, 4]); Lab.line(x2, ax.X(1), ax.Y(ARTIN), ax.X(xm), ax.Y(ARTIN), C.muted, 1.6); x2.setLineDash([]);
+    function curve(f, color, dash, lw) {
+      x2.strokeStyle = color; x2.lineWidth = lw; x2.setLineDash(dash || []); x2.beginPath();
+      var first = true;
+      for (t = 1.0; t <= xm + 1e-9; t += 0.01) {
+        var n = logIdx(Math.pow(10, t)); if (n < 1) continue;
+        var px = ax.X(t), py = ax.Y(f(n - 1, n));
+        if (first) { x2.moveTo(px, py); first = false; } else x2.lineTo(px, py);
+      }
+      x2.stroke(); x2.setLineDash([]);
+    }
+    curve(function (k, n) { return cumRat[k] / n; }, Lab.hsl(30, 90, 55), [6, 4], 1.8);
+    curve(function (k, n) { return cumHit[k] / n; }, Lab.hsl(250, 80, 62), null, 2.1);
+    var hits = cumHit[cnt - 1], mean = cumRat[cnt - 1] / cnt, isSq = Math.pow(Math.round(Math.sqrt(a)), 2) === a;
+    out2.html(
+      '3 ≤ p ≤ ' + Lab.big(N) + ' 的素数共 <b>' + Lab.big(cnt) + '</b> 个\n' +
+      'a = ' + a + ' 是原根的有 <b>' + Lab.big(hits) + '</b> 个，占 <b>' + Lab.fmt(100 * hits / cnt, 2) + '%</b>\n' +
+      '随机模型的预期：' + Lab.fmt(100 * mean, 2) + '%；阿廷常数：' + Lab.fmt(100 * ARTIN, 2) + '%' +
+      (isSq ? '\n<span class="hi">a 是完全平方数，永远不会是原根（阿廷猜想已把这种 a 排除在外）。</span>' : '')
+    );
+  }
+  nA.set(3, true); update();
+})();
+</script>

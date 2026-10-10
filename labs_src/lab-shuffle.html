@@ -1,0 +1,212 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上图最上面一行是排好序的牌：每张牌一种颜色，从红到紫依次排开；下面几行是页面打开时替你洗好的前 4 次。点"洗一次"，再多一行，就是又洗了一次之后的牌序；点"重新排好"回到起点。<b>Thorp 洗牌</b>的规矩是：把牌分成上下两半，把上半第 $i$ 张和下半第 $i$ 张配成一对，每一对抛一枚硬币决定谁在前、谁在后，依次放进新牌堆。（另一个选项是大家更熟悉的"拉链式洗牌"：先随机切成两叠，再像拉链一样随机交错。）</li>
+<li>反复点"洗一次"，看彩虹是怎样一步步碎成噪点的。右边的数字是"<b>原邻居对数</b>"：原来紧挨着的两张牌（编号相邻、顺序不变）现在还有几对紧挨着。刚排好时是 $N-1$ 对；完全随机的牌序里平均约 1 对。</li>
+<li>下方的图可以切换两种"看法"。第一种画的是<b>全变差距离</b>——"现在的牌序分布离完全随机还有多远"（1 = 一眼就能认出不是随机，0 = 完全分不出）。8 张牌的 Thorp 洗牌是精确算出来的（把 $8!=40320$ 种牌序的概率逐次算一遍）。</li>
+<li>第二种看法：四条曲线对应 16、64、256、1024 张牌（每次乘 4），横轴是洗牌次数，纵轴是"原邻居对数"的平均值（对数刻度，每格翻 4 倍）。看看牌数乘 4 的时候，曲线是不是只是整体向右平移了一小段？切换上面的"洗牌方式"，再比较一次。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>第一张图（精确计算，不是模拟）。</b>52 张牌的拉链式洗牌：洗 1～4 次，距离四舍五入后仍是 1.000——和没洗差不多；洗 5 次降到 0.924，6 次 0.614，7 次 0.334，8 次 0.167，9 次 0.085，往后<b>每多洗一次，距离大约减半</b>（约 0.043、0.022、0.011）。8 张牌的 Thorp 洗牌慢得多：1、2、3、4、5 次分别是 0.9996、0.994、0.898、0.537、0.203，要到第 7 次才降到 0.063；同样是 8 张牌，拉链式洗牌第 3 次就到 0.335，第 5 次到 0.092。道理很朴素：Thorp 每次只抛 $N/2$ 枚硬币，拉链式洗牌每次抛 $N$ 枚，随机性的"进货"少了一半。</p>
+<p><b>第二张图。</b>点"洗一次"，看每行右边的数字，换成第二种图再比较。先看 Thorp 洗牌：原邻居对数每洗一次大约<b>除以 4</b>（$N=1024$ 时平均约为 1023 → 255 → 63 → 16 → 3.8），而且<b>比完全随机的牌堆还要少</b>：$N=1024$ 从第 7 次起，平均不到 0.05 对原邻居——几乎一对也没有，曲线贴在图的底部。洗到恰好 $\log_2N$ 次（图中竖虚线的位置）时它又弹回到约 1.4，再多洗一次，就稳稳落在随机水平（约 1）。牌数每乘 4，这一整套"下沉—回弹—落定"就右移 2 次：$N=16,64,256,1024$ 时，"从此和随机牌堆没区别"的起点依次是第 5、7、9、11 次，即 $\log_2N+1$ 次。拉链式洗牌就温和得多：每洗一次，原邻居对数大约<b>减半</b>，没有下沉和回弹。（每个点是 300 副牌的平均，所以小于 0.2 左右的差别是抽样噪声。）</p>
+<p><b>统计量会骗人。</b>$N=1024$ 的 Thorp 洗牌，洗 11 次之后，"原邻居对数"已经和随机牌堆没有区别了。可是 11 次一共只用了 $512\times11=5632$ 个比特的随机性，最多只能产生 $2^{5632}$ 种不同的结果，而 $1024!\approx2^{8769}$。能到达的牌序只占全部牌序的 $2^{-3137}$——此刻的牌堆离完全随机还差得很远（全变差距离几乎是 1），只是这个特定的指标看不出来。信息量的下限要求至少洗 $\lceil8769/512\rceil=18$ 次。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>Thorp 洗牌是个"移位寄存器"。</b>设 $N=2^d$，把每个位置写成 $d$ 位二进制数。Thorp 一次洗牌，把位置 $p$ 的牌送到 $2(p\bmod N/2)$ 或 $2(p\bmod N/2)+1$：也就是把二进制位整体左移一位，最高位被挤出去，最低位补上一个新的随机位（每对牌共用一枚硬币，所以一对牌补上的是相反的两个位）。这就解释了第二张图：两张原来相邻的牌，洗 $t$ 次后位置相差约 $2^t$，要重新紧挨着只能靠硬币"凑"出来，概率每次约除以 4；直到旧的位置信息被全部移出去（$t\ge\log_2N$），才开始像随机牌堆。这也说明了为什么"至少需要 $\Omega(\log N)$ 次"是直观的。</p>
+<p><b>拉链式洗牌</b>有一个漂亮的精确公式（Bayer–Diaconis，1992）：洗 $t$ 次相当于做一次"$a=2^t$ 路洗牌"，得到某个牌序 $\pi$ 的概率只依赖于 $\pi$ 的"上升段"个数 $r$：$\binom{a+N-r}{N}/a^N$；把它和均匀分布 $1/N!$ 比较，再按欧拉数分组求和，就是第一张图里 8 张牌与 52 张牌的曲线（我用 $N=4$ 的全部牌序穷举验算过这个公式）。52 张牌洗 7 次是距离首次降到 0.5 以下的次数，也是"洗 7 次就够了"这句话的来历；若要求降到 0.1 以下，需要 9 次。这条曲线在 4 次之前几乎不动、5～8 次陡降、之后每次减半，这种"先不动、突然掉下来"的形状叫<b>截止现象</b>，据我所知，已经证明拉链式洗牌的分界线在 $\tfrac32\log_2N$ 次附近。</p>
+<p>页面下方列出的问题 238，稿件宣称：对 $N=2^d$ 张牌的 Thorp 洗牌，洗 $\Theta(\log N)$ 次就足以让整副牌的分布与完全随机的距离很小（对最坏的起始牌序也成立）。下界是容易的：上面的信息量论证给出约 $2\log_2N$ 次。难的是上界：据我所知，此前最好的结果是 $\log N$ 的某个较高次幂（约 $(\log N)^{44}$，Morris，2009）。这是稿件的宣称，需要独立审查；页面里的精确计算只覆盖 8 张牌，第二张图也只是一个统计量，它们帮你建立直觉，但并不能验证这条宣称。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 292), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 270), x2 = c2.ctx;
+  var N = 32, method = 'thorp', rows = [], view = 'tv', MAXR = 13, exactTV = null, succ = {}, busy = false;
+
+  /* ---------- 两种洗牌 ---------- */
+  function thorp(d) {
+    var n = d.length, h = n / 2, e = new Array(n), i, b;
+    for (i = 0; i < h; i++) { b = Math.random() < 0.5; e[2 * i] = b ? d[i] : d[i + h]; e[2 * i + 1] = b ? d[i + h] : d[i]; }
+    return e;
+  }
+  function riffle(d) {
+    var n = d.length, f = [], k = 0, i, a = 0, b, e = new Array(n);
+    for (i = 0; i < n; i++) { f.push(Math.random() < 0.5); if (f[i]) k++; }
+    b = k;
+    for (i = 0; i < n; i++) e[i] = f[i] ? d[a++] : d[b++];
+    return e;
+  }
+  function shuffleOnce(d) { return method === 'thorp' ? thorp(d) : riffle(d); }
+  function successions(d) { var c = 0, i; for (i = 0; i + 1 < d.length; i++) if (d[i + 1] === d[i] + 1) c++; return c; }
+  function fresh() { var d = [], i; for (i = 0; i < N; i++) d.push(i); rows = [d]; }
+
+  /* ---------- 精确：8 张牌的 Thorp 洗牌 ---------- */
+  function thorpExact(T) {
+    var n = 8, F = [1, 1, 2, 6, 24, 120, 720, 5040, 40320], S = 40320, nxt = new Int32Array(16 * S), P = new Float64Array(S), Q = new Float64Array(S), tv = [], d, e = new Array(8), s, c, i, t, b, tmp, sum, p16, avail;
+    function rank(x) { var r = 0, a, bb, k; for (a = 0; a < n; a++) { k = 0; for (bb = a + 1; bb < n; bb++) if (x[bb] < x[a]) k++; r += k * F[n - 1 - a]; } return r; }
+    for (s = 0; s < S; s++) {
+      avail = [0, 1, 2, 3, 4, 5, 6, 7]; d = []; t = s;
+      for (i = 0; i < n; i++) { b = (t / F[n - 1 - i]) | 0; t -= b * F[n - 1 - i]; d.push(avail.splice(b, 1)[0]); }
+      for (c = 0; c < 16; c++) {
+        for (i = 0; i < 4; i++) { b = (c >> i) & 1; e[2 * i] = b ? d[i] : d[i + 4]; e[2 * i + 1] = b ? d[i + 4] : d[i]; }
+        nxt[c * S + s] = rank(e);
+      }
+    }
+    P[0] = 1;                                   /* 排好序的牌序，Lehmer 编号为 0 */
+    for (t = 1; t <= T; t++) {
+      Q.fill(0);
+      for (s = 0; s < S; s++) { if (P[s] === 0) continue; p16 = P[s] / 16; for (c = 0; c < 16; c++) Q[nxt[c * S + s]] += p16; }
+      tmp = P; P = Q; Q = tmp; sum = 0;
+      for (s = 0; s < S; s++) sum += Math.abs(P[s] - 1 / S);
+      tv.push(sum / 2);
+    }
+    return tv;
+  }
+  /* ---------- 拉链式洗牌的全变差距离（Bayer–Diaconis 公式） ---------- */
+  function riffleTV(n, t) {
+    var a = Math.pow(2, t), lf = [0], k, E = [[1]], r, row, prev, sum = 0, u, lc, p;
+    for (k = 1; k <= n + a + 2; k++) lf.push(lf[k - 1] + Math.log(k));
+    for (k = 1; k < n; k++) {                    /* 欧拉数：E[k][j] = 有 j 个下降的 k+1 阶排列数 */
+      prev = E[k - 1]; row = [];
+      for (r = 0; r <= k; r++) row.push((prev[r] ? (r + 1) * prev[r] : 0) + (r > 0 ? (k + 1 - r) * prev[r - 1] : 0));
+      E.push(row);
+    }
+    row = E[n - 1]; u = Math.exp(-lf[n]);
+    for (r = 1; r <= n; r++) {                   /* 有 r 个"上升段"的排列有 row[r-1] 个 */
+      if (a < r) p = 0; else { lc = lf[a + n - r] - lf[n] - lf[a - r]; p = Math.exp(lc - n * Math.log(a)); }
+      sum += row[r - 1] * Math.abs(p - u);
+    }
+    return sum / 2;
+  }
+  function riffleCurve(n, T) { var out = [], t; for (t = 1; t <= T; t++) out.push(riffleTV(n, t)); return out; }
+
+  /* ---------- "原邻居对数"的平均值 ---------- */
+  function succCurve(n, T, K, meth) {
+    var out = [], sums = new Float64Array(T + 1), k, t, d, i;
+    for (k = 0; k < K; k++) {
+      d = []; for (i = 0; i < n; i++) d.push(i);
+      sums[0] += n - 1;
+      for (t = 1; t <= T; t++) { d = meth === 'thorp' ? thorp(d) : riffle(d); sums[t] += successions(d); }
+    }
+    for (t = 0; t <= T; t++) out.push(sums[t] / K);
+    return out;
+  }
+
+  /* ---------- 控件 ---------- */
+  var sM = Lab.select(panel, { label: '洗牌方式', value: 'thorp', options: [['thorp', 'Thorp 洗牌（对折配对 + 抛硬币）'], ['riffle', '拉链式洗牌（随机切牌 + 随机交错）']], onChange: function (v) { method = v; fresh(); succ = {}; draw(); } });
+  var sN = Lab.select(panel, { label: '牌数 N', value: '32', options: [['16', '16 张'], ['32', '32 张'], ['64', '64 张']], onChange: function (v) { N = +v; fresh(); draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '洗一次', function () { if (rows.length < MAXR) { rows.push(shuffleOnce(rows[rows.length - 1])); draw(); } }, 'pri');
+  Lab.button(row, '一口气洗满 12 次', function () { while (rows.length < MAXR) rows.push(shuffleOnce(rows[rows.length - 1])); draw(); });
+  Lab.button(row, '重新排好', function () { fresh(); draw(); });
+  var sV = Lab.select(panel, { label: '下面的图显示', value: 'tv', options: [['tv', '离完全随机还有多远（全变差距离）'], ['succ', '原邻居对数随洗牌次数下降']], onChange: function (v) { view = v; draw(); } });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：全变差距离那张图里，8 张牌的 Thorp 洗牌是对全部 40320 种牌序精确计算的，第一次打开需要等一小会儿。');
+  Lab.onTheme(function () { draw(); });
+
+  /* ---------- 画图 ---------- */
+  function drawDeck() {
+    var C = Lab.colors(), dark = Lab.isDark(), x0 = 52, w = 480, h = 17, y0 = 14, r, i, cw = w / N, d, t, s;
+    c1.clear(C.card);
+    for (r = 0; r < rows.length; r++) {
+      d = rows[r];
+      for (i = 0; i < N; i++) { x1.fillStyle = Lab.hsl(300 * d[i] / N, 78, dark ? 58 : 52); x1.fillRect(x0 + i * cw + 0.5, y0 + r * (h + 2), cw - 1, h); }
+      Lab.label(x1, r === 0 ? '排好序' : '洗 ' + r + ' 次', x0 - 8, y0 + r * (h + 2) + h / 2, C.ink2, 'right', 11.5);
+      s = successions(d);
+      Lab.label(x1, String(s), x0 + w + 12, y0 + r * (h + 2) + h / 2, s > 1.5 ? C.ink : C.good, 'left', 12);
+    }
+    Lab.label(x1, '原邻居对数', x0 + w + 12, 8, C.muted, 'left', 11);
+    Lab.label(x1, '每一行是一副牌（同一种颜色 = 同一张牌）；向下一行 = 再洗一次', 320, 282, C.muted, 'center', 12);
+  }
+  function drawChart() {
+    var C = Lab.colors(), box = { x: 62, y: 14, w: 560, h: 200 }, ax, k, t, arr, col, nm, vals, i, T = 12, yv, ys;
+    c2.clear(C.card);
+    if (view === 'tv') {
+      ax = Lab.axes(x2, box, [0.5, 12.5], [0, 1.05], { xticks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], yticks: [0, 0.25, 0.5, 0.75, 1], fx: function (v) { return String(Math.round(v)); }, fy: function (v) { return Lab.fmt(v, 2); }, xlabel: '洗牌次数', ylabel: '离完全随机有多远（全变差距离）' });
+      if (!exactTV) { Lab.label(x2, '正在精确计算 8 张牌的 Thorp 洗牌……', box.x + box.w / 2, box.y + box.h / 2, C.ink2, 'center', 13.5); return; }
+      var series = [
+        ['Thorp 洗牌，8 张牌（精确）', exactTV, C.accent],
+        ['拉链式洗牌，8 张牌（精确）', riffleCurve(8, T), C.good],
+        ['拉链式洗牌，52 张牌（精确）', riffleCurve(52, T), C.warn]
+      ];
+      series.forEach(function (s, idx) {
+        x2.strokeStyle = s[2]; x2.lineWidth = 2; x2.beginPath();
+        for (t = 0; t < T; t++) { if (t === 0) x2.moveTo(ax.X(t + 1), ax.Y(s[1][t])); else x2.lineTo(ax.X(t + 1), ax.Y(s[1][t])); }
+        x2.stroke();
+        for (t = 0; t < T; t++) Lab.dot(x2, ax.X(t + 1), ax.Y(s[1][t]), 3.4, s[2], C.card);
+        Lab.dot(x2, box.x + box.w - 196, box.y + 14 + idx * 18, 4, s[2]);
+        Lab.label(x2, s[0], box.x + box.w - 186, box.y + 14 + idx * 18, C.ink, 'left', 12);
+      });
+      out.html(tvText(series));
+    } else {
+      var Ns = [16, 64, 256, 1024], cols = [C.accent, C.good, C.warn, C.bad], T2 = 16, floor = 0.05;
+      ax = Lab.axes(x2, box, [-0.5, T2 + 0.5], [Math.log(floor) / Math.LN2, 10.4], { xticks: [0, 2, 4, 6, 8, 10, 12, 14, 16], yticks: [Math.log(floor) / Math.LN2, 0, 2, 4, 6, 8, 10], fx: function (v) { return String(Math.round(v)); }, fy: function (v) { return v < -3 ? '0' : Lab.big(Math.round(Math.pow(2, v))); }, xlabel: '洗牌次数', ylabel: '原邻居对数（平均，对数刻度）' });
+      x2.setLineDash([5, 4]); Lab.line(x2, ax.X(-0.5), ax.Y(0), ax.X(T2 + 0.5), ax.Y(0), C.muted, 1.3); x2.setLineDash([]);
+      Lab.label(x2, '完全随机的牌堆里约为 1', box.x + box.w - 8, ax.Y(0) - 9, C.muted, 'right', 11.5);
+      Ns.forEach(function (n, idx) {
+        var key = method + n, cv = succ[key], ex;
+        if (!cv) return;
+        if (method === 'thorp') { x2.setLineDash([2, 4]); Lab.line(x2, ax.X(Math.log(n) / Math.LN2), box.y, ax.X(Math.log(n) / Math.LN2), box.y + box.h, cols[idx], 1.2); x2.setLineDash([]); }
+        x2.strokeStyle = cols[idx]; x2.lineWidth = 2; x2.beginPath();
+        for (t = 0; t <= T2; t++) { ex = Math.max(floor, cv[t]); yv = Math.log(ex) / Math.LN2; if (t === 0) x2.moveTo(ax.X(t), ax.Y(yv)); else x2.lineTo(ax.X(t), ax.Y(yv)); }
+        x2.stroke();
+        for (t = 0; t <= T2; t++) { ex = Math.max(floor, cv[t]); Lab.dot(x2, ax.X(t), ax.Y(Math.log(ex) / Math.LN2), 3, cols[idx], C.card); }
+        Lab.dot(x2, box.x + box.w - 78, box.y + 14 + idx * 18, 4, cols[idx]);
+        Lab.label(x2, n + ' 张牌', box.x + box.w - 68, box.y + 14 + idx * 18, C.ink, 'left', 12);
+      });
+      Lab.label(x2, '贴着底部 = 平均一对也没有', box.x + 8, box.y + box.h - 8, C.muted, 'left', 11.5);
+      if (method === 'thorp') Lab.label(x2, '竖虚线：洗牌次数 = log₂N（各色对应各自的牌数）', box.x + box.w - 8, box.y + box.h - 8, C.muted, 'right', 11.5);
+      if (!succ[method + 16]) Lab.label(x2, '正在计算……', box.x + box.w / 2, box.y + box.h / 2, C.ink2, 'center', 13.5);
+      out.html(succText());
+    }
+  }
+  function tvText(series) {
+    var t, s = '', pick = [3, 5, 7, 9, 11], first = [];
+    s += '全变差距离（洗了 3 / 5 / 7 / 9 / 11 次之后）：\n';
+    series.forEach(function (x) {
+      s += x[0].replace('（精确）', '') + '：' + pick.map(function (p) { return Lab.fmt(x[1][p - 1], 3); }).join(' / ') + '\n';
+      for (t = 0; t < x[1].length; t++) if (x[1][t] < 0.5) break;
+      first.push(t < x[1].length ? '第 ' + (t + 1) + ' 次' : '>12 次');
+    });
+    s += '首次降到 0.5 以下：' + first.join(' / ') + '（依次对应上面三行）\n';
+    return s + '信息量下限：8 张牌有 8! ≈ 2^15.3 种牌序，Thorp 洗牌每次只用 4 个硬币（4 比特），所以至少要洗 4 次。';
+  }
+  function succText() {
+    var n, s = '', key, cv, t, hit, last;
+    s += (method === 'thorp' ? 'Thorp 洗牌' : '拉链式洗牌') + '：洗够多少次之后，原邻居对数就一直和随机牌堆差不多（相差不到 0.2）？\n';
+    [16, 64, 256, 1024].forEach(function (nn) {
+      cv = succ[method + nn]; if (!cv) return; last = -1;
+      for (t = 0; t < cv.length; t++) if (Math.abs(cv[t] - (nn - 1) / nn) >= 0.2) last = t;
+      s += '  N = ' + nn + '（log₂N = ' + Math.round(Math.log(nn) / Math.LN2) + '）：从第 ' + (last + 1) + ' 次起\n';
+    });
+    var bits = 0, kk; for (kk = 2; kk <= N; kk++) bits += Math.log(kk) / Math.LN2;
+    return s + '\n对当前的 N = ' + N + '：信息量下限是 ' + (method === 'thorp' ? '⌈' + Lab.fmt(bits / (N / 2), 1) + '⌉ = ' + Math.ceil(bits / (N / 2)) : '⌈' + Lab.fmt(bits / N, 1) + '⌉ = ' + Math.ceil(bits / N)) + ' 次';
+  }
+  function draw() {
+    drawDeck();
+    drawChart();
+    if (view === 'succ' && !busy) ensureSucc();
+    if (view === 'tv' && !exactTV && !busy) ensureExact();
+  }
+  function ensureExact() {
+    busy = true;
+    setTimeout(function () { exactTV = thorpExact(12); busy = false; draw(); }, 30);
+  }
+  function ensureSucc() {
+    var m = method, missing = [16, 64, 256, 1024].filter(function (n) { return !succ[m + n]; });
+    if (!missing.length) return;
+    busy = true;
+    setTimeout(function () {
+      missing.forEach(function (n) { succ[m + n] = succCurve(n, 16, 300, m); });
+      busy = false; draw();
+    }, 30);
+  }
+
+  fresh(); (function () { var q; for (q = 0; q < 4; q++) rows.push(shuffleOnce(rows[rows.length - 1])); })(); draw();
+})();
+</script>

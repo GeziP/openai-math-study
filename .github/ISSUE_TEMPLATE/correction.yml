@@ -1,0 +1,46 @@
+name: 报告问题 / 纠错
+description: 讲错了、讲得不清楚、链接失效、公式或页面显示异常？告诉我们。
+title: "[纠错] "
+labels: ["correction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        谢谢你帮忙！本站的指导由 AI 辅助撰写，**没有人工逐篇审校**，读者的反馈非常重要。
+
+        如果问题出在**论文本身**（而不是本站的讲解），请直接到上游 [openai/math](https://github.com/openai/math) 查看对应文件。
+  - type: input
+    id: page
+    attributes:
+      label: 哪个页面？
+      description: 粘贴网址，或写问题编号（如 032）。从页面底部点“报告问题”进来，这里会自动填好。
+      placeholder: 例如 p/032.html
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 是哪一类问题？
+      options:
+        - 讲得不对 / 有错误
+        - 讲得不清楚 / 太难懂
+        - 链接失效
+        - 公式或页面显示异常
+        - 互动实验有问题
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: 具体是什么问题？
+      description: 最好引用出问题的那句话；如果你知道更好的讲法，也请写出来。
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: 浏览器 / 设备（显示问题才需要）
+      placeholder: 例如 iPhone Safari、Windows Chrome
+    validations:
+      required: false

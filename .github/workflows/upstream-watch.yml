@@ -1,0 +1,69 @@
+name: 盯上游更新
+
+# 每天比对一次上游 openai/math：它有新提交、或解析出的家族/论文有变化，
+# 就在本仓库开（或更新）一个带 upstream-sync 标签的 Issue，附上变更报告，提醒人工核对受影响的指导。
+on:
+  schedule:
+    - cron: "17 2 * * *"      # 每天 UTC 02:17（北京时间 10:17）
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: 比对上游
+        id: check
+        run: |
+          set +e
+          python tools/sync_upstream.py --check --report report.md
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+          elif [ -f report.md ]; then
+            # 退出码 1 且生成了报告：上游有变化
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git ls-remote https://github.com/openai/math.git refs/heads/main | cut -f1)" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::同步脚本异常退出（退出码 $code），没有生成报告"
+            exit "$code"
+          fi
+
+      - name: 开 / 更新 Issue
+        if: steps.check.outputs.drift == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.check.outputs.sha }}
+        run: |
+          gh label create upstream-sync --color 0e8a16 --description "上游 openai/math 有更新，需要核对指导" --force
+          {
+            echo "<!-- upstream-commit: ${SHA} -->"
+            echo "上游 [openai/math](https://github.com/openai/math) 与本站当前对应的版本不一致（上游最新提交 \`${SHA:0:7}\`）。"
+            echo
+            echo "处理办法：在本地运行 \`python tools/sync_upstream.py\` 更新 \`data/\`，按下面的报告核对受影响的指导（被撤回或改动的结果要加 \`warn:\` 提醒），再运行 \`python tools/build.py --strict\`，提交并推送。"
+            echo
+            echo "---"
+            echo
+            cat report.md
+          } > issue-body.md
+          num=$(gh issue list --label upstream-sync --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            if gh issue view "$num" --json body --jq .body | grep -q "upstream-commit: ${SHA}"; then
+              echo "Issue #$num 已经记录了这个上游提交，不重复更新。"
+            else
+              gh issue edit "$num" --body-file issue-body.md
+              gh issue comment "$num" --body "上游又有新提交 \`${SHA:0:7}\`，已更新上面的变更报告。"
+            fi
+          else
+            gh issue create --title "上游 openai/math 有更新（${SHA:0:7}）" --label upstream-sync --body-file issue-body.md
+          fi

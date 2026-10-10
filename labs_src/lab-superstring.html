@@ -1,0 +1,176 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>手上有几个"单词"（或者 DNA 片段），想拼成<b>一个尽量短的字符串</b>，使每个单词都能在里面找到。比如 <code>cat</code>、<code>ate</code>、<code>tea</code>：直接首尾相接要 9 个字母，但 <code>cat</code> 的结尾 <code>at</code> 和 <code>ate</code> 的开头重合，<code>ate</code> 的结尾 <code>te</code> 又和 <code>tea</code> 的开头重合，错开叠起来只要 5 个字母（<code>catea</code>）。这个问题叫"最短公共超串"。</li>
+<li>上图是"精确最优"的拼法：电脑把所有排列方式都考虑到（用一种叫"状态压缩动态规划"的办法，不是真的一个个试），每个单词摆在它在结果串里的位置。下图是"贪心"的拼法：每次挑当前<b>重叠最长</b>的两段拼起来，一直拼到只剩一段。先看默认的三个单词，再换成"DNA 片段"预设。</li>
+<li>选"对抗例子"，把 $k$ 从 2 拖到 7：三个单词是 $c(ab)^k$、$(ba)^k$、$(ab)^kc$（$(ab)^k$ 表示 $ab$ 重复 $k$ 次）。贪心第一步看到"重叠最长"的那一对，被它牵着鼻子走，后面付出代价。看看贪心的长度和最优的长度是怎样随 $k$ 变化的，它们的比值趋向多少？</li>
+<li>选"随机基因组"：电脑先随机造一条"基因组"，再从里面随机截取很多"读段"（就像测序仪做的那样），然后让贪心去拼。拖动三个滑块，看看读得越多，拼出来的串是不是越接近真实的基因组？为什么有时拼出来的串反而比真实的基因组还短？</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>小例子里，贪心恰好是最优的。</b><code>cat</code>、<code>ate</code>、<code>tea</code> 三个词的长度加起来是 9，最短的拼法 <code>catea</code> 只有 5 个字母，贪心也拼出了同一个串。"DNA 片段"预设里 4 段共 40 个字母，最短的拼法只有 19 个字母（<code>ATTAGACCTGCCGGAATAC</code>），贪心同样找到了它。</p>
+<p><b>对抗例子里，贪心会被带歪。</b>把 $k$ 从 2 拖到 7：贪心的长度依次是 10、14、18、22、26、30（正好是 $4k+2$），最优是 8、10、12、14、16、18（正好是 $2k+4$），比值 1.25、1.4、1.5、1.571、1.625、1.667，一路往 2 爬。原因是：贪心第一步看到的最长重叠，是 $c(ab)^k$ 和 $(ab)^kc$ 之间的 $2k$ 个字母；另外两对的重叠只有 $2k-1$，只差 1，却恰恰是最优拼法需要的那两对。先合并了"眼前最大的"，剩下的单词就再也接不上了。</p>
+<p><b>随机基因组：读得越多越接近，但常常差最后一点点。</b>基因组长 80、读段长 12，读段数取 5、10、20、30、45、60 时，我每种设置随机做了 25 次：读段平均盖住基因组的 54%、76%、90.5%、96%、97.2%、97.3%；贪心拼出来的串平均是基因组长度的 0.52、0.74、0.90、0.96、0.97、0.97 倍。可是拼出"完整包含真实基因组"的串，25 次里只有 0、0、1、5、8、6 次。</p>
+<p><b>为什么读再多，也常常"比真实基因组还短"？</b>基因组最前面的那个字母，只有"恰好从那里开始"的读段才盖得到；最后一个字母同理。60 条读段、69 个可能的起点，第一个字母没被盖到的机会是 $(1-1/69)^{60}\approx42\%$，最后一个也一样。所以哪怕中间处处盖满，两端也常被漏掉，拼出来的串就比真实基因组短几个字母。（这是页面"读段必须整条落在基因组里面"的设定带来的边缘效应；真实测序在两端也有类似的覆盖不足。）</p>
+<p><b>读段太短或总量不够，还有别的失败方式。</b>基因组 150、读段 10、60 条（平均每个位置只被盖 4 次）时，25 次里没有一次拼出完整基因组；读段改成 20（平均每个位置被盖 8 次）就有 6 次。读段非常短时（基因组 30、读段 6、60 条），25 次里有 17 次拼对、5 次拼短了、还有 3 次拼出来的串反而比基因组更长——我没有逐个检查，多半是基因组里碰巧出现了重复的小段，贪心被"看起来能接上"的巧合骗去做了错误的拼接（重复片段正是真实基因组装配的老大难）。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>最优拼法就是一个排列。</b>先去掉被别的单词包含的单词。把每个单词看成一个"城市"，从单词 $u$ 到 $v$ 能"省下的字数"是它们的<b>重叠</b> $\mathrm{ov}(u,v)$（$u$ 的最长后缀恰好是 $v$ 的前缀）。把单词排成一个顺序 $w_1,w_2,\dots,w_k$，依次叠起来，总长就是 $\sum|w_i|-\sum\mathrm{ov}(w_i,w_{i+1})$。所以最短公共超串，就是在 $k$ 个"城市"之间找一条路径，让相邻的重叠之和最大——和"旅行商问题"非常像，这也是它 NP 难的原因。页面里的"精确最优"用的是旅行商问题的经典办法（Held–Karp 状态压缩动态规划，大约 $2^k k^2$ 步，所以页面最多让你用 15 个单词）。</p>
+<p><b>贪心</b>：每次合并当前重叠最长的两个串。它又快又直观，但如上面的例子所示，会被"眼前最长的重叠"带歪。据我所知，贪心的最坏表现是一个有名的未解问题：大家猜它最多是最优的 2 倍（上面的例子说明 2 不能再小），但已经被证明的上界，据我所知还停在 3.5 左右。</p>
+<p>稿件 128 宣称给出一个确定性的多项式时间算法，所得串的长度至多是最优的 2 倍。据我所知，已发表的最好近似比大约在 2.4 到 2.5 之间（从 Blum 等人 1991 年的 3 倍出发，经过了多轮改进），"2"一直被看作自然的目标，但没有人做到。这个宣称如果成立，就填上了这块多年的空白；页面<b>没有实现</b>稿件的算法，只比较了精确解和贪心，所以无法验证它，<b>需要独立审查</b>。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 290), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 290), x2 = c2.ctx;
+  var preset = 'cat', advK = 4, GL = 80, RL = 12, RM = 30, genome = '', reads = [], rnd = Lab.rng(), res = null, KMAXEXACT = 15;
+
+  /* ---------- 字符串小工具 ---------- */
+  function ovl(a, b) { var t = Math.min(a.length, b.length); for (; t > 0; t--) if (a.slice(a.length - t) === b.slice(0, t)) return t; return 0; }
+  function parse(txt) {
+    var ws = txt.split(/[\s,，;；]+/).filter(function (w) { return w.length > 0; }), seen = {}, out = [];
+    ws.forEach(function (w) { if (!seen[w]) { seen[w] = 1; out.push(w); } });
+    return out.slice(0, 80);
+  }
+  function freeOf(ws) { return ws.filter(function (w, i) { return !ws.some(function (u, j) { return j !== i && u.length > w.length && u.indexOf(w) >= 0; }); }); }
+
+  /* ---------- 精确解：状态压缩动态规划（Held–Karp） ---------- */
+  function exact(ws) {
+    var k = ws.length, i, j, mask, nm, v, nv, ov = [], full, dp, par, best = -1, bj = 0, order = [], s, t, pj;
+    if (k === 0) return { s: '', len: 0, order: [] };
+    for (i = 0; i < k; i++) { ov.push([]); for (j = 0; j < k; j++) ov[i].push(i === j ? 0 : ovl(ws[i], ws[j])); }
+    full = (1 << k) - 1; dp = new Int16Array((full + 1) * k).fill(-1); par = new Int8Array((full + 1) * k).fill(-1);
+    for (j = 0; j < k; j++) dp[(1 << j) * k + j] = 0;
+    for (mask = 1; mask <= full; mask++) for (j = 0; j < k; j++) {
+      if (!(mask & (1 << j))) continue;
+      v = dp[mask * k + j]; if (v < 0) continue;
+      for (i = 0; i < k; i++) {
+        if (mask & (1 << i)) continue;
+        nm = mask | (1 << i); nv = v + ov[j][i];
+        if (nv > dp[nm * k + i]) { dp[nm * k + i] = nv; par[nm * k + i] = j; }
+      }
+    }
+    for (j = 0; j < k; j++) if (dp[full * k + j] > best) { best = dp[full * k + j]; bj = j; }
+    mask = full; j = bj;
+    while (j >= 0) { order.push(j); pj = par[mask * k + j]; mask ^= (1 << j); j = pj; }
+    order.reverse();
+    s = ws[order[0]];
+    for (t = 1; t < order.length; t++) s += ws[order[t]].slice(ov[order[t - 1]][order[t]]);
+    return { s: s, len: s.length, order: order, states: (full + 1) * k };
+  }
+
+  /* ---------- 贪心：每次合并重叠最长的一对 ---------- */
+  function greedy(ws) {
+    var list = ws.slice(), i, j, o, best, bi, bj, m, steps = [];
+    while (list.length > 1) {
+      best = -1; bi = 0; bj = 1;
+      for (i = 0; i < list.length; i++) for (j = 0; j < list.length; j++) { if (i === j) continue; o = ovl(list[i], list[j]); if (o > best) { best = o; bi = i; bj = j; } }
+      m = list[bi] + list[bj].slice(best);
+      steps.push({ a: list[bi], b: list[bj], o: best, m: m });
+      list = list.filter(function (_, idx) { return idx !== bi && idx !== bj; }); list.push(m);
+    }
+    return { s: list.length ? list[0] : '', steps: steps };
+  }
+
+  /* ---------- 控件 ---------- */
+  var sP = Lab.select(panel, { label: '例子', value: preset, options: [['cat', '三个英文单词：cat, ate, tea'], ['dna', '四段 DNA 片段'], ['adv', '对抗例子：c(ab)^k, (ba)^k, (ab)^k c'], ['random', '随机基因组 + 随机读段'], ['custom', '自己输入']], onChange: function (v) { preset = v; setPreset(); } });
+  var tW = Lab.text(panel, { label: '单词（用逗号或空格隔开）', value: '', onInput: function () { preset = 'custom'; sP.set('custom'); layout(); solve(); } });
+  var sK = Lab.slider(panel, { label: '对抗例子的 k', min: 2, max: 7, step: 1, value: advK, onInput: function (v) { advK = v; if (preset === 'adv') setPreset(); } });
+  var sG = Lab.slider(panel, { label: '基因组长度', min: 30, max: 150, step: 5, value: GL, onInput: function (v) { GL = v; if (preset === 'random') setPreset(); } });
+  var sL = Lab.slider(panel, { label: '每个读段的长度', min: 6, max: 20, step: 1, value: RL, onInput: function (v) { RL = v; if (preset === 'random') setPreset(); } });
+  var sM = Lab.slider(panel, { label: '读段的个数', min: 5, max: 60, step: 1, value: RM, onInput: function (v) { RM = v; if (preset === 'random') setPreset(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '重新随机', function () { if (preset === 'random') setPreset(); }, 'pri');
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：如果一个单词本身已经是另一个单词的一部分，它就不会影响结果，页面会自动把它去掉（上面的图里仍然会画出来）。');
+  Lab.onTheme(function () { solve(); });
+  function layout() {
+    sK.el.parentNode.style.display = preset === 'adv' ? '' : 'none';
+    [sG, sL, sM].forEach(function (s) { s.el.parentNode.style.display = preset === 'random' ? '' : 'none'; });
+    row.style.display = preset === 'random' ? '' : 'none';
+  }
+  function rep(s, k) { var r = '', i; for (i = 0; i < k; i++) r += s; return r; }
+  function setPreset() {
+    var txt = '';
+    reads = []; genome = '';
+    if (preset === 'cat') txt = 'cat, ate, tea';
+    else if (preset === 'dna') txt = 'ATTAGACCTG, CCTGCCGGAA, AGACCTGCCG, GCCGGAATAC';
+    else if (preset === 'adv') txt = 'c' + rep('ab', advK) + ', ' + rep('ba', advK) + ', ' + rep('ab', advK) + 'c';
+    else if (preset === 'random') {
+      var i, p;
+      for (i = 0; i < GL; i++) genome += 'ACGT'[rnd.int(4)];
+      for (i = 0; i < RM; i++) { p = rnd.int(GL - RL + 1); reads.push({ w: genome.substr(p, RL), p: p }); }
+      txt = reads.map(function (r) { return r.w; }).join(', ');
+    }
+    if (preset !== 'custom') tW.set(txt, true);
+    layout(); solve();
+  }
+
+  /* ---------- 画图 ---------- */
+  function colOf(ch) {
+    var M = { A: 140, C: 215, G: 32, T: 355 }, h = M[ch] != null ? M[ch] : (ch.charCodeAt(0) * 47) % 360;
+    return Lab.hsl(h, 62, Lab.isDark() ? 58 : 50);
+  }
+  function panelDraw(ctx, cv, title, s, items, hint) {
+    var C = Lab.colors(), rows = items.length + 1, avail = 230, rh = Math.max(3, Math.min(30, Math.floor(avail / rows))), cw = Math.min(36, 600 / Math.max(1, s.length)), x0 = 20, y0 = 34, i, j, it, showCh = cw >= 11 && rh >= 13, pos;
+    cv.clear(C.card);
+    Lab.label(ctx, title, 20, 14, C.ink2, 'left', 13.5);
+    if (hint) Lab.label(ctx, hint, 620, 14, C.muted, 'right', 12);
+    for (j = 0; j < s.length; j++) {
+      ctx.fillStyle = colOf(s[j]); ctx.fillRect(x0 + j * cw, y0, Math.max(1, cw - (cw > 5 ? 1 : 0)), rh);
+      if (showCh) Lab.label(ctx, s[j], x0 + (j + 0.5) * cw, y0 + rh / 2 + 0.5, '#fff', 'center', Math.min(17, rh - 5));
+    }
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.4; ctx.strokeRect(x0 - 0.5, y0 - 0.5, s.length * cw + 1, rh + 1);
+    for (i = 0; i < items.length; i++) {
+      it = items[i]; pos = it.p != null ? it.p : s.indexOf(it.w);
+      if (pos < 0) continue;
+      ctx.globalAlpha = it.dim ? 0.38 : 0.95;
+      for (j = 0; j < it.w.length; j++) {
+        ctx.fillStyle = colOf(it.w[j]); ctx.fillRect(x0 + (pos + j) * cw, y0 + (i + 1) * rh + 2, Math.max(1, cw - (cw > 5 ? 1 : 0)), rh - (rh > 6 ? 2 : 0));
+        if (showCh && !it.dim) Lab.label(ctx, it.w[j], x0 + (pos + j + 0.5) * cw, y0 + (i + 1) * rh + 2 + (rh - 2) / 2, '#fff', 'center', Math.min(17, rh - 5));
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  function solve() {
+    var txt = tW.get(), ws = parse(txt), fr = freeOf(ws), ex = null, gr, items, tot, s, k = fr.length, ok = true, i, tex = '';
+    if (!ws.length) { out.html('请输入至少一个单词。'); c1.clear(Lab.colors().card); c2.clear(Lab.colors().card); return; }
+    tot = fr.reduce(function (a, w) { return a + w.length; }, 0);
+    gr = greedy(fr);
+    items = ws.map(function (w) { return { w: w, dim: fr.indexOf(w) < 0 }; });
+    if (preset !== 'random' && k <= KMAXEXACT) {
+      ex = exact(fr);
+      panelDraw(x1, c1, '精确最优：长度 ' + ex.len, ex.s, items, ex.s.length <= 40 ? ex.s : '');
+    } else if (preset === 'random') {
+      panelDraw(x1, c1, '真实基因组（长度 ' + genome.length + '）和读段（按真实位置摆放）', genome, reads.map(function (r) { return { w: r.w, p: r.p }; }), '');
+    } else {
+      var C0 = Lab.colors(); c1.clear(C0.card); Lab.label(x1, '单词太多（' + k + ' 个）：精确解要 2^' + k + '·' + k + '² 量级的步数，页面只做到 ' + KMAXEXACT + ' 个。', 320, 145, C0.ink2, 'center', 14);
+    }
+    panelDraw(x2, c2, '贪心：长度 ' + gr.s.length, gr.s, items, gr.s.length <= 40 ? gr.s : '');
+    for (i = 0; i < ws.length; i++) if (gr.s.indexOf(ws[i]) < 0) ok = false;
+    s = '单词 ' + ws.length + ' 个' + (k < ws.length ? '（去掉被包含的之后剩 ' + k + ' 个）' : '') + '，长度之和 ' + tot + '\n';
+    if (ex) s += '精确最优：长度 ' + ex.len + (ex.s.length <= 60 ? '，串 = ' + ex.s : '') + '\n';
+    s += '贪心：长度 ' + gr.s.length + (gr.s.length <= 60 ? '，串 = ' + gr.s : '') + '\n';
+    if (ex) s += '贪心 ÷ 最优 = ' + Lab.fmt(gr.s.length / Math.max(1, ex.len), 3) + '\n';
+    s += '核对：每个单词都是贪心结果的子串 ' + (ok ? '✓' : '✗') + '\n';
+    if (preset === 'random') {
+      var cov = [], q, c = 0;
+      for (q = 0; q < genome.length; q++) cov.push(0);
+      reads.forEach(function (r) { for (q = r.p; q < r.p + r.w.length; q++) cov[q] = 1; });
+      cov.forEach(function (v) { c += v; });
+      s += '\n真实基因组长度 ' + genome.length + '；读段把其中 ' + Lab.fmt(100 * c / genome.length, 1) + '% 的位置盖住了；平均每个位置被盖 ' + Lab.fmt(reads.length * RL / genome.length, 2) + ' 次\n';
+      s += '贪心拼出的串长 ' + gr.s.length + '，是基因组长度的 ' + Lab.fmt(gr.s.length / genome.length, 2) + ' 倍；' + (gr.s.indexOf(genome) >= 0 ? '它包含了真实的基因组' : '它不包含真实的基因组（' + (gr.s.length < genome.length ? '甚至比它还短' : '多出了一些拼接缝') + '）');
+    } else if (preset === 'adv') {
+      s += '\n理论：贪心 = ' + (4 * advK + 2) + '，最优 = ' + (2 * advK + 4) + '；k → ∞ 时比值趋向 2。';
+    }
+    out.html(s);
+  }
+
+  setPreset();
+})();
+</script>

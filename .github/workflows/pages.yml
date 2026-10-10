@@ -1,0 +1,60 @@
+name: 构建并发布网站
+
+# main 分支有更新就重新发布到 GitHub Pages；PR 只构建、检查，不发布。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同一时间只保留一次发布；排队中的旧任务被新的取代，但正在发布的不打断。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: 文本处理单元测试
+        run: python -m unittest discover -s tools -p "test_*.py" -v
+
+      - name: 严格构建（任何警告都算失败）
+        # --site-url auto：按仓库名推出 https://<owner>.github.io/<repo>/，写入 canonical / 分享图 / sitemap
+        run: python tools/build.py --strict --out _site --site-url auto
+
+      - name: 检查链接、结构、公式
+        run: |
+          python tools/check_site.py _site
+          node tools/check_math.js _site
+
+      - uses: actions/configure-pages@v6
+        if: github.event_name != 'pull_request'
+
+      - uses: actions/upload-pages-artifact@v5
+        if: github.event_name != 'pull_request'
+        with:
+          path: _site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

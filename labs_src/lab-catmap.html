@@ -1,0 +1,138 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>左边是原图（一只猫，加了几道横条以便看清拉伸）；右边是它被"搅拌" $t$ 次之后的样子。每搅一次，点 $(x,y)$ 就搬到 $(2x+y,\ x+y)$（超出边界的部分从另一侧绕回来）。拖动 $t$，或者点"播放"。</li>
+<li>蓝色的半透明方块是原图左上角的一块"墨水" $A$（占整个图的 $\tfrac14$）。看看它在右边变成了什么：先被拉成斜的细条，再被折叠，几步之后几乎均匀地涂满了整个画面。</li>
+<li>橙色框是另一块固定的区域 $B$（一条竖带，占 $20\%$）。下面的曲线画的是：被搅了 $t$ 次的墨水，落在 $B$ 里的比例，除以"完全混匀时应有的比例" $\mu(A)\mu(B)$。曲线很快就在 1 附近晃动了。</li>
+<li>继续拖到最右端：当 $t$ 等于周期 $\Pi$ 时，整张图<b>原样回来</b>——这是有限像素网格上才有的现象（真正连续的猫映射里，绝大多数点永远不会精确回到原位）。换一个尺寸 $N$，看周期怎么变。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>搅 $5\sim10$ 次以后，原图完全面目全非，变成像"雪花噪点"一样的图案——但它没有丢失任何信息：每个像素只是换了位置，再搅若干次就能全部还原。墨水比例曲线几乎立刻就贴在 1 附近，只有微小的抖动（读数里写着：$N=40$ 时偏离约 0.03，$N=100$ 时只有约 0.002，$N$ 越大抖得越小）；只在最右端靠近周期 $\Pi$ 时才会掉回 0，因为那时图像又回到了原样，$A$ 里的墨水都回到了 $A$ 里，没有一滴留在 $B$ 中。这就是"混合"：时间一长，$A$ 和 $B$ 的重叠就像两个互不相干的随机事件一样，各占各的比例，彼此相乘。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>猫映射 $T(x,y)=(2x+y,\ x+y)\bmod 1$ 是环面上的"线性搅拌器"：矩阵 $\begin{pmatrix}2&1\\1&1\end{pmatrix}$ 的两个特征值是 $\frac{3\pm\sqrt5}{2}\approx2.618$ 与 $0.382$：沿一个方向每步被拉长 2.618 倍，沿另一个方向被压扁，再绕回来折叠。它保持面积（不压缩体积），并且是<b>混合</b>的：对任意两个区域 $A,B$，$\mu(T^{-t}A\cap B)\to\mu(A)\mu(B)$。</p>
+<p>Rokhlin 在 1949 年问：混合是否一定意味着"三阶混合"、"四阶混合"……（即任意有限多个时刻的重叠都趋于各自体积的乘积）？对猫映射这类带"双曲结构"的系统，答案是肯定的；对一般的保测变换，据我所知此前一直没有完全解决。页面下方列出的问题 145，稿件宣称证明了：每个可逆的混合保测变换都是所有有限阶混合的。这是稿件的宣称，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 320), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 220), x2 = c2.ctx;
+  var N = 100, PI = 1, t = 0, orig = null, isA = null, isB = null, cur = null, curT = 0, rSeries = [], playing = false, tm = 0;
+  var bmO = null, bmC = null;
+
+  /* ---------- 画一只猫 ---------- */
+  function paintCat(g) {
+    var gr = g.createLinearGradient(0, 0, 200, 200), i;
+    gr.addColorStop(0, '#7fb7ff'); gr.addColorStop(1, '#ffe0a8'); g.fillStyle = gr; g.fillRect(0, 0, 200, 200);
+    g.fillStyle = 'rgba(255,255,255,0.45)'; for (i = 0; i < 5; i++) g.fillRect(0, 14 + i * 40, 200, 9);
+    function tri(a, b, c, d, e, f, col) { g.fillStyle = col; g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.lineTo(e, f); g.closePath(); g.fill(); }
+    function ell(x, y, rx, ry, col) { g.fillStyle = col; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI); g.fill(); }
+    tri(48, 86, 58, 20, 100, 58, '#d9772a'); tri(152, 86, 142, 20, 100, 58, '#d9772a');
+    tri(60, 72, 64, 38, 90, 60, '#f7b0b9'); tri(140, 72, 136, 38, 110, 60, '#f7b0b9');
+    ell(100, 112, 64, 56, '#f19a3e');
+    g.fillStyle = '#c4651c'; g.fillRect(96, 58, 8, 22); g.fillRect(80, 62, 6, 15); g.fillRect(114, 62, 6, 15);
+    ell(76, 102, 15, 12, '#ffffff'); ell(124, 102, 15, 12, '#ffffff');
+    ell(76, 102, 9, 10, '#3fb04b'); ell(124, 102, 9, 10, '#3fb04b');
+    ell(76, 102, 3.2, 9, '#111'); ell(124, 102, 3.2, 9, '#111');
+    tri(92, 124, 108, 124, 100, 134, '#e45f7a');
+    g.strokeStyle = '#4a2a10'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(100, 134); g.lineTo(100, 142); g.moveTo(100, 142); g.quadraticCurveTo(88, 154, 76, 144); g.moveTo(100, 142); g.quadraticCurveTo(112, 154, 124, 144); g.stroke();
+    g.lineWidth = 1.8; g.beginPath();
+    [[-1, -6], [-1, 2], [-1, 10]].forEach(function (p) { g.moveTo(70, 134 + p[1] * 0.5); g.lineTo(26, 134 + p[1] * 2); g.moveTo(130, 134 + p[1] * 0.5); g.lineTo(174, 134 + p[1] * 2); });
+    g.stroke();
+    ell(100, 188, 46, 22, '#f19a3e');
+  }
+  function periodOf(n) { var a = 1, b = 0, c = 0, d = 1, k = 0, na, nb, nc, nd; do { na = (2 * a + c) % n; nb = (2 * b + d) % n; nc = (a + c) % n; nd = (b + d) % n; a = na; b = nb; c = nc; d = nd; k++; } while (!(a === 1 % n && b === 0 && c === 0 && d === 1 % n) && k < 100000); return k; }
+
+  var sN = Lab.select(panel, { label: '图片边长 N（像素）', value: '100', options: [['40', '40'], ['60', '60'], ['75', '75'], ['100', '100'], ['120', '120'], ['150', '150'], ['180', '180']], onChange: function (v) { N = +v; init(); } });
+  var sT = Lab.slider(panel, { label: '搅拌次数 t', min: 0, max: 150, step: 1, value: 0, onInput: function (v) { t = v; update(); } });
+  var row = Lab.row(panel);
+  var bPlay = Lab.button(row, '▶ 播放', function () { playing = !playing; bPlay.innerHTML = playing ? '⏸ 暂停' : '▶ 播放'; if (playing) { if (t >= PI) { t = 0; } tick(); } }, 'pri');
+  Lab.button(row, '⏮ 回到 0', function () { t = 0; sT.set(0, true); update(); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：周期 Π 是满足"矩阵 [[2,1],[1,1]] 的 Π 次幂模 N 恒等于单位阵"的最小正整数。');
+  Lab.onTheme(update);
+
+  function tick() {
+    if (!playing) return;
+    t++; if (t > PI) { t = PI; playing = false; bPlay.innerHTML = '▶ 播放'; }
+    sT.set(t, true); update();
+    if (playing) tm = setTimeout(tick, 170);
+  }
+
+  function init() {
+    var cvs = document.createElement('canvas'), g, id, i, x, y, d;
+    cvs.width = cvs.height = N; g = cvs.getContext('2d'); g.scale(N / 200, N / 200); paintCat(g);
+    id = g.getImageData(0, 0, N, N).data; orig = new Uint32Array(N * N);
+    for (i = 0; i < N * N; i++) orig[i] = (id[4 * i] << 16) | (id[4 * i + 1] << 8) | id[4 * i + 2];
+    isA = new Uint8Array(N * N); isB = new Uint8Array(N * N);
+    for (y = 0; y < N; y++) for (x = 0; x < N; x++) { if (x < N / 2 && y < N / 2) isA[y * N + x] = 1; if (x >= N * 0.6 && x < N * 0.8) isB[y * N + x] = 1; }
+    PI = periodOf(N);
+    sT.el.max = PI; if (t > PI) t = PI; sT.set(t, true);
+    cur = new Int32Array(N * N); for (i = 0; i < N * N; i++) cur[i] = i; curT = 0;
+    bmO = Lab.bitmap(N, N); bmC = Lab.bitmap(N, N);
+    /* 墨水比例随时间的变化 */
+    var pos = [], nA = 0, nB = 0, k, tt, px, py, cntB, nx, ny;
+    for (y = 0; y < N; y++) for (x = 0; x < N; x++) { if (isA[y * N + x]) pos.push([x, y]); if (isB[y * N + x]) nB++; }
+    nA = pos.length; rSeries = [];
+    var ex = (nA / (N * N)) * (nB / (N * N));
+    for (tt = 0; tt <= PI; tt++) {
+      cntB = 0;
+      for (k = 0; k < pos.length; k++) { px = pos[k][0]; py = pos[k][1]; if (isB[py * N + px]) cntB++; nx = (2 * px + py) % N; ny = (px + py) % N; pos[k][0] = nx; pos[k][1] = ny; }
+      rSeries.push((cntB / (N * N)) / ex);
+    }
+    update();
+  }
+  function stepTo(target) {
+    var i, x, y, nxt, tgt;
+    if (target < curT) { for (i = 0; i < N * N; i++) cur[i] = i; curT = 0; }
+    while (curT < target) {
+      nxt = new Int32Array(N * N);
+      for (y = 0; y < N; y++) for (x = 0; x < N; x++) nxt[((x + y) % N) * N + ((2 * x + y) % N)] = cur[y * N + x];
+      cur = nxt; curT++;
+    }
+  }
+  function paintBm(bm, mapFn, overlayAlpha) {
+    var d = bm.data, i, v, col, a;
+    for (i = 0; i < N * N; i++) {
+      v = mapFn(i); col = orig[v];
+      d[4 * i] = (col >> 16) & 255; d[4 * i + 1] = (col >> 8) & 255; d[4 * i + 2] = col & 255; d[4 * i + 3] = 255;
+      if (overlayAlpha && isA[v]) { a = overlayAlpha; d[4 * i] = d[4 * i] * (1 - a) + 30 * a; d[4 * i + 1] = d[4 * i + 1] * (1 - a) + 90 * a; d[4 * i + 2] = d[4 * i + 2] * (1 - a) + 255 * a; }
+    }
+    bm.flush();
+  }
+  function update() {
+    var C = Lab.colors(), S = 260, i;
+    stepTo(t);
+    paintBm(bmO, function (i) { return i; }, 0.45);
+    paintBm(bmC, function (i) { return cur[i]; }, 0.45);
+    c1.clear(C.card);
+    bmO.blit(x1, 40, 38, S, S); bmC.blit(x1, 340, 38, S, S);
+    x1.strokeStyle = C.line; x1.lineWidth = 1; x1.strokeRect(40.5, 38.5, S, S); x1.strokeRect(340.5, 38.5, S, S);
+    x1.strokeStyle = '#e69f00'; x1.lineWidth = 2.5; x1.strokeRect(340 + S * 0.6, 38, S * 0.2, S);
+    Lab.label(x1, '原图（蓝块 = 墨水 A）', 40 + S / 2, 20, C.ink2, 'center', 13.5);
+    Lab.label(x1, '搅了 ' + t + ' 次（橙框 = 区域 B）', 340 + S / 2, 20, C.ink2, 'center', 13.5);
+    Lab.label(x1, t === PI ? '搅了 Π 次，恢复原样！' : (t === 0 ? '' : ''), 340 + S / 2, 308, C.good, 'center', 13.5);
+    /* 曲线 */
+    var box = { x: 62, y: 16, w: 560, h: 150 };
+    c2.clear(C.card);
+    var ax = Lab.axes(x2, box, [0, Math.max(PI, 2)], [0, 2.2], { nx: 6, ny: 4, xlabel: '搅拌次数 t', ylabel: '重叠比例 ÷ μ(A)μ(B)', fx: function (v) { return Lab.fmt(v, 0); }, fy: function (v) { return Lab.fmt(v, 1); } });
+    x2.setLineDash([5, 4]); Lab.line(x2, box.x, ax.Y(1), box.x + box.w, ax.Y(1), C.good, 1.6); x2.setLineDash([]);
+    Lab.label(x2, '1 = 完全混匀时的值', box.x + box.w - 6, ax.Y(1) - 9, C.good, 'right', 12);
+    x2.strokeStyle = C.accent; x2.lineWidth = 1.8; x2.beginPath();
+    for (i = 0; i <= PI; i++) { if (i === 0) x2.moveTo(ax.X(i), ax.Y(rSeries[i])); else x2.lineTo(ax.X(i), ax.Y(rSeries[i])); }
+    x2.stroke();
+    Lab.dot(x2, ax.X(t), ax.Y(rSeries[t]), 5, C.bad, C.card);
+    var s = 'N = ' + N + '，共 ' + Lab.big(N * N) + ' 个像素\n周期 Π(N) = <b>' + PI + '</b>（搅 ' + PI + ' 次后精确还原）\n当前 t = ' + t + '：重叠比例 ÷ μ(A)μ(B) = <b>' + Lab.fmt(rSeries[t], 3) + '</b>';
+    if (PI > 12) { var m = 0, k, cn = 0; for (k = 8; k < PI - 8; k++) { m += Math.abs(rSeries[k] - 1); cn++; } if (cn) s += '\n（t 在 8 ~ ' + (PI - 8) + ' 之间时，平均偏离 1 约 ' + Lab.fmt(m / cn, 3) + '）'; }
+    s += '\n每搅一次，沿拉伸方向变长 (3+√5)/2 ≈ 2.618 倍，李雅普诺夫指数 ln 2.618 ≈ 0.962。';
+    out.html(s);
+  }
+  init();
+})();
+</script>

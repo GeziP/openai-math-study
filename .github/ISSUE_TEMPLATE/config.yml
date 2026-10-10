@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 上游论文仓库 openai/math
+    url: https://github.com/openai/math
+    about: 论文本身的内容、证明与 Lean 形式化都在上游；本站只做阅读指导。

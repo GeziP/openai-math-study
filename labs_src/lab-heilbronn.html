@@ -1,0 +1,170 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>在单位正方形里放 $n$ 个点，用鼠标拖动它们。任意三点围成一个三角形；页面把<b>面积最小的那个</b>涂成黄色。你的目标：让这个"最小三角形"尽量大——点既不能挤在一起，也不能几乎排成一条线。</li>
+<li>点"自动优化"，让电脑随机尝试 2 秒，多点几次会继续改进。再和右边的"已知最好成绩"比一比（$n\le 9$ 时是已被证明的最优；更大的 $n$ 是目前的最好记录）。</li>
+<li>选一个素数 $p$，用 Erdős 的构造摆点：把 $(i,\ i^2 \bmod p)$ 这 $p$ 个格点缩放到正方形里。它们整齐得像一条被"折叠"的抛物线，任意三点<b>永远不共线</b>，所以最小面积至少是 $\frac{1}{2p^2}$。</li>
+<li>看下面的图：横轴是 $n$，纵轴是"最小面积 $\times n^2$"。已知最好成绩、素数构造、你自己的成绩，三条线各在什么高度？</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>最小三角形面积随 $n$ 增大急剧缩小——点越多越拥挤——大致按 $1/n^2$ 的速度。已知的最好成绩乘以 $n^2$ 之后，从 $n=5$ 到 $n=12$ 一直在 $4\sim5$ 之间徘徊，看上去就是一个常数，这也正是 Heilbronn 当年猜测"$\Delta(n)\le c/n^2$"的直觉来源。素数构造乘以 $n^2$，页面算出来恰好是 $0.5$（最小的那个三角形正好是"格点三角形里面积最小的 $\frac12$"），比小 $n$ 时的最优摆法差了 8～10 倍；但它的好处是"对所有素数 $p$ 都稳稳保证 $\frac1{2p^2}$"，所以数量级是对的。</p>
+<p>可是小 $n$ 的数据看不出"$\log n$ 这样的慢增长"。Komlós–Pintz–Szemerédi 证明了 $\Delta(n)\ge c\,\frac{\log n}{n^2}$，所以 $n^2\Delta(n)$ 其实是无界的——只是增长得极慢，你在 $n\le 12$ 的图上不可能看出来。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>设 $\Delta(n)$ 为"在单位正方形里放 $n$ 个点，最小三角形面积的最大可能值"。已知：$\Delta(3)=\Delta(4)=\frac12$，$\Delta(5)=\frac{\sqrt3}9$，$\Delta(6)=\frac18$，$\Delta(7)\approx0.0838$，$\Delta(8)=\frac{\sqrt{13}-1}{36}$，$\Delta(9)=\frac{9\sqrt{65}-55}{320}$（据我所知，$n\le 9$ 都已证明最优；$n=10,11,12$ 只有最好记录，约 $0.0465,\ 0.0370,\ 0.0326$）。</p>
+<p>大 $n$ 的渐近行为：Erdős 的素数构造给出 $\Delta(n)\ge\frac{c}{n^2}$；Heilbronn 曾猜测这就是真相；Komlós–Pintz–Szemerédi（1982）用概率方法推翻了它，得到 $\Delta(n)\ge c\log n/n^2$。上界方面，Roth、Schmidt 等人一路推进，目前我知道的最好结果是 $O(n^{-8/7-1/2000})$（Cohen–Pohoata–Zakharov，2023）。页面下方列出的问题 191，稿件宣称构造出 $\Delta(n)\ge n^{-2+c}$（$c>0$ 为绝对常数），一个"幂次"的改进，若成立将直接推翻"最优就是 $n^{-2}$ 的量级"的信念。这是稿件的宣称，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 430), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 250), x2 = c2.ctx;
+  Lab.legend(stage, [['#2f6df6', '已知最好成绩（n ≤ 9 为已证最优）'], ['#e69f00', 'Erdős 素数构造（页面现算）'], ['#e5484d', '页面上出现过的你的最好成绩']]);
+  var SX = 130, SY = 405, S = 380;
+  var n = 6, P = [], rnd = Lab.rng(7), bestAt = {}, primeVal = {}, PRIMES = [5, 7, 11, 13, 17, 19], i;
+  var KNOWN = { 3: 0.5, 4: 0.5, 5: Math.sqrt(3) / 9, 6: 0.125, 7: 0.083859, 8: (Math.sqrt(13) - 1) / 36, 9: (9 * Math.sqrt(65) - 55) / 320, 10: 0.0465, 11: 0.0370, 12: 0.0326 };
+
+  function area(a, b, c) { return Math.abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) / 2; }
+  function minTri(pts) {
+    var m = Infinity, tri = null, a, b, c, v, N = pts.length;
+    for (a = 0; a < N; a++) for (b = a + 1; b < N; b++) for (c = b + 1; c < N; c++) {
+      v = area(pts[a], pts[b], pts[c]);
+      if (v < m) { m = v; tri = [a, b, c]; }
+    }
+    return { m: m, tri: tri };
+  }
+  function minVal(pts) {                      // 只要最小值，用在搜索里
+    var m = Infinity, a, b, c, v, N = pts.length, pa, pb, dx, dy;
+    for (a = 0; a < N; a++) { pa = pts[a]; for (b = a + 1; b < N; b++) { pb = pts[b]; dx = pb.x - pa.x; dy = pb.y - pa.y; for (c = b + 1; c < N; c++) { v = Math.abs(dx * (pts[c].y - pa.y) - dy * (pts[c].x - pa.x)); if (v < m) m = v; } } }
+    return m / 2;
+  }
+  /* 素数构造的最小面积 × p²（= 最小行列式 / 2），一次性算好 */
+  PRIMES.forEach(function (p) {
+    var pts = [], k, a, b, c, md = Infinity, d;
+    for (k = 0; k < p; k++) pts.push([k, (k * k) % p]);
+    for (a = 0; a < p; a++) for (b = a + 1; b < p; b++) for (c = b + 1; c < p; c++) {
+      d = Math.abs((pts[b][0] - pts[a][0]) * (pts[c][1] - pts[a][1]) - (pts[b][1] - pts[a][1]) * (pts[c][0] - pts[a][0]));
+      if (d < md) md = d;
+    }
+    primeVal[p] = md / 2;
+  });
+  function randomPts(m) { var r = []; for (var k = 0; k < m; k++) r.push({ x: rnd(), y: rnd() }); return r; }
+  P = randomPts(n);
+
+  var sN = Lab.slider(panel, { label: '点数 n', min: 4, max: 19, step: 1, value: 6, onInput: function (v) { setN(v); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '🎲 随机摆', function () { P = randomPts(n); sel.set('0'); draw(); });
+  Lab.button(row, '自动优化（约 2 秒）', function () { optimize(2000); }, 'pri');
+  var sel = Lab.select(panel, {
+    label: 'Erdős 素数点集：点 (i, i² mod p)',
+    value: '0',
+    options: [['0', '— 自由摆放 —']].concat(PRIMES.map(function (p) { return [String(p), 'p = ' + p + '（' + p + ' 个点）']; })),
+    onChange: function (v) { if (+v) { primeSet(+v); } }
+  });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：面积用"正方形边长为 1"来计。"最小面积 × n²"是个方便比较不同 n 的量。素数构造的点在整数格点上，所以最小面积恰好是 (最小行列式)/(2p²)。');
+  Lab.onTheme(draw);
+
+  function setN(v) {
+    n = v;
+    while (P.length < n) P.push({ x: rnd(), y: rnd() });
+    P.length = n; sel.set('0');
+    draw();
+  }
+  function primeSet(p) {
+    n = p; sN.set(p, true); P = [];
+    for (var k = 0; k < p; k++) P.push({ x: (k + 0.5) / p, y: (((k * k) % p) + 0.5) / p });
+    draw();
+  }
+  function optimize(ms) {
+    var t0 = performance.now(), cur = minVal(P), best = cur, bestP = P.map(function (q) { return { x: q.x, y: q.y }; }), K = KNOWN[n] || 0.5 / (n * n) * 4.5, el, f, T, sg, it, k, ox, oy, nv, g1, g2, iters = 0;
+    function g() { return Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random()); }
+    sel.set('0');
+    while (true) {
+      el = performance.now() - t0; if (el > ms) break;
+      f = el / ms; T = 0.25 * K * Math.pow(0.004, f); sg = 0.12 * Math.pow(0.03, f);
+      for (it = 0; it < 32; it++) {
+        iters++;
+        k = Math.floor(Math.random() * n); ox = P[k].x; oy = P[k].y;
+        P[k].x = Math.min(1, Math.max(0, ox + sg * g())); P[k].y = Math.min(1, Math.max(0, oy + sg * g()));
+        nv = minVal(P);
+        if (nv >= cur || Math.random() < Math.exp((nv - cur) / T)) {
+          cur = nv;
+          if (cur > best) { best = cur; bestP = P.map(function (q) { return { x: q.x, y: q.y }; }); }
+        } else { P[k].x = ox; P[k].y = oy; }
+      }
+    }
+    P = bestP;
+    draw();
+  }
+
+  /* ---------- 绘制 ---------- */
+  function X(x) { return SX + S * x; }
+  function Y(y) { return SY - S * y; }
+  function draw() {
+    var C = Lab.colors(), mt = minTri(P), q, a, k;
+    c1.clear(C.card);
+    x1.fillStyle = C.bg; x1.fillRect(SX, SY - S, S, S);
+    x1.strokeStyle = C.line; x1.lineWidth = 1; x1.beginPath();
+    for (k = 1; k < 10; k++) { x1.moveTo(X(k / 10), Y(0)); x1.lineTo(X(k / 10), Y(1)); x1.moveTo(X(0), Y(k / 10)); x1.lineTo(X(1), Y(k / 10)); }
+    x1.stroke();
+    x1.strokeStyle = C.muted; x1.lineWidth = 1.6; x1.strokeRect(SX, SY - S, S, S);
+    if (mt.tri) {
+      var t = mt.tri;
+      x1.fillStyle = Lab.hsl(45, 95, 55, 0.4); x1.strokeStyle = Lab.hsl(40, 95, 45, 1); x1.lineWidth = 2;
+      Lab.path(x1, t.map(function (j) { return [X(P[j].x), Y(P[j].y)]; }), true); x1.fill(); x1.stroke();
+    }
+    for (k = 0; k < P.length; k++) {
+      var inMin = mt.tri && mt.tri.indexOf(k) >= 0;
+      x1.lineWidth = 1.5; Lab.dot(x1, X(P[k].x), Y(P[k].y), 7, inMin ? '#e69f00' : C.accent, C.card);
+    }
+    Lab.label(x1, '拖动点；黄色三角形 = 当前面积最小的三角形', 14, 14, C.muted, 'left', 12.5);
+    Lab.label(x1, '单位正方形', SX + S / 2, SY + 14, C.muted, 'center', 12);
+
+    var m = mt.m, v = m * n * n;
+    if (!bestAt[n] || m > bestAt[n]) bestAt[n] = m;
+    var K = KNOWN[n], nTri = n * (n - 1) * (n - 2) / 6;
+    var s = 'n = ' + n + '，共 ' + nTri + ' 个三角形\n当前最小面积：<b>' + Lab.fmt(m, 5) + '</b>' + (m < 1e-5 ? '  <span class="no">（有三点几乎共线！）</span>' : '') + '\n最小面积 × n² = <b>' + Lab.fmt(v, 3) + '</b>';
+    if (K) s += '\n已知最好 Δ(' + n + ') ' + (n <= 9 ? '=' : '≈') + ' ' + Lab.fmt(K, 5) + '（× n² = ' + Lab.fmt(K * n * n, 3) + '）\n你目前达到了已知最好的 <b>' + Lab.fmt(100 * m / K, 1) + '%</b>';
+    else s += '\n（n > 12 时我没有可靠的已知最优值）';
+    if (primeVal[n]) s += '\n素数构造（p = ' + n + '）的"最小面积 × n²"= ' + Lab.fmt(primeVal[n], 3);
+    out.html(s);
+    drawChart(C);
+  }
+  function drawChart(C) {
+    var box = { x: 62, y: 18, w: 560, h: 188 }, ax, k, p, last = null;
+    c2.clear(C.card);
+    ax = Lab.axes(x2, box, [3, 19.5], [0, 9], { xticks: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], yticks: [0, 2, 4, 6, 8], fy: function (v) { return String(v); }, xlabel: '点数 n', ylabel: '最小面积 × n²' });
+    x2.lineWidth = 2; x2.strokeStyle = '#2f6df6'; x2.beginPath();
+    for (k = 3; k <= 12; k++) { var px = ax.X(k), py = ax.Y(KNOWN[k] * k * k); if (k === 3) x2.moveTo(px, py); else x2.lineTo(px, py); }
+    x2.stroke();
+    for (k = 3; k <= 12; k++) Lab.dot(x2, ax.X(k), ax.Y(KNOWN[k] * k * k), 3.8, '#2f6df6', C.card);
+    PRIMES.forEach(function (p) {
+      var cx = ax.X(p), cy = ax.Y(primeVal[p]);
+      x2.fillStyle = '#e69f00'; x2.strokeStyle = C.card; x2.lineWidth = 1.2;
+      Lab.path(x2, [[cx, cy - 6], [cx + 5, cy], [cx, cy + 6], [cx - 5, cy]], true); x2.fill(); x2.stroke();
+    });
+    for (k in bestAt) {
+      if (!Object.prototype.hasOwnProperty.call(bestAt, k)) continue;
+      var cx2 = ax.X(+k), cy2 = ax.Y(bestAt[k] * k * k);
+      x2.strokeStyle = '#e5484d'; x2.lineWidth = 2; Lab.dot(x2, cx2, cy2, 5, null, '#e5484d');
+    }
+    Lab.label(x2, '蓝线：已知最好；黄色菱形：素数构造；红圈：你', box.x + 8, box.y + 10, C.ink2, 'left', 12);
+  }
+
+  Lab.drag(c1, {
+    down: function (p) {
+      var k, best = -1, bd = 16;
+      for (k = 0; k < P.length; k++) { var d = Math.hypot(X(P[k].x) - p.x, Y(P[k].y) - p.y); if (d < bd) { bd = d; best = k; } }
+      return best >= 0 ? { k: best } : null;
+    },
+    move: function (p, s) { P[s.k].x = Math.min(1, Math.max(0, (p.x - SX) / S)); P[s.k].y = Math.min(1, Math.max(0, (SY - p.y) / S)); sel.set('0'); draw(); }
+  });
+  draw();
+})();
+</script>

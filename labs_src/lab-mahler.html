@@ -1,0 +1,239 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>蓝色图形是一个凸多边形 $K$，上面的圆点是可以<b>拖动的顶点</b>。橙色图形是它的"对偶" $K^\circ$：对 $K$ 的每一条边，量出这条边所在的直线离中心有多远（记作 $h$），沿着这条边的法线方向走 $1/h$ 的长度得到一个点；所有这些点连起来就是 $K^\circ$。<b>$K$ 在某个方向伸得越长，$K^\circ$ 在那个方向就缩得越短</b>，一个胖一个瘦，像是"反着长"。</li>
+<li>先停在"对称图形"（$K$ 关于中心对称，页面会自动补上每个点的镜像点，用空心圆表示），依次选预设：正方形、正六边形、圆（48 边形）。下面的数轴会告诉你 $K$ 的面积和 $K^\circ$ 的面积<b>相乘</b>之后是多少。</li>
+<li>选"长方形"、再选"菱形"，然后随便拖动某个顶点（这时图形始终是一个平行四边形）：$K$ 和 $K^\circ$ 的形状都在剧烈变化，乘积却纹丝不动——这是为什么？</li>
+<li>把"类型"换成"一般图形（以重心为中心）"，选"三角形"，对比一下乘积。然后在"爬山的方向"里选"压低乘积"或"抬高乘积"，点"爬山 4000 步"，让电脑试着把当前图形的乘积往下压或往上抬，看它最终停在哪里；换几次"随机图形"重复；再点"随机试 3000 个图形"，看看随机凑出来的图形里，乘积最小、最大各是多少。两种"类型"都做一遍。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>越"圆"，乘积越大。</b>对称图形里：正方形是 8，正六边形是 9，48 边形是 9.8555，快贴到圆的 $\pi^2\approx9.8696$ 了。把预设换成"正 $n$ 边形"，拖动 $n$：$n=4,6,8,12,20,40$ 时依次是 8、9、9.3726、9.6462、9.7887、9.8493。这些数都符合公式 $n^2\sin^2(\pi/n)$（读数里会同时给出公式的值）。</p>
+<p><b>所有平行四边形，乘积都恰好是 8。</b>选"长方形"或"菱形"，再随便拖一个顶点：一次我拖出来的是 $|K|=7.8$、$|K^\circ|=1.0256$，另一次是 8.4 和 0.9524，一个变大另一个就变小，乘积每次都是 8。原因是：任何平行四边形都是正方形"拉伸、剪切"出来的，而拉伸时 $K$ 的面积乘上某个倍数 $c$，$K^\circ$ 的面积就恰好除以 $c$。</p>
+<p><b>去掉"对称"的要求，下限会降。</b>切换到"一般图形"，选三角形，乘积是 6.75，比 8 小。而在"对称图形"模式下选"三角形"，页面会把它的镜像点也补上，三角形和镜像拼成一个正六边形，乘积回到 9。</p>
+<p><b>让电脑去压、去抬，它总是停在同样的几个数上。</b>对称图形："压低乘积"从 4 个随机起点出发，4 次都停在 8（4 条边，平行四边形）；"抬高乘积"4 次都停在 9.3726——这是正八边形的值，因为 4 个顶点连同它们的镜像点正好是 8 个。一般图形：压低 4 次都停在 6.75（三角形），抬高（5 个点）4 次都停在 8.6373，这是正五边形的值。"随机试 3000 个图形"：对称图形（每个 3–8 个点）最小 8、最大 9.50、平均 8.52；一般图形（每个 4–9 个点）最小 6.75、最大 9.05、平均 7.83——没有一个低于 8（对称）或 6.75（一般）。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>对一个包含原点的凸图形 $K$，它的<b>极体</b>（对偶体）是 $K^\circ=\{y:\ \langle x,y\rangle\le1\ \text{对所有 }x\in K\text{ 成立}\}$。乘积 $|K|\cdot|K^\circ|$ 叫做 $K$ 的 <b>Mahler 体积</b>（二维里 $|\cdot|$ 就是面积）。它有一个很好的性质：对 $K$ 作任何可逆的线性变换（拉伸、旋转、剪切），$K$ 的面积乘上 $|\det A|$，$K^\circ$ 的面积除以同一个数，乘积不变。所以它只依赖图形的"仿射形状"。</p>
+<p>据我所知，上界早有定论：乘积在椭圆（二维里的圆）处最大，这就是 Blaschke–Santaló 不等式，二维里的最大值是 $\pi^2$。下界则是 <b>Mahler 猜想</b>：对称图形里，乘积最小的是"立方体"一类的图形（二维里是平行四边形，乘积 8；$n$ 维里是 $4^n/n!$）；不要求对称时，最小的是"单纯形"（二维里是三角形，$27/4$）。据我所知，二维的情形是 Mahler 在 1939 年证明的；三维的对称情形是近几年才被证明的（Iriyeh–Shibata）；Bourgain–Milman 在 1987 年证明了乘积不会比最大值小一个"只依赖于维数的指数因子"，但精确的最小值一般维数下仍是公开问题。</p>
+<p>问题 087 的稿件宣称对所有维数解决了这个猜想，并且刻画了取到最小值的图形（据我所知叫 Hanner 多面体，二维里就是平行四边形），还把它和辛几何里"格罗莫夫宽度等于 4"的一个问题联系在一起（这条联系据我所知是 Artstein-Avidan–Karasev–Ostrover 在 2014 年指出的）。<b>这些宣称都需要独立审查</b>。页面只在二维、多边形这个小世界里做实验：它能让你看到"为什么答案应该是 8"，但不能当成任何一般维数结论的证据。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 440), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 110), x2 = c2.ctx;
+  var PI = Math.PI, VR = 2.7, SC = 214 / VR, CX = 320, CY = 220, LIM = 2.5;
+  var sym = true, preset = 'square', nReg = 7, pts = [], note = '', rnd = Lab.rng();
+  function X(x) { return CX + x * SC; }
+  function Y(y) { return CY - y * SC; }
+  function iX(px) { return (px - CX) / SC; }
+  function iY(py) { return (CY - py) / SC; }
+  function clampv(v) { return Math.max(-LIM, Math.min(LIM, v)); }
+
+  /* ---------- 几何：凸包、面积、重心、对偶 ---------- */
+  function cross(o, a, b) { return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); }
+  function hull(P) {
+    var p = P.slice().sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; }), n = p.length, h = [], i, t;
+    if (n < 3) return p;
+    for (i = 0; i < n; i++) { while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], p[i]) <= 1e-12) h.pop(); h.push(p[i]); }
+    t = h.length + 1;
+    for (i = n - 2; i >= 0; i--) { while (h.length >= t && cross(h[h.length - 2], h[h.length - 1], p[i]) <= 1e-12) h.pop(); h.push(p[i]); }
+    h.pop();
+    return h;
+  }
+  function area(H) { var s = 0, i, j; for (i = 0; i < H.length; i++) { j = (i + 1) % H.length; s += H[i][0] * H[j][1] - H[j][0] * H[i][1]; } return s / 2; }
+  function centroid(H) {
+    var a = 0, cx = 0, cy = 0, i, j, f;
+    for (i = 0; i < H.length; i++) { j = (i + 1) % H.length; f = H[i][0] * H[j][1] - H[j][0] * H[i][1]; a += f; cx += (H[i][0] + H[j][0]) * f; cy += (H[i][1] + H[j][1]) * f; }
+    a /= 2; return [cx / (6 * a), cy / (6 * a)];
+  }
+  /* 对偶：每条边（外法线 u，到中心的距离 h）对应一个顶点 u/h */
+  function polar(H, c) {
+    var out = [], i, j, ex, ey, len, ux, uy, hh;
+    for (i = 0; i < H.length; i++) {
+      j = (i + 1) % H.length; ex = H[j][0] - H[i][0]; ey = H[j][1] - H[i][1]; len = Math.sqrt(ex * ex + ey * ey);
+      if (len < 1e-12) return null;
+      ux = ey / len; uy = -ex / len;
+      hh = ux * (H[i][0] - c[0]) + uy * (H[i][1] - c[1]);
+      if (hh < 1e-9) return null;
+      out.push([ux / hh, uy / hh]);
+    }
+    return out;
+  }
+  function analyze(P) {
+    var Q = P, i, H, c, Hp, A;
+    if (sym) { Q = P.slice(); for (i = 0; i < P.length; i++) Q.push([-P[i][0], -P[i][1]]); }
+    H = hull(Q);
+    if (H.length < 3) return null;
+    A = area(H); if (A < 1e-9) return null;
+    c = sym ? [0, 0] : centroid(H);
+    Hp = polar(H, c); if (!Hp) return null;
+    return { H: H, c: c, Hp: Hp, A: A, Ap: area(Hp), prod: A * area(Hp) };
+  }
+
+  /* ---------- 预设图形 ---------- */
+  function regular(n, R, phase) { var a = [], i; for (i = 0; i < n; i++) a.push([R * Math.cos(phase + 2 * PI * i / n), R * Math.sin(phase + 2 * PI * i / n)]); return a; }
+  function shapeOf(p) {
+    if (p === 'square') return [[1.5, 1.5], [-1.5, 1.5], [-1.5, -1.5], [1.5, -1.5]];
+    if (p === 'hex') return regular(6, 1.9, 0);
+    if (p === 'disc') return regular(48, 1.9, 0);
+    if (p === 'rect') return [[2.3, 0.55], [-2.3, 0.55], [-2.3, -0.55], [2.3, -0.55]];
+    if (p === 'rhomb') return [[2.3, 0], [0, 1.2], [-2.3, 0], [0, -1.2]];
+    if (p === 'tri') return regular(3, 1.9, PI / 2);
+    if (p === 'regular') return regular(nReg, 1.9, PI / 2);
+    return null;
+  }
+  function isCentral(full) {
+    return full.every(function (q) { return full.some(function (r) { return Math.abs(r[0] + q[0]) < 1e-6 && Math.abs(r[1] + q[1]) < 1e-6; }); });
+  }
+  function halfOf(full) { return full.filter(function (q) { return q[1] > 1e-9 || (Math.abs(q[1]) <= 1e-9 && q[0] > 0); }); }
+  function randomPts() {
+    var k = sym ? 4 : 5, i; pts = [];
+    for (i = 0; i < k; i++) pts.push([(rnd() * 2 - 1) * 2.0, (rnd() * 2 - 1) * 2.0]);
+  }
+  function setPreset(p) {
+    var full;
+    preset = p; note = '';
+    if (p === 'random') { randomPts(); return; }
+    if (p === 'custom') return;
+    full = shapeOf(p).map(function (q) { return [q[0], q[1]]; });
+    pts = (sym && isCentral(full)) ? halfOf(full) : full;
+  }
+
+  /* ---------- 控件 ---------- */
+  var sT = Lab.select(panel, { label: '类型', value: 'sym', options: [['sym', '对称图形（K 关于中心对称）'], ['free', '一般图形（以重心为中心）']], onChange: function (v) { sym = v === 'sym'; setPreset(preset); draw(); } });
+  var sP = Lab.select(panel, { label: '预设图形', value: preset, options: [['square', '正方形'], ['hex', '正六边形'], ['disc', '圆（48 边形）'], ['rect', '长方形（扁）'], ['rhomb', '菱形'], ['tri', '三角形'], ['regular', '正 n 边形（用下面的滑块）'], ['random', '随机图形'], ['custom', '自己拖的']], onChange: function (v) { setPreset(v); draw(); } });
+  var sN = Lab.slider(panel, { label: '正 n 边形的 n', min: 3, max: 40, step: 1, value: nReg, onInput: function (v) { nReg = v; sP.set('regular'); setPreset('regular'); draw(); } });
+  var row1 = Lab.row(panel);
+  Lab.button(row1, '随机图形', function () { sP.set('random'); setPreset('random'); draw(); }, 'pri');
+  Lab.button(row1, '＋ 一个点', function () { pts.push([(rnd() * 2 - 1) * 1.5, (rnd() * 2 - 1) * 1.5]); markCustom(); draw(); });
+  Lab.button(row1, '－ 一个点', function () { if (pts.length > (sym ? 2 : 3)) { pts.pop(); markCustom(); draw(); } });
+  var sD = Lab.select(panel, { label: '爬山的方向', value: 'min', options: [['min', '压低乘积'], ['max', '抬高乘积']] });
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '爬山 4000 步', function () { climb(sD.get() === 'min' ? -1 : 1); });
+  Lab.button(row2, '随机试 3000 个图形', trials);
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：拖动圆点改变形状。"爬山"就是：随机挪一个点，如果乘积变得更小（或更大）就保留，否则撤销；一共试 4000 次，挪动的幅度越来越小。');
+  Lab.onTheme(function () { draw(); });
+  function markCustom() { preset = 'custom'; sP.set('custom'); note = ''; }
+
+  function climb(dir) {
+    var S = 4000, i, k, step, old, r = analyze(pts), best, start;
+    if (!r) { note = '当前的图形退化成了线段，先点"随机图形"。'; draw(); return; }
+    best = start = r.prod;
+    for (i = 0; i < S; i++) {
+      step = 0.6 * Math.pow(0.005 / 0.6, i / S);
+      k = rnd.int(pts.length); old = pts[k];
+      pts[k] = [clampv(old[0] + step * rnd.normal()), clampv(old[1] + step * rnd.normal())];
+      r = analyze(pts);
+      if (r && (dir < 0 ? r.prod < best : r.prod > best)) best = r.prod; else pts[k] = old;
+    }
+    markCustom();
+    note = '爬山（' + (dir < 0 ? '压低' : '抬高') + '）：乘积从 ' + Lab.fmt(start, 4) + ' 走到了 ' + Lab.fmt(best, 4) + '。';
+    draw();
+  }
+  function trials() {
+    var T = 3000, i, j, k, P, r, mn = 1e9, mx = 0, sum = 0, cnt = 0, k0 = sym ? 3 : 4;
+    for (i = 0; i < T; i++) {
+      k = k0 + rnd.int(6); P = [];
+      for (j = 0; j < k; j++) P.push([(rnd() * 2 - 1) * LIM, (rnd() * 2 - 1) * LIM]);
+      r = analyze(P);
+      if (!r) continue;
+      cnt++; sum += r.prod; if (r.prod < mn) mn = r.prod; if (r.prod > mx) mx = r.prod;
+    }
+    note = '随机试了 ' + cnt + ' 个图形（每个 ' + k0 + '–' + (k0 + 5) + ' 个点）：乘积最小 ' + Lab.fmt(mn, 4) + '，最大 ' + Lab.fmt(mx, 4) + '，平均 ' + Lab.fmt(sum / cnt, 4) + '。';
+    draw();
+  }
+
+  /* ---------- 画图 ---------- */
+  function poly(ctx, P, ox, oy, stroke, fill, lw) {
+    var i;
+    ctx.beginPath();
+    for (i = 0; i < P.length; i++) { if (i === 0) ctx.moveTo(X(P[i][0] + ox), Y(P[i][1] + oy)); else ctx.lineTo(X(P[i][0] + ox), Y(P[i][1] + oy)); }
+    ctx.closePath();
+    ctx.globalAlpha = 0.2; ctx.fillStyle = fill; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.stroke();
+  }
+  function draw() {
+    var C = Lab.colors(), r = analyze(pts), i, s;
+    c1.clear(C.card);
+    x1.strokeStyle = C.line; x1.lineWidth = 1; x1.beginPath();
+    for (i = -4; i <= 4; i++) { x1.moveTo(Math.round(X(i)) + 0.5, 0); x1.lineTo(Math.round(X(i)) + 0.5, 440); }
+    for (i = -2; i <= 2; i++) { x1.moveTo(0, Math.round(Y(i)) + 0.5); x1.lineTo(640, Math.round(Y(i)) + 0.5); }
+    x1.stroke();
+    x1.strokeStyle = C.muted; x1.lineWidth = 1.2; x1.beginPath(); x1.moveTo(0, Y(0) + 0.5); x1.lineTo(640, Y(0) + 0.5); x1.moveTo(X(0) + 0.5, 0); x1.lineTo(X(0) + 0.5, 440); x1.stroke();
+    if (r) {
+      poly(x1, r.Hp, r.c[0], r.c[1], C.warn, C.warn, 2.2);
+      poly(x1, r.H, 0, 0, C.accent, C.accent, 2.6);
+      x1.strokeStyle = C.ink; x1.lineWidth = 1.4;
+      Lab.line(x1, X(r.c[0]) - 5, Y(r.c[1]), X(r.c[0]) + 5, Y(r.c[1]), C.ink, 1.4); Lab.line(x1, X(r.c[0]), Y(r.c[1]) - 5, X(r.c[0]), Y(r.c[1]) + 5, C.ink, 1.4);
+    } else {
+      Lab.label(x1, '图形退化成线段了：请拖开顶点', 320, 220, C.bad, 'center', 15);
+    }
+    for (i = 0; i < pts.length; i++) {
+      if (sym) { x1.beginPath(); x1.arc(X(-pts[i][0]), Y(-pts[i][1]), 5, 0, 2 * PI); x1.fillStyle = C.card; x1.fill(); x1.strokeStyle = C.accent; x1.lineWidth = 1.8; x1.stroke(); }
+    }
+    for (i = 0; i < pts.length; i++) Lab.dot(x1, X(pts[i][0]), Y(pts[i][1]), 6, C.ink, C.accent);
+    Lab.label(x1, '蓝：K　橙：对偶 K°（以小十字所在的"中心"为原点画出）', 12, 14, C.ink2, 'left', 12.5);
+    drawLine(C, r ? r.prod : NaN);
+    s = (sym ? '对称图形' : '一般图形（以重心为中心）') + (r ? '；K 有 ' + r.H.length + ' 条边' : '') + '\n';
+    if (r) {
+      s += '|K| = ' + Lab.fmt(r.A, 4) + '，|K°| = ' + Lab.fmt(r.Ap, 4) + '\n';
+      s += '乘积 |K|·|K°| = ' + Lab.fmt(r.prod, 4) + '\n';
+      if (preset === 'regular' && (!sym || nReg % 2 === 0)) s += '公式 n²·sin²(π/n) = ' + Lab.fmt(nReg * nReg * Math.pow(Math.sin(PI / nReg), 2), 4) + '\n';
+      s += sym ? '对称图形里：最小是 8（所有平行四边形），最大是 π² ≈ 9.8696（圆）。' : '一般图形里：据我所知最小是 27/4 = 6.75（三角形），最大同样是 π²（圆）。';
+    }
+    if (note) s += '\n\n' + note;
+    out.html(s);
+  }
+  function drawLine(C, prod) {
+    var lo = 6.2, hi = 10.3, bx = 40, bw = 560, yy = 62, marks = [[27 / 4, '三角形 6.75'], [8, '平行四边形 8'], [9, '正六边形 9'], [PI * PI, '圆 π² ≈ 9.87']], i, px;
+    function PX(v) { return bx + (v - lo) / (hi - lo) * bw; }
+    c2.clear(C.card);
+    Lab.line(x2, bx, yy, bx + bw, yy, C.muted, 2.2);
+    for (i = 0; i < marks.length; i++) {
+      px = PX(marks[i][0]);
+      Lab.line(x2, px, yy - 7, px, yy + 7, C.ink2, 2);
+      Lab.label(x2, marks[i][1], px, yy + 22, C.ink2, 'center', 12);
+    }
+    if (isFinite(prod) && prod >= lo - 0.5 && prod <= hi + 0.5) {
+      px = PX(Math.max(lo, Math.min(hi, prod)));
+      x2.beginPath(); x2.moveTo(px, yy - 4); x2.lineTo(px - 7, yy - 18); x2.lineTo(px + 7, yy - 18); x2.closePath(); x2.fillStyle = C.accent; x2.fill();
+      Lab.label(x2, '当前 ' + Lab.fmt(prod, 3), Math.max(60, Math.min(580, px)), yy - 30, C.accent, 'center', 13.5);
+    }
+    Lab.label(x2, '乘积 |K|·|K°| 的数轴', 12, 12, C.muted, 'left', 11.5);
+  }
+
+  /* ---------- 拖动顶点 ---------- */
+  Lab.drag(c1, {
+    down: function (p) {
+      var best = -1, bd = 15, i, d, dm, mir = false;
+      for (i = 0; i < pts.length; i++) {
+        d = Math.hypot(X(pts[i][0]) - p.x, Y(pts[i][1]) - p.y);
+        if (d < bd) { bd = d; best = i; mir = false; }
+        if (sym) { dm = Math.hypot(X(-pts[i][0]) - p.x, Y(-pts[i][1]) - p.y); if (dm < bd) { bd = dm; best = i; mir = true; } }
+      }
+      return best >= 0 ? { i: best, mir: mir } : null;
+    },
+    move: function (p, st) {
+      var nx = clampv(iX(p.x)), ny = clampv(iY(p.y));
+      pts[st.i] = st.mir ? [-nx, -ny] : [nx, ny];
+      markCustom(); draw();
+    },
+    hover: function (p) {
+      var i, near = false;
+      for (i = 0; i < pts.length; i++) {
+        if (Math.hypot(X(pts[i][0]) - p.x, Y(pts[i][1]) - p.y) < 15 || (sym && Math.hypot(X(-pts[i][0]) - p.x, Y(-pts[i][1]) - p.y) < 15)) near = true;
+      }
+      c1.cv.style.cursor = near ? 'grab' : 'default';
+    }
+  });
+
+  setPreset('square'); draw();
+})();
+</script>

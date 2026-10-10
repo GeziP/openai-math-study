@@ -1,0 +1,176 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上图最上面一排是一条由 $+1$、$-1$ 组成的<b>序列</b>（蓝格 $+1$，橙格 $-1$）。把它看成多项式 $p(z)=a_0+a_1z+\dots+a_{N-1}z^{N-1}$，让 $z=e^{i\theta}$ 绕单位圆转一圈，中间那张图画出 $|p|/\sqrt N$ 随角度 $\theta$ 的变化——这就是序列的"频谱"：每个角度（频率）上信号有多强。<b>如果曲线处处贴着 1，就说这条序列"处处同样响"</b>。</li>
+<li>先选"全是 +1"：它把能量全堆在一个频率上；再选"随机 ±1"，多按几次"重新随机"：曲线忽高忽低，有的频率几乎听不见，有的特别响。然后选"Rudin–Shapiro"：看看它的最高处被压到哪里。也可以<b>直接点序列里的格子</b>翻转正负（序列不太长时），自己动手把曲线压平。</li>
+<li>下图画的是序列的<b>自相关</b> $C_u$：把序列错开 $u$ 格，对应位置相乘再相加。"旁瓣"越小，说明序列和自己的"错位版本"越不像——雷达和通信里最想要的性质。读数里的"品质因数" $F=N^2\big/\big(2\sum_{u\ge1}C_u^2\big)$ 越大越好。选"Barker 13"看看它的旁瓣有多整齐。</li>
+<li>点"穷举：周期自相关全为 0"：对每个偶数 $n=2,4,\dots,24$，页面把所有 $2^n$ 条 $\pm1$ 序列逐一检查：有没有一条序列，它<b>绕圈</b>错开任意几格之后，相乘再相加都恰好是 0？</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>随机序列一点也不"平"。</b>反复按"重新随机"，曲线的最高处平均是 $\sqrt N$ 的 2 到 2.5 倍（我用页面里的同一套函数，对每个长度各试了 100–300 次：$N=32,64,128,256$ 时平均最高值约为 2.0、2.2、2.4、2.5，增长得很慢），最低处则几乎总是贴着 0（中位数约 0.03–0.04）——总有些"频率"几乎听不见。品质因数 $F$ 平均只有 1.2、1.09、1.04、1.02，向 1 靠拢。</p>
+<p><b>最不平的是"全是 +1"。</b>$N=64$ 时，所有能量挤在 $\theta=0$ 一点，$|p|/\sqrt N$ 高达 8（也就是 $\sqrt N$），品质因数只有 0.024。"正负交替"只是把这个尖峰挪到了 $\theta=\pi$，一样糟。</p>
+<p><b>Rudin–Shapiro 把"上限"压住了。</b>不管 $N=64$ 还是 256，曲线的最高处都停在 $\sqrt2\approx1.414$ 以下，品质因数是 3.05 和 3.01，向 3 靠拢。但它的"下限"没有压住：最低处仍然掉到 0.04 左右。<b>勒让德序列（旋转了 1/4）</b>的品质因数更高：$N=101$ 时 5.46，$N=251$ 时 6.06，向 6 靠拢——可它的最高处（1.57、1.64）比 Rudin–Shapiro 高。"又平又低的上下限"和"自相关旁瓣小"并不是同一回事。</p>
+<p><b>Barker 码是最整齐的，可惜只有寥寥几个。</b>Barker 13 的所有旁瓣 $|C_u|$ 都不超过 1，品质因数 14.08（Barker 11 是 12.1，Barker 7 是 8.17）。可是你没法把它们"接长"：页面里没有更长的 Barker 码。</p>
+<p><b>点"穷举"：只有 $n=4$ 有解。</b>在 $n=2,4,\dots,24$ 里，周期自相关全为 0 的 $\pm1$ 序列只出现在 $n=4$（共 8 条，例如 $+---$，以及它们的循环移位和取反）；其他每个偶数 $n$ 都一条也没有（奇数 $n$ 根本不可能：周期自相关是 $n$ 个 $\pm1$ 之和，奇数个 $\pm1$ 加起来不可能是 0）。整个搜索只花几十毫秒。选"长度 4：−+++"，你会看到曲线在 $\theta=0,\pi/2,\pi,3\pi/2$ 这四个点上恰好都等于 1——这就是"周期自相关为 0"在频谱上的样子。</p>
+<p><b>读数里的"核对"一行永远对得上。</b>不管你把格子怎么翻，"平均 $|p|^4/N^2$"和"$1+1/F$"总是同一个数——因为这是一个恒等式，见下面。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>把序列 $a_0,\dots,a_{N-1}$（每个都是 $+1$ 或 $-1$）写成多项式 $p(z)=\sum a_kz^k$，它在单位圆上的大小和自相关 $C_u=\sum_k a_ka_{k+u}$ 之间有一条基本的公式：
+$$|p(e^{i\theta})|^2=N+2\sum_{u=1}^{N-1}C_u\cos(u\theta).$$
+所以"频谱处处接近 $N$"（处处同样响）和"所有旁瓣 $C_u$ 都很小"其实是<b>同一件事的两种说法</b>。再对 $|p|^4$ 在圆周上取平均，得到 $\frac{1}{2\pi}\int|p|^4\,d\theta=N^2+2\sum C_u^2$，也就是品质因数的倒数满足 $1/F=\|p\|_4^4/N^2-1$——页面读数里的"核对"就是在检验这个恒等式。</p>
+<p>"周期自相关全为 0"是把序列首尾相连成圈、再错开求和，它等价于"循环矩阵（每一行是上一行向右挪一格）的各行互相垂直"，也就是循环 Hadamard 矩阵。问题 179 问的是：这种矩阵除了阶 1 和 4 是不是再也没有了——这是 Ryser 猜想。据我所知，Turyn 证明过，如果存在，阶 $n$ 必须是 $4u^2$（$u$ 为奇数），所以下一个候选是 36、100、196……；长度大于 13 的 Barker 序列也类似：据我所知，奇数长度已被证明不存在，偶数长度则只可能出现在形如 $4u^2$ 的长度上，至今既没人造出来，也没人证明它们不存在。稿件宣称给出了完整的证明，<b>这需要独立审查</b>；页面上的穷举只覆盖到 $n\le24$，它能告诉你"小的情形确实什么都没有"，但不能代替证明。</p>
+<p>问题 076 问的是另一端：有没有 $\pm1$ 序列，使得 $|p(e^{i\theta})|/\sqrt N$ 在<b>所有</b> $\theta$ 上都一致地趋于 1（"超平坦"），同时品质因数趋于无穷。据我所知，复数系数的超平坦多项式早有（Kahane，1980 年），而 $\pm1$ 的版本是 Littlewood 提出的老问题；已知序列里，Rudin–Shapiro 的品质因数趋向 3，旋转的勒让德序列趋向 6，目前公开文献里最好的渐近值约为 6.34（Jedwab–Katz–Schmidt，2013 年），Golay 曾猜测上限在 12.3 左右。稿件宣称构造出了超平坦的 $\pm1$ 序列并推出品质因数可以任意大，若成立将与 Golay 的那条猜测相矛盾，所以同样<b>需要独立审查</b>——页面里没有任何一条序列做到了"上下都贴着 1"。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 330), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 170), x2 = c2.ctx;
+  var PI = Math.PI, M = 1024;
+  var preset = 'random', N = 32, seq = [], cellGeom = null;
+  var BARKER = { barker13: '+++++--++-+-+', barker11: '+++---+--+-', barker7: '+++--+-' };
+  var rnd = Lab.rng();
+
+  /* ---------- 造序列 ---------- */
+  function fromStr(s) { var a = [], i; for (i = 0; i < s.length; i++) a.push(s[i] === '+' ? 1 : -1); return a; }
+  function rudinShapiro(len) {
+    var a = [], k, c, x;
+    for (k = 0; k < len; k++) { c = 0; x = k; while (x) { if ((x & 3) === 3) c++; x >>= 1; } a.push(c % 2 ? -1 : 1); }
+    return a;
+  }
+  function largestPrime(n) { var q; for (q = n; q >= 3; q--) if (Lab.isPrime(q)) return q; return 3; }
+  function legendre(p) {
+    var base = [], a = [], sq = {}, i, k, r = Math.round(p / 4);
+    for (i = 1; i < p; i++) sq[(i * i) % p] = 1;
+    for (k = 0; k < p; k++) base.push(k === 0 ? 1 : (sq[k] ? 1 : -1));
+    for (k = 0; k < p; k++) a.push(base[(k + r) % p]);
+    return a;
+  }
+  function pow2le(n) { var m = 1; while (m * 2 <= n) m *= 2; return m; }
+  function make() {
+    var i;
+    if (preset === 'random') { seq = []; for (i = 0; i < N; i++) seq.push(rnd() < 0.5 ? 1 : -1); }
+    else if (preset === 'ones') { seq = []; for (i = 0; i < N; i++) seq.push(1); }
+    else if (preset === 'alt') { seq = []; for (i = 0; i < N; i++) seq.push(i % 2 ? -1 : 1); }
+    else if (preset === 'rs') seq = rudinShapiro(pow2le(N));
+    else if (preset === 'legendre') seq = legendre(largestPrime(N));
+    else if (preset === 'had4') seq = fromStr('-+++');
+    else if (BARKER[preset]) seq = fromStr(BARKER[preset]);
+  }
+
+  /* ---------- 计算：频谱、自相关、品质因数 ---------- */
+  function spectrum(a) {
+    var n = a.length, out = new Float64Array(M), j, k, re, im, th;
+    for (j = 0; j < M; j++) {
+      th = 2 * PI * j / M; re = 0; im = 0;
+      for (k = 0; k < n; k++) { re += a[k] * Math.cos(k * th); im += a[k] * Math.sin(k * th); }
+      out[j] = Math.sqrt(re * re + im * im);
+    }
+    return out;
+  }
+  function acorr(a) { var n = a.length, C = new Array(n), u, k, s; for (u = 0; u < n; u++) { s = 0; for (k = 0; k + u < n; k++) s += a[k] * a[k + u]; C[u] = s; } return C; }
+  function pmax(a) { var n = a.length, u, k, s, mx = 0; for (u = 1; u < n; u++) { s = 0; for (k = 0; k < n; k++) s += a[k] * a[(k + u) % n]; if (Math.abs(s) > mx) mx = Math.abs(s); } return mx; }
+
+  /* ---------- 穷举：周期自相关全为 0 ---------- */
+  function pop32(v) { v = v - ((v >>> 1) & 0x55555555); v = (v & 0x33333333) + ((v >>> 2) & 0x33333333); return (((v + (v >>> 4)) & 0x0F0F0F0F) * 0x01010101) >>> 24; }
+  function circSearch(n) {
+    var full = (1 << n) - 1, total = Math.pow(2, n - 1), m, u, r, x, cnt = 0, ok, half = n >> 1, ex = -1;
+    for (m = 0; m < total; m++) {
+      x = m | (1 << (n - 1)); ok = true;
+      for (u = 1; u <= half; u++) { r = ((x << u) | (x >>> (n - u))) & full; if (n - 2 * pop32(x ^ r) !== 0) { ok = false; break; } }
+      if (ok) { cnt++; if (ex < 0) ex = x; }
+    }
+    return { count: 2 * cnt, example: ex };
+  }
+
+  /* ---------- 控件 ---------- */
+  var sP = Lab.select(panel, { label: '序列', value: preset, options: [['random', '随机 ±1'], ['ones', '全是 +1'], ['alt', '正负交替'], ['rs', 'Rudin–Shapiro（长度取 2 的幂）'], ['legendre', '勒让德序列（长度取素数，旋转 1/4）'], ['barker13', 'Barker 13'], ['barker11', 'Barker 11'], ['barker7', 'Barker 7'], ['had4', '长度 4：−+++（循环 Hadamard）'], ['manual', '自己点格子']], onChange: function (v) { preset = v; if (v !== 'manual') make(); draw(); } });
+  var sN = Lab.slider(panel, { label: '长度 N（部分序列适用）', min: 4, max: 256, step: 1, value: N, onInput: function (v) { N = v; if (preset === 'manual') return; make(); draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '重新随机', function () { preset = 'random'; sP.set('random'); make(); draw(); }, 'pri');
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '穷举：周期自相关全为 0', function () {
+    var n, r, s = '对每个偶数 n，检查全部 2^n 条 ±1 序列：\n', t0 = performance.now();
+    for (n = 2; n <= 24; n += 2) {
+      r = circSearch(n);
+      s += '  n = ' + n + '：' + (r.count ? '有 ' + r.count + ' 条（例：' + exStr(r.example, n) + '）' : '没有') + '\n';
+    }
+    s += '用时 ' + Math.round(performance.now() - t0) + ' ms';
+    searchInfo = s; draw();
+  });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：频谱是在 1024 个等距的角度上直接算出来的；"周期自相关"指把序列首尾相连成一个圈，再错开。');
+  Lab.onTheme(function () { draw(); });
+  var searchInfo = '';
+  function exStr(x, n) { var s = '', i; for (i = n - 1; i >= 0; i--) s += ((x >> i) & 1) ? '+' : '−'; return s; }
+
+  /* ---------- 画图 ---------- */
+  function drawCells(C) {
+    var n = seq.length, i, cw, x0 = 52, w = 576, y0 = 14, hh = 34, big = n <= 64;
+    cw = w / n; cellGeom = { x0: x0, cw: cw, y0: y0, h: hh, n: n, active: n <= 64 };
+    for (i = 0; i < n; i++) {
+      x1.fillStyle = seq[i] > 0 ? C.accent : C.warn; x1.globalAlpha = 0.9;
+      x1.fillRect(x0 + i * cw + (big ? 1 : 0), y0, Math.max(1, cw - (big ? 2 : 0)), hh);
+      x1.globalAlpha = 1;
+      if (cw >= 15) Lab.label(x1, seq[i] > 0 ? '+' : '−', x0 + (i + 0.5) * cw, y0 + hh / 2, (seq[i] > 0 && Lab.isDark()) ? '#10142b' : '#fff', 'center', Math.min(16, cw * 0.7));
+    }
+  }
+  function draw() {
+    var C = Lab.colors(), n = seq.length, sp, mx = 0, mn = 1e9, i, rt = Math.sqrt(n), ax, box = { x: 52, y: 66, w: 576, h: 196 }, ymax, yt, ac, ss = 0, mac = 0, F, l4 = 0, s;
+    c1.clear(C.card);
+    drawCells(C);
+    sp = spectrum(seq);
+    for (i = 0; i < M; i++) { if (sp[i] / rt > mx) mx = sp[i] / rt; if (sp[i] / rt < mn) mn = sp[i] / rt; l4 += Math.pow(sp[i] / rt, 4); }
+    l4 /= M;
+    ymax = Math.max(1.8, mx * 1.08);
+    ax = Lab.axes(x1, box, [0, 2 * PI], [0, ymax], { xticks: [0, PI / 2, PI, 3 * PI / 2, 2 * PI], fx: function (t) { var q = Math.round(t / (PI / 2)); return ['0', 'π/2', 'π', '3π/2', '2π'][q]; }, yticks: Lab.ticks(0, ymax, 5), fy: function (t) { return Lab.fmt(t, 1); }, xlabel: '角度 θ（z 在单位圆上转一圈）', ylabel: '|p| ÷ √N' });
+    x1.setLineDash([5, 4]);
+    Lab.line(x1, box.x, ax.Y(1), box.x + box.w, ax.Y(1), C.good, 1.5);
+    Lab.line(x1, box.x, ax.Y(Math.SQRT2), box.x + box.w, ax.Y(Math.SQRT2), C.muted, 1.3);
+    x1.setLineDash([]);
+    Lab.label(x1, '绿色虚线：1（处处同样响）', box.x, 57, C.good, 'left', 11.5);
+    Lab.label(x1, '灰色虚线：√2 ≈ 1.414', box.x + box.w, 57, C.muted, 'right', 11.5);
+    x1.strokeStyle = C.ink; x1.lineWidth = 1.6; x1.beginPath();
+    for (i = 0; i <= M; i++) { var v = sp[i % M] / rt, px = ax.X(2 * PI * i / M), py = ax.Y(Math.min(v, ymax)); if (i === 0) x1.moveTo(px, py); else x1.lineTo(px, py); }
+    x1.stroke();
+    /* 自相关 */
+    ac = acorr(seq);
+    for (i = 1; i < n; i++) { ss += ac[i] * ac[i]; if (Math.abs(ac[i]) > mac) mac = Math.abs(ac[i]); }
+    F = ss > 0 ? n * n / (2 * ss) : Infinity;
+    drawAc(C, ac, mac);
+    s = '长度 N = ' + n + (BARKER[preset] ? '（Barker 码）' : '') + '\n';
+    s += '|p|/√N：最大 ' + Lab.fmt(mx, 3) + '，最小 ' + Lab.fmt(mn, 3) + '\n';
+    s += '自相关旁瓣的最大值 max|C_u| = ' + mac + '；品质因数 F = ' + (isFinite(F) ? Lab.fmt(F, 3) : '∞') + '\n';
+    s += '核对：平均 |p|⁴/N² = ' + Lab.fmt(l4, 4) + '，而 1 + 1/F = ' + (isFinite(F) ? Lab.fmt(1 + 1 / F, 4) : '1') + '\n';
+    s += '把序列首尾相连（周期自相关）：最大的 |P_u| = ' + pmax(seq);
+    if (searchInfo) s += '\n\n' + searchInfo;
+    out.html(s);
+  }
+  function drawAc(C, ac, mac) {
+    var n = seq.length, box = { x: 52, y: 14, w: 576, h: 112 }, top = Math.max(3, mac * 1.15), ax, u, bw;
+    c2.clear(C.card);
+    ax = Lab.axes(x2, box, [0, n], [-top, top], { xticks: n <= 40 ? null : Lab.ticks(0, n, 6), fx: function (t) { return String(Math.round(t)); }, yticks: [-Math.round(top), 0, Math.round(top)], fy: function (t) { return String(Math.round(t)); }, xlabel: '错开的格数 u', ylabel: '自相关 C_u' });
+    x2.fillStyle = C.good; x2.globalAlpha = 0.16; x2.fillRect(box.x, ax.Y(1), box.w, ax.Y(-1) - ax.Y(1)); x2.globalAlpha = 1;
+    bw = Math.max(1.2, box.w / n * 0.7);
+    x2.fillStyle = C.accent;
+    for (u = 1; u < n; u++) { var yv = ac[u]; x2.fillRect(ax.X(u) - bw / 2, Math.min(ax.Y(0), ax.Y(yv)), bw, Math.abs(ax.Y(yv) - ax.Y(0))); }
+    Lab.label(x2, '绿色带：|C_u| ≤ 1（Barker 码的水平）', box.x + box.w - 6, box.y + 10, C.good, 'right', 11.5);
+  }
+
+  c1.cv.addEventListener('click', function (e) {
+    var q = c1.pos(e), i;
+    if (!cellGeom || !cellGeom.active) return;
+    if (q.y < cellGeom.y0 || q.y > cellGeom.y0 + cellGeom.h) return;
+    i = Math.floor((q.x - cellGeom.x0) / cellGeom.cw);
+    if (i < 0 || i >= seq.length) return;
+    seq[i] = -seq[i]; preset = 'manual'; sP.set('manual'); draw();
+  });
+
+  make(); draw();
+})();
+</script>

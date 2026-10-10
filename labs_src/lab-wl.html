@@ -1,0 +1,216 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上图是两个"图"（点和连线的结构）。问题：<b>这两个图是不是同一个图换了个画法？</b>这件事叫"图同构"，一般很难；人们发明了一个很便宜的办法先试一试，叫"颜色细化"（Weisfeiler–Leman，一维版本）：开始时所有点同一种颜色；每一轮，每个点看一眼<b>自己的颜色</b>和<b>邻居们的颜色（不计顺序）</b>，把"（自己的颜色，邻居颜色的清单）"相同的点归成同一种新颜色。两个图用同一套颜色编号，这样才能比较。</li>
+<li>拖动"细化的轮数"，或者点"下一轮"，看颜色一轮一轮地分得越来越细。预设里先选"两棵树"：看看哪一轮起，两个图的颜色直方图（下方的小方块和数字）开始不一样。</li>
+<li>再选"6 个点：一个六边形 vs 两个三角形"：这两个图明明不同（一个连在一起，一个断成两截），可是每个点都恰好有 2 个邻居，颜色细化<b>一轮也分不开</b>。这说明这个办法有"盲区"。点"二维 WL"：这次给<b>每一对点</b>染色（见下面的规则），看看它能不能把这两个图分开。</li>
+<li>选"Petersen 图 vs 五棱柱"（都是每点 3 个邻居的 10 点图），再选"Shrikhande 图 vs 4×4 车图"（都是 16 点、每点 6 个邻居，而且任意两点的公共邻居数也一样），比较一维和二维 WL 的表现。读数里还会告诉你二维 WL 每一轮要看多少个三元组。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>两棵树：第 2 轮露出破绽。</b>第 0 轮所有点同一种颜色；第 1 轮相当于按"有几个邻居"分颜色，两棵树的度数一模一样，直方图相同；第 2 轮再把"邻居们有几个邻居"算进去，就不同了：一棵树里有个点一边挨着叶子、一边挨着"有 3 个邻居"的点，另一棵里没有这样的点。点"细化到不再变化"，4 轮后颜色稳定在 13 种（两个图合起来数）。</p>
+<p><b>六边形 vs 两个三角形：一维 WL 一轮也分不开。</b>每个点都恰有 2 个邻居，开头那个"全是同一种颜色"的状态本身就已经稳定，再怎么细化，所有点也永远是同一种颜色（读数写着"共 0 轮后不再变化"）。点"二维 WL"：点对的颜色从 3 种变成 5 种，第 1 轮两个图的直方图就不同了。因为二维 WL 在第 1 轮就会数每一对点的"公共邻居有几个"：六边形里不相邻的两点，隔一个点的有 1 个公共邻居、在对面的没有；两个三角形里，同一个三角形内相邻的两点有 1 个公共邻居，分属两个三角形的两点没有。</p>
+<p><b>Petersen 图 vs 五棱柱：一维看不出，二维第 1 轮就分开。</b>两个图都是每点 3 个邻居的 10 点图，一维 WL 同样一轮也分不开；二维 WL 的第 1 轮点对颜色有 5 种，直方图就不同了：Petersen 图里任何两个不相邻的点都恰有 1 个公共邻居；五棱柱里，不相邻的点对有的有 2 个公共邻居（一个正方形的两个对角）、有的 1 个、有的 0 个。</p>
+<p><b>Shrikhande 图 vs 4×4 车图：连二维也看不出。</b>这是两个 16 个点、每点 6 个邻居的图（车图：把 $4\times4$ 棋盘的 16 个格子当作点，同一行或同一列的两格相连；Shrikhande 图是另一种连法），而且<b>任意两个点</b>的公共邻居数都一样：相邻的两点有 2 个，不相邻的两点也是 2 个。点"二维 WL"：点对的颜色一直停在最初的 3 种（同一点／相邻／不相邻），一轮之后什么也没变，读数是"二维 WL 到最后也看不出差别"。可是它们并不同构：把一个点的 6 个邻居单独拿出来看，车图里是<b>两个三角形</b>（同一行的 3 个、同一列的 3 个），Shrikhande 图里却是<b>一个六边形</b>——正是上面第二组预设里的那一对图。</p>
+<p><b>同构的图永远分不开；随机的两个图，一般一眼就分开。</b>"同一个图换了编号"我点了 40 次，一维、二维 WL 一次也没有把它们分开（同构的图当然分不开）。"两个随机图"（9 个点、13 条边）40 次里，一维 WL 全部分开了：36 次在第 1 轮、4 次在第 2 轮；二维 WL 40 次都是在第 1 轮分开的。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>颜色细化给出的是一个"必要条件"：</b>如果两个图经过细化后，颜色直方图不一样，它们一定不同构（同构的图经过同样的操作，只是点的名字换了）；但直方图一样，<b>不能</b>推出同构，这正是上面看到的"盲区"。它的好处是便宜：每一轮只要让每个点看看自己和邻居，用多项式时间就能算完。据我所知，一维的颜色细化能分开所有彼此不同构的树；现代"消息传递型"图神经网络的表达能力，据我所知也不会超过一维 WL。</p>
+<p><b>更高维的 WL：</b>$k$ 维 WL 不再给"点"染色，而是给"$k$ 个点一组"染色；每一轮要把全部 $n$ 个"中转点"都考虑一遍，大约要做 $n^{k+1}$ 步（页面里 $k=2$，每轮 $n^3$ 个三元组 $(i,j,w)$）。维数越高越强，但越贵。据我所知，Cai–Fürer–Immerman（1992）证明了：不管 $k$ 取多大，总有一对图（点数大约和 $k$ 成正比）连 $k$ 维 WL 也分不开。（文献里"几维"有两种数法，差 1；页面用的"二维"是"给每一对点染色、每轮看全部 $n$ 个中转点"这一种，据我所知就是 Cai–Fürer–Immerman 那一篇的数法。）</p>
+<p>稿件 133 研究的是另一个问题：判断"两个图能不能被 $k$ 维 WL 分开"这件事本身要花多少时间。稿件宣称，在一个指定的计算模型里，这需要 $n^{\Omega(k)}$ 的时间；如果 $k$ 也算作输入的一部分，则是 EXPTIME 完全的（即使图里每个点最多只有 3 个邻居）。页面演示的只是"WL 这个算法是怎么运行的"，没有触及复杂度的结论，所以不能验证稿件的任何宣称，<b>需要独立审查</b>。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 372), x1 = c1.ctx;
+  var preset = 'trees', G = null, H = null, rounds = [], rr = 0, res2 = null, rnd = Lab.rng();
+
+  /* ---------- 造图 ---------- */
+  function mk(n, edges, pos) {
+    var adj = [], i;
+    for (i = 0; i < n; i++) adj.push([]);
+    edges.forEach(function (e) { adj[e[0]].push(e[1]); adj[e[1]].push(e[0]); });
+    return { n: n, adj: adj, edges: edges, pos: pos };
+  }
+  function circ(n, cx, cy, R, phase) { var p = [], i; for (i = 0; i < n; i++) p.push([cx + R * Math.cos(phase + 2 * Math.PI * i / n), cy + R * Math.sin(phase + 2 * Math.PI * i / n)]); return p; }
+  var CXL = 165, CXR = 475, CY = 160, RR = 106;
+  function build(p) {
+    var i, j, e, pos, n, edges, perm;
+    res2 = null;
+    if (p === 'trees') {
+      e = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]];
+      pos = []; for (i = 0; i < 7; i++) pos.push([0, 0]);
+      G = mk(8, e.concat([[2, 7]]), null); H = mk(8, e.concat([[3, 7]]), null);
+      G.pos = []; H.pos = [];
+      for (i = 0; i < 7; i++) { G.pos.push([CXL - 125 + i * 41.7, CY + 25]); H.pos.push([CXR - 125 + i * 41.7, CY + 25]); }
+      G.pos.push([CXL - 125 + 2 * 41.7, CY - 40]); H.pos.push([CXR - 125 + 3 * 41.7, CY - 40]);
+    } else if (p === 'c6') {
+      G = mk(6, [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]], circ(6, CXL, CY, 100, -Math.PI / 2));
+      H = mk(6, [[0, 1], [1, 2], [2, 0], [3, 4], [4, 5], [5, 3]], circ(3, CXR - 62, CY, 56, -Math.PI / 2).concat(circ(3, CXR + 62, CY, 56, -Math.PI / 2)));
+    } else if (p === 'petersen') {
+      var o = circ(5, CXL, CY, 110, -Math.PI / 2), inn = circ(5, CXL, CY, 55, -Math.PI / 2), o2 = circ(5, CXR, CY, 110, -Math.PI / 2), in2 = circ(5, CXR, CY, 62, -Math.PI / 2);
+      e = []; for (i = 0; i < 5; i++) e.push([i, (i + 1) % 5]);
+      var ep = e.slice(), eq = e.slice();
+      for (i = 0; i < 5; i++) { ep.push([i, i + 5]); ep.push([5 + i, 5 + (i + 2) % 5]); eq.push([i, i + 5]); eq.push([5 + i, 5 + (i + 1) % 5]); }
+      G = mk(10, ep, o.concat(inn)); H = mk(10, eq, o2.concat(in2));
+    } else if (p === 'srg16') {
+      var eg = [], eh = [], d;
+      for (i = 0; i < 16; i++) for (j = i + 1; j < 16; j++) {
+        var di = (Math.floor(j / 4) - Math.floor(i / 4) + 4) % 4, dj = ((j % 4) - (i % 4) + 4) % 4;
+        d = [di, dj];
+        if ((d[0] === 1 && d[1] === 0) || (d[0] === 3 && d[1] === 0) || (d[0] === 0 && d[1] === 1) || (d[0] === 0 && d[1] === 3) || (d[0] === 1 && d[1] === 1) || (d[0] === 3 && d[1] === 3)) eg.push([i, j]);
+        if (Math.floor(i / 4) === Math.floor(j / 4) || (i % 4) === (j % 4)) eh.push([i, j]);
+      }
+      G = mk(16, eg, circ(16, CXL, CY, RR, -Math.PI / 2)); H = mk(16, eh, circ(16, CXR, CY, RR, -Math.PI / 2));
+    } else if (p === 'iso') {
+      n = 9; edges = [];
+      for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) if (rnd() < 0.38) edges.push([i, j]);
+      perm = []; for (i = 0; i < n; i++) perm.push(i); rnd.shuffle(perm);
+      G = mk(n, edges, circ(n, CXL, CY, RR, -Math.PI / 2));
+      H = mk(n, edges.map(function (q) { return [perm[q[0]], perm[q[1]]]; }), circ(n, CXR, CY, RR, -Math.PI / 2));
+    } else {
+      n = 9; var all = [], m = 13;
+      for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) all.push([i, j]);
+      var s1 = all.slice(), s2 = all.slice(); rnd.shuffle(s1); rnd.shuffle(s2);
+      G = mk(n, s1.slice(0, m), circ(n, CXL, CY, RR, -Math.PI / 2)); H = mk(n, s2.slice(0, m), circ(n, CXR, CY, RR, -Math.PI / 2));
+    }
+    rounds = refine1(G, H); rr = 0;
+    sR.el.max = rounds.length - 1; sR.set(0, true);
+  }
+
+  /* ---------- 一维 WL（颜色细化） ---------- */
+  function sig1(g, c, v) { return c[v] + '|' + g.adj[v].map(function (u) { return c[u]; }).sort(function (x, y) { return x - y; }).join(','); }
+  function refine1(A, B) {
+    var out = [], ca = [], cb = [], i, r, map, next, key, na, nb, k, prevK = 1;
+    for (i = 0; i < A.n; i++) ca.push(0);
+    for (i = 0; i < B.n; i++) cb.push(0);
+    out.push({ ca: ca, cb: cb, k: 1 });
+    for (r = 1; r <= 40; r++) {
+      map = {}; next = 0; na = []; nb = [];
+      for (i = 0; i < A.n; i++) { key = sig1(A, ca, i); if (!(key in map)) map[key] = next++; na.push(map[key]); }
+      for (i = 0; i < B.n; i++) { key = sig1(B, cb, i); if (!(key in map)) map[key] = next++; nb.push(map[key]); }
+      k = next;
+      if (k === prevK) break;
+      out.push({ ca: na, cb: nb, k: k }); ca = na; cb = nb; prevK = k;
+    }
+    return out;
+  }
+  function hist(c, k) { var h = [], i; for (i = 0; i < k; i++) h.push(0); for (i = 0; i < c.length; i++) h[c[i]]++; return h; }
+  function sameHist(a, b) { for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; }
+
+  /* ---------- 二维 WL：给每一对点染色 ---------- */
+  function pairInit(g) {
+    var n = g.n, c = [], a, b;
+    for (a = 0; a < n; a++) { c.push([]); for (b = 0; b < n; b++) c[a].push(a === b ? 0 : 1); }
+    g.edges.forEach(function (e) { c[e[0]][e[1]] = 2; c[e[1]][e[0]] = 2; });
+    return c;
+  }
+  function flat(c) { var f = []; c.forEach(function (row) { row.forEach(function (v) { f.push(v); }); }); return f; }
+  function pairStep(c, n, map, counter) {
+    var out = [], a, b, w, list, key;
+    for (a = 0; a < n; a++) {
+      out.push([]);
+      for (b = 0; b < n; b++) {
+        list = [];
+        for (w = 0; w < n; w++) list.push(c[a][w] * 100000 + c[w][b]);
+        list.sort(function (x, y) { return x - y; });
+        key = c[a][b] + '#' + list.join(',');
+        if (!(key in map)) map[key] = counter.n++;
+        out[a].push(map[key]);
+      }
+    }
+    return out;
+  }
+  function refine2(A, B) {
+    var n = A.n, log = [], ca, cb, round, i, prevK, k, differAt = -1, same, ops = 0, ha, hb, h0, map, counter, na, nb;
+    if (A.n !== B.n) return { log: [], differAt: 0, ops: 0, note: '两个图的点数都不一样。' };
+    ca = pairInit(A); cb = pairInit(B);
+    ha = hist(flat(ca), 3); hb = hist(flat(cb), 3);
+    prevK = 0; for (i = 0; i < 3; i++) if (ha[i] + hb[i] > 0) prevK++;
+    log.push({ k: prevK, same: sameHist(ha, hb) });
+    if (!log[0].same) differAt = 0;
+    for (round = 1; round <= 40; round++) {
+      map = {}; counter = { n: 0 };
+      na = pairStep(ca, n, map, counter); nb = pairStep(cb, n, map, counter); ops += 2 * n * n * n;
+      k = counter.n;
+      if (k === prevK) break;
+      ha = hist(flat(na), k); hb = hist(flat(nb), k); same = sameHist(ha, hb);
+      log.push({ k: k, same: same });
+      if (!same && differAt < 0) differAt = round;
+      ca = na; cb = nb; prevK = k;
+    }
+    return { log: log, differAt: differAt, ops: ops };
+  }
+
+  /* ---------- 控件 ---------- */
+  var sP = Lab.select(panel, { label: '预设：一对图', value: preset, options: [['trees', '两棵 8 个点的树（度数一样，形状不同）'], ['c6', '6 个点：一个六边形 vs 两个三角形'], ['petersen', 'Petersen 图 vs 五棱柱（10 点，每点 3 个邻居）'], ['srg16', 'Shrikhande 图 vs 4×4 车图（16 点，每点 6 个邻居）'], ['iso', '同一个图换了编号（9 个点）'], ['random', '两个随机图（9 个点，13 条边）']], onChange: function (v) { preset = v; build(v); draw(); } });
+  var sR = Lab.slider(panel, { label: '细化的轮数', min: 0, max: 10, step: 1, value: 0, onInput: function (v) { rr = v; draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '下一轮', function () { if (rr < rounds.length - 1) { rr++; sR.set(rr, true); draw(); } }, 'pri');
+  Lab.button(row, '细化到不再变化', function () { rr = rounds.length - 1; sR.set(rr, true); draw(); });
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '二维 WL（给每一对点染色）', function () { res2 = refine2(G, H); draw(); });
+  Lab.button(row2, '重新随机', function () { if (preset === 'iso' || preset === 'random') { build(preset); draw(); } });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '二维 WL 的规则：先把每一对点 (i, j) 按"同一点／相邻／不相邻"分成 3 类；每一轮，对每一对 (i, j)，把<b>所有</b>点 w 对应的"(i, w) 的旧颜色，(w, j) 的旧颜色"凑成一份清单（不计顺序），连同 (i, j) 自己的旧颜色一起，相同的归为同一种新颜色。');
+  Lab.onTheme(function () { draw(); });
+
+  /* ---------- 画图 ---------- */
+  function hueOf(id) { return (id * 137.508) % 360; }
+  function drawGraph(g, c, title, cx, C, dark) {
+    var i, e, p;
+    Lab.label(x1, title, cx, 14, C.ink2, 'center', 14);
+    x1.strokeStyle = C.ink2; x1.globalAlpha = g.n > 12 ? 0.35 : 0.7; x1.lineWidth = g.n > 12 ? 1.2 : 2;
+    for (i = 0; i < g.edges.length; i++) { e = g.edges[i]; x1.beginPath(); x1.moveTo(g.pos[e[0]][0], g.pos[e[0]][1]); x1.lineTo(g.pos[e[1]][0], g.pos[e[1]][1]); x1.stroke(); }
+    x1.globalAlpha = 1;
+    for (i = 0; i < g.n; i++) {
+      p = g.pos[i];
+      Lab.dot(x1, p[0], p[1], g.n > 12 ? 10 : 14, Lab.hsl(hueOf(c[i]), 68, dark ? 58 : 52), C.card);
+      Lab.label(x1, String(c[i]), p[0], p[1] + 0.5, dark ? '#10142b' : '#fff', 'center', g.n > 12 ? 10.5 : 12.5);
+    }
+  }
+  function chips(h, cx, y, C, dark) {
+    var items = [], i, tot = 0, x, w = 0, step = 44;
+    for (i = 0; i < h.length; i++) if (h[i] > 0) items.push([i, h[i]]);
+    x = cx - (Math.min(items.length, 7) * step) / 2;
+    items.forEach(function (it, idx) {
+      var col = idx % 7, row = Math.floor(idx / 7), xx = x + col * step, yy = y + row * 22;
+      x1.fillStyle = Lab.hsl(hueOf(it[0]), 68, dark ? 58 : 52); x1.fillRect(xx, yy - 7, 12, 12);
+      Lab.label(x1, '×' + it[1], xx + 15, yy, C.ink2, 'left', 12);
+    });
+  }
+  function draw() {
+    var C = Lab.colors(), dark = Lab.isDark(), R = rounds[rr], ha, hb, same, s, firstDiff = -1, i, hh, k;
+    c1.clear(C.card);
+    drawGraph(G, R.ca, '图 G', CXL, C, dark); drawGraph(H, R.cb, '图 H', CXR, C, dark);
+    ha = hist(R.ca, R.k); hb = hist(R.cb, R.k); same = sameHist(ha, hb);
+    chips(ha, CXL, 318, C, dark); chips(hb, CXR, 318, C, dark);
+    Lab.label(x1, '每种颜色在图里出现的次数（小方块的颜色对应点的颜色）', 320, 296, C.muted, 'center', 12);
+    x1.strokeStyle = C.line; x1.lineWidth = 1; Lab.line(x1, 320, 24, 320, 288, C.line, 1);
+    for (i = 0; i < rounds.length; i++) { hh = hist(rounds[i].ca, rounds[i].k); if (!sameHist(hh, hist(rounds[i].cb, rounds[i].k))) { firstDiff = i; break; } }
+    s = '第 ' + rr + ' 轮（共 ' + (rounds.length - 1) + ' 轮后不再变化）：颜色共 ' + R.k + ' 种\n';
+    s += '两个图的颜色直方图：' + (same ? '完全相同' : '不一样') + '\n';
+    if (rr === rounds.length - 1) {
+      s += firstDiff >= 0 ? '→ 颜色细化把两个图分开了（从第 ' + firstDiff + ' 轮起直方图就不同）。两个图一定不同构。' : '→ 颜色细化到最后也看不出差别。这<b>不</b>表示它们同构，只表示这个办法在这里无能为力。';
+    } else {
+      s += firstDiff >= 0 && firstDiff <= rr ? '（从第 ' + firstDiff + ' 轮起直方图就不同了。）' : '（还没有分出差别；继续点"下一轮"。）';
+    }
+    if (res2) {
+      s += '\n\n二维 WL（每一对点一个颜色，共 ' + G.n + '×' + G.n + ' = ' + (G.n * G.n) + ' 个）：\n';
+      if (res2.note) s += res2.note;
+      else {
+        res2.log.forEach(function (L, idx) { s += '  第 ' + idx + ' 轮：点对颜色 ' + L.k + ' 种，两图直方图' + (L.same ? '相同' : '不同') + '\n'; });
+        s += res2.differAt >= 0 ? '→ 二维 WL 把两个图分开了（第 ' + res2.differAt + ' 轮起不同）。' : '→ 二维 WL 到最后也看不出差别。';
+        s += '\n每一轮要检查 n³ = ' + Lab.big(Math.pow(G.n, 3)) + ' 个三元组 (i, j, w)；一共算了约 ' + Lab.big(res2.ops) + ' 个。';
+      }
+    }
+    out.html(s);
+  }
+
+  build(preset); draw();
+})();
+</script>

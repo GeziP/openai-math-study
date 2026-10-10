@@ -1,0 +1,235 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>想象无穷多个同样的小球，排成一张"格子"：从原点出发，沿两个方向 $b_1,b_2$ 一格一格地摆。规定每个格子的面积都是 1（所以平均每单位面积恰好一个球）。左图画出的就是这张格子，中间的橙点是原点。格子的"形状"由一个复数 $\tau=x+iy$ 决定：$b_1$ 沿水平方向，$b_2$ 指向 $(x,y)$ 的方向，再整体缩放使面积为 1。</li>
+<li>每对小球之间有"斥力能量"。页面算的是<b>原点这个球和其余所有球</b>的能量之和 $E=\sum_{v\ne0}f(|v|^2)$。右图是一张<b>热图</b>：横轴是 $x$，纵轴是 $y$，每个点代表一种格子形状，颜色表示能量的高低（按排名涂色）——<b>蓝色低（放松），红色高（紧张）</b>。只画了"互不重复"的那一块区域（$|x|\le\frac12$，$|\tau|\ge1$），别的形状都和它们是同一种格子换了个角度。</li>
+<li>先用"高斯"势（$f=e^{-\pi\alpha r^2}$，$\alpha$ 越大，只有很近的邻居才起作用）：拖动右图里的小圆点，或点"找最小值"，看最低能量落在哪里。再试试"幂函数"势（$f=r^{-s}$，$s$ 越大越只在乎最近的邻居）。点"批量验证"，让电脑对很多种参数各自找一遍最小值。</li>
+<li>最后换成"窄井"势：它只"喜欢"距离恰好是 $r_0$ 左右的邻居。把 $r_0$ 从 0.9 拖到 1.6，每拖一次就点一次"找最小值"，看最小值落在哪里——它还一直在同一个地方吗？（作为参照：面积为 1 的正方格里，最近邻的距离恰好是 1；三角格里是 1.0746。）</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>对高斯势和幂函数势，最低点永远落在同一个角上。</b>点"批量验证"：高斯势 $\alpha=0.3,0.6,1,2,4$ 和幂函数势 $s=3,4,6,10$，一共 9 种"斥力"，找出来的最小值全都在 $\tau=\frac12+\frac{\sqrt3}{2}i\approx0.5+0.866i$，也就是<b>三角格（蜂窝排法）</b>。具体的差距：$\alpha=1$ 时三角格的能量是 0.1596，正方格是 0.1803；$s=4$ 时是 5.783 对 6.027；$s=10$ 时是 2.938 对 4.132——越"只在乎最近邻"，三角格的优势越大。</p>
+<p><b>热图上蓝色的谷底，就是那个角。</b>拖动小圆点，从别的位置往那个角靠近，读数里的"比三角格高多少"会一路降到 0。</p>
+<p><b>可是换一种"口味"的斥力，谷底就搬家了。</b>选"窄井"势，让电脑找最小值：$r_0=1.0$ 时最小值落在<b>正方格</b>（能量 $-4.0$：四个最近邻刚好踩在井底；三角格是 $-1.93$）；$r_0=1.0746$ 时落在<b>三角格</b>（能量 $-5.97$，六个邻居都踩在井底；正方格只有 $-1.47$）；$r_0=1.2$ 时落在一种<b>菱形格</b>（$\tau\approx0.5+1.238i$，能量 $-4.0$）；$r_0=\sqrt2\approx1.4142$ 时又回到<b>正方格</b>（能量 $-3.99$，这回踩在井底的是斜着的四个邻居）；$r_0=1.6$ 时是一张歪歪的<b>斜格</b>（$\tau\approx0.248+1.562i$）。没有哪一种格子能通吃所有"口味"。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>一个"格子"就是 $\Lambda=\{m\,b_1+n\,b_2:\ m,n\in\mathbb Z\}$。页面把每个格子的面积固定成 1，这样不同形状的格子才有公平的可比性（点的密度一样）。它的形状由 $\tau=x+iy$ 决定，而且 $\tau$ 和 $\tau$ 经过某些变换得到的 $\tau'$ 是"同一种格子"，所以只需要看右图那一小块区域。给定势函数 $f$，"原点这个球感受到的总能量"是 $E=\sum_{v\in\Lambda\setminus\{0\}}f(|v|^2)$。</p>
+<p>对高斯势 $f(r^2)=e^{-\pi\alpha r^2}$，这个和就是著名的<b>Θ 函数</b>（去掉 $v=0$ 那一项）。据我所知，Montgomery 在 1988 年证明了：面积为 1 的所有格子里，三角格对<b>每一个</b> $\alpha>0$ 同时让 Θ 函数最小。任何"完全单调"的势（可以写成许多高斯势按正权重叠加，例如 $r^{-s}$）都因此在三角格上取到格子里的最小能量。窄井势不是完全单调的，所以不受这个定理管辖，这正是上面看到的"谷底搬家"。</p>
+<p>问题 090 比这个"格子里的比较"强得多：它说的是，在平面上<b>所有</b>点的排法（不要求排成格子）里，对所有完全单调的势，三角格仍然是最放松的——据我所知这是 Cohn–Kumar 提出的"普适最优"猜想的二维情形；他们的工作和后续的研究已经在 8 维（$E_8$ 格）和 24 维（Leech 格）里证明了类似的结论，二维的情形据我所知一直是公开的。稿件宣称给出了二维的证明，<b>这需要独立审查</b>。页面只比较了格子，所以它验证的只是 Montgomery 那个已知的、较弱的一半，不能作为稿件的任何证据。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 346), x1 = c1.ctx;
+  var PI = Math.PI, SQ3 = Math.sqrt(3);
+  var kind = 'gauss', alpha = 1, sExp = 4, r0 = 1.0, WW = 0.07;
+  var tx = 0.5, ty = SQ3 / 2, note = '';
+  var XR = [-0.5, 0.5], YR = [0.8, 1.7];
+  var HM = { x: 368, y: 36, w: 252, h: 252 * 0.9 };
+  var GW = 80, GH = 72, bmp = Lab.bitmap(GW, GH);
+  var VIEW = { cx: 170, cy: 176, s: 52, r: 2.7 };
+
+  /* ---------- 能量：一个格子（面积 1）上，原点与其余所有格点的势能之和 ---------- */
+  function makeE(k, p) {
+    var R, f, tail = 0, c, hh;
+    if (k === 'gauss') { c = PI * p; R = Math.sqrt(14 / p); f = function (r2) { return Math.exp(-c * r2); }; }
+    else if (k === 'riesz') { hh = -p / 2; R = 9; f = function (r2) { return Math.pow(r2, hh); }; tail = 2 * PI * Math.pow(R, 2 - p) / (p - 2); }
+    else { R = p + 6 * WW; f = function (r2) { var d = (Math.sqrt(r2) - p) / WW; return -Math.exp(-d * d); }; }
+    return function (x, y) {
+      var a = 1 / Math.sqrt(y), ay = a * y, nmax = Math.ceil(R / ay) + 1, E = 0, n, m, vy, half, mlo, mhi, vx;
+      for (n = -nmax; n <= nmax; n++) {
+        vy = ay * n; if (Math.abs(vy) > R) continue;
+        half = Math.sqrt(R * R - vy * vy);
+        mlo = Math.ceil(-half / a - n * x); mhi = Math.floor(half / a - n * x);
+        for (m = mlo; m <= mhi; m++) {
+          if (m === 0 && n === 0) continue;
+          vx = a * (m + n * x);
+          E += f(vx * vx + vy * vy);
+        }
+      }
+      return E + tail;
+    };
+  }
+  function curParam() { return kind === 'gauss' ? alpha : kind === 'riesz' ? sExp : r0; }
+  function ymin(x) { return Math.sqrt(Math.max(0, 1 - x * x)); }
+  function clampDom(x, y) { x = Math.max(XR[0], Math.min(XR[1], x)); y = Math.max(ymin(x), Math.min(YR[1], y)); return [x, y]; }
+
+  /* ---------- 找最小值：先粗扫整个区域，再局部精修 ---------- */
+  function findMin(E, nx, ny) {
+    var best = Infinity, bx = 0.5, by = SQ3 / 2, i, j, x, y, v, step, improved, k, cx, cy, q, D = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+    for (i = 0; i <= nx; i++) {
+      x = -0.5 + i / nx;
+      for (j = 0; j <= ny; j++) {
+        y = ymin(x) + j / ny * (YR[1] - ymin(x));
+        v = E(x, y); if (v < best) { best = v; bx = x; by = y; }
+      }
+    }
+    step = 0.02;
+    while (step > 2e-4) {
+      improved = false;
+      for (k = 0; k < D.length; k++) {
+        q = clampDom(bx + D[k][0] * step, by + D[k][1] * step); cx = q[0]; cy = q[1];
+        v = E(cx, cy);
+        if (v < best - 1e-13) { best = v; bx = cx; by = cy; improved = true; }
+      }
+      if (!improved) step /= 2;
+    }
+    return { x: bx, y: by, e: best };
+  }
+  function kindOf(x, y) {
+    var ax = Math.abs(x);
+    if (Math.abs(ax - 0.5) < 0.012 && Math.abs(y - SQ3 / 2) < 0.012) return '三角格（六边形）';
+    if (ax < 0.012 && Math.abs(y - 1) < 0.012) return '正方格';
+    if (ax < 0.012) return '长方格';
+    if (Math.abs(ax - 0.5) < 0.012 || Math.abs(Math.sqrt(x * x + y * y) - 1) < 0.012) return '菱形格';
+    return '一般的斜格';
+  }
+
+  /* ---------- 控件 ---------- */
+  var sK = Lab.select(panel, { label: '势能（球与球之间的"斥力"）', value: kind, options: [['gauss', '高斯：e^(−π·α·r²)'], ['riesz', '幂函数：r^(−s)'], ['well', '窄井：只"喜欢"距离约为 r₀ 的邻居']], onChange: function (v) { kind = v; note = ''; layout(); recompute(); } });
+  var sA = Lab.slider(panel, { label: 'α（越大越只看最近的邻居）', min: 0.25, max: 4, step: 0.05, value: alpha, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { alpha = v; note = ''; recompute(); } });
+  var sS = Lab.slider(panel, { label: 's（指数）', min: 3, max: 12, step: 0.5, value: sExp, fmt: function (v) { return Lab.fmt(v, 1); }, onInput: function (v) { sExp = v; note = ''; recompute(); } });
+  var sR = Lab.slider(panel, { label: 'r₀（"喜欢"的距离）', min: 0.9, max: 1.6, step: 0.01, value: r0, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { r0 = v; note = ''; recompute(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '找最小值', function () {
+    var E = makeE(kind, curParam()), t0 = performance.now(), r = findMin(E, 100, 80);
+    tx = Math.abs(r.x); ty = r.y;
+    note = '最小值在 τ = ' + Lab.fmt(Math.abs(r.x), 3) + ' + ' + Lab.fmt(r.y, 3) + ' i，是' + kindOf(r.x, r.y) + '（用时 ' + Math.round(performance.now() - t0) + ' ms）。';
+    draw();
+  }, 'pri');
+  Lab.button(row, '批量验证', function () {
+    var cases = [['gauss', 0.3], ['gauss', 0.6], ['gauss', 1], ['gauss', 2], ['gauss', 4], ['riesz', 3], ['riesz', 4], ['riesz', 6], ['riesz', 10], ['well', 1.0], ['well', 1.0746], ['well', 1.2], ['well', 1.4142], ['well', 1.6]], s = '对每一种势能各找一遍最小值（只比较"格子"）：\n', i, r, t0 = performance.now(), nm;
+    for (i = 0; i < cases.length; i++) {
+      r = findMin(makeE(cases[i][0], cases[i][1]), 80, 60);
+      nm = cases[i][0] === 'gauss' ? '高斯 α=' + cases[i][1] : cases[i][0] === 'riesz' ? '幂函数 s=' + cases[i][1] : '窄井 r₀=' + cases[i][1];
+      s += '  ' + nm + '：τ* = ' + Lab.fmt(Math.abs(r.x), 3) + ' + ' + Lab.fmt(r.y, 3) + 'i → ' + kindOf(r.x, r.y) + '\n';
+    }
+    note = s + '用时 ' + Math.round(performance.now() - t0) + ' ms';
+    draw();
+  });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：这里只比较"格子"这一类排法。球的总数是无穷的，所以算的是"原点这个球"和其余所有球的能量之和；正方格、三角格的能量都在读数里。');
+  Lab.onTheme(function () { paintMap(); draw(); });
+  function layout() {
+    sA.el.parentNode.style.display = kind === 'gauss' ? '' : 'none';
+    sS.el.parentNode.style.display = kind === 'riesz' ? '' : 'none';
+    sR.el.parentNode.style.display = kind === 'well' ? '' : 'none';
+  }
+
+  /* ---------- 热图 ---------- */
+  var vals = new Float64Array(GW * GH), inside = new Uint8Array(GW * GH), eMin = 0, eMax = 1;
+  function recompute() {
+    var E = makeE(kind, curParam()), i, j, x, y, v, mn = Infinity, mx = -Infinity;
+    for (j = 0; j < GH; j++) {
+      y = YR[1] - (j + 0.5) / GH * (YR[1] - YR[0]);
+      for (i = 0; i < GW; i++) {
+        x = XR[0] + (i + 0.5) / GW * (XR[1] - XR[0]);
+        if (x * x + y * y < 1) { inside[j * GW + i] = 0; continue; }
+        v = E(x, y); vals[j * GW + i] = v; inside[j * GW + i] = 1;
+        if (v < mn) mn = v; if (v > mx) mx = v;
+      }
+    }
+    eMin = mn; eMax = mx;
+    paintMap(); draw();
+  }
+  var tRank = new Float32Array(GW * GH);
+  function paintMap() {
+    var d = bmp.data, i, j, k, q, m, t, rgb, p, dark = Lab.isDark(), ids = [];
+    for (k = 0; k < GW * GH; k++) if (inside[k]) ids.push(k);
+    ids.sort(function (u, v) { return vals[u] - vals[v]; });
+    m = ids.length;
+    for (q = 0; q < m; q++) tRank[ids[q]] = q / Math.max(1, m - 1);
+    for (j = 0; j < GH; j++) for (i = 0; i < GW; i++) {
+      p = (j * GW + i) * 4;
+      if (!inside[j * GW + i]) { d[p] = dark ? 36 : 226; d[p + 1] = dark ? 40 : 229; d[p + 2] = dark ? 62 : 240; d[p + 3] = 255; continue; }
+      t = tRank[j * GW + i];
+      rgb = Lab.rgb(225 - 225 * t, 78, dark ? 48 : 52);
+      d[p] = rgb[0]; d[p + 1] = rgb[1]; d[p + 2] = rgb[2]; d[p + 3] = 255;
+    }
+    bmp.flush();
+  }
+
+  /* ---------- 画图 ---------- */
+  function ring(x, y, r) { x1.lineWidth = 3.2; Lab.dot(x1, x, y, r, null, '#10142b'); x1.lineWidth = 1.6; Lab.dot(x1, x, y, r, null, '#fff'); }
+  function halo(s, x, y, align) {
+    x1.font = '11.5px "Microsoft YaHei UI","PingFang SC","Noto Sans SC",system-ui,sans-serif'; x1.textAlign = align; x1.textBaseline = 'middle';
+    x1.lineJoin = 'round'; x1.lineWidth = 3.4; x1.strokeStyle = 'rgba(16,20,43,.75)'; x1.strokeText(s, x, y);
+    x1.fillStyle = '#fff'; x1.fillText(s, x, y);
+  }
+  function lattice(x, y) {
+    var a = 1 / Math.sqrt(y), pts = [], m, n, vx, vy, r, dmin = Infinity, cnt = 0;
+    for (n = -9; n <= 9; n++) for (m = -9; m <= 9; m++) {
+      vx = a * (m + n * x); vy = a * y * n; r = Math.sqrt(vx * vx + vy * vy);
+      if (r < 1e-9) continue;
+      pts.push([vx, vy, r]); if (r < dmin) dmin = r;
+    }
+    pts.forEach(function (q) { if (q[2] <= dmin * 1.01) cnt++; });
+    return { pts: pts, dmin: dmin, cnt: cnt, a: a };
+  }
+  function draw() {
+    var C = Lab.colors(), L = lattice(tx, ty), E = makeE(kind, curParam()), Ecur = E(tx, ty), Etri = E(0.5, SQ3 / 2), Esq = E(0, 1), s, i, q, px, py, ax, dark = Lab.isDark();
+    c1.clear(C.card);
+    /* 左：格点图 */
+    x1.save(); x1.beginPath(); x1.rect(VIEW.cx - VIEW.r * VIEW.s, VIEW.cy - VIEW.r * VIEW.s, 2 * VIEW.r * VIEW.s, 2 * VIEW.r * VIEW.s); x1.clip();
+    if (kind === 'well') {
+      x1.beginPath(); x1.arc(VIEW.cx, VIEW.cy, (r0 + WW) * VIEW.s, 0, 2 * PI); x1.arc(VIEW.cx, VIEW.cy, Math.max(0, r0 - WW) * VIEW.s, 0, 2 * PI, true);
+      x1.fillStyle = C.warn; x1.globalAlpha = 0.28; x1.fill(); x1.globalAlpha = 1;
+    }
+    x1.setLineDash([4, 4]); x1.strokeStyle = C.muted; x1.lineWidth = 1.2; x1.beginPath(); x1.arc(VIEW.cx, VIEW.cy, L.dmin * VIEW.s, 0, 2 * PI); x1.stroke(); x1.setLineDash([]);
+    for (i = 0; i < L.pts.length; i++) {
+      q = L.pts[i]; if (Math.abs(q[0]) > VIEW.r + 0.1 || Math.abs(q[1]) > VIEW.r + 0.1) continue;
+      px = VIEW.cx + q[0] * VIEW.s; py = VIEW.cy - q[1] * VIEW.s;
+      if (q[2] <= L.dmin * 1.01) Lab.line(x1, VIEW.cx, VIEW.cy, px, py, C.accent, 2);
+    }
+    for (i = 0; i < L.pts.length; i++) {
+      q = L.pts[i]; if (Math.abs(q[0]) > VIEW.r + 0.1 || Math.abs(q[1]) > VIEW.r + 0.1) continue;
+      px = VIEW.cx + q[0] * VIEW.s; py = VIEW.cy - q[1] * VIEW.s;
+      Lab.dot(x1, px, py, q[2] <= L.dmin * 1.01 ? 5.5 : 4.2, q[2] <= L.dmin * 1.01 ? C.accent : C.ink2, C.card);
+    }
+    Lab.dot(x1, VIEW.cx, VIEW.cy, 7, C.warn, C.card);
+    x1.restore();
+    x1.strokeStyle = C.muted; x1.lineWidth = 1; x1.strokeRect(VIEW.cx - VIEW.r * VIEW.s + 0.5, VIEW.cy - VIEW.r * VIEW.s + 0.5, 2 * VIEW.r * VIEW.s, 2 * VIEW.r * VIEW.s);
+    Lab.label(x1, '这张格子的样子（面积为 1 的格子）', VIEW.cx, 16, C.ink2, 'center', 12.5);
+    Lab.label(x1, kind === 'well' ? '橙色环带：势能最"喜欢"的距离' : '蓝线：离原点最近的邻居', VIEW.cx, VIEW.cy + VIEW.r * VIEW.s + 16, C.muted, 'center', 12);
+    /* 右：热图 */
+    bmp.blit(x1, HM.x, HM.y, HM.w, HM.h);
+    ax = Lab.axes(x1, { x: HM.x, y: HM.y, w: HM.w, h: HM.h }, XR, YR, { xticks: [-0.5, 0, 0.5], yticks: [0.8, 1, 1.2, 1.4, 1.6], fx: function (t) { return Lab.fmt(t, 1); }, fy: function (t) { return Lab.fmt(t, 1); }, grid: false, xlabel: 'x（τ 的实部）', ylabel: 'y（虚部）' });
+    Lab.label(x1, '能量热图：蓝＝低（放松），红＝高（紧张）', HM.x + HM.w / 2, 16, C.ink2, 'center', 12.5);
+    /* 标记：三角格、正方格、当前 τ */
+    [[0.5, SQ3 / 2], [-0.5, SQ3 / 2]].forEach(function (z) { ring(ax.X(z[0]), ax.Y(z[1]), 4.5); });
+    ring(ax.X(0), ax.Y(1), 4.5);
+    halo('三角格', ax.X(0.5) - 8, ax.Y(SQ3 / 2) - 14, 'right');
+    halo('正方格', ax.X(0) + 9, ax.Y(1) - 11, 'left');
+    x1.lineWidth = 3.4; Lab.dot(x1, ax.X(tx), ax.Y(ty), 6.5, null, '#10142b'); x1.lineWidth = 1.8; Lab.dot(x1, ax.X(tx), ax.Y(ty), 6.5, null, '#fff');
+    /* 色条 */
+    for (i = 0; i < HM.w; i++) { var t = i / (HM.w - 1), rgb = Lab.rgb(225 - 225 * t, 78, dark ? 48 : 52); x1.fillStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')'; x1.fillRect(HM.x + i, 322, 1.2, 9); }
+    Lab.label(x1, '能量低', HM.x, 340, C.muted, 'left', 11); Lab.label(x1, '按排名涂色', HM.x + HM.w / 2, 340, C.muted, 'center', 11); Lab.label(x1, '能量高', HM.x + HM.w, 340, C.muted, 'right', 11);
+    /* 读数 */
+    s = '势能：' + (kind === 'gauss' ? '高斯，α = ' + Lab.fmt(alpha, 2) : kind === 'riesz' ? '幂函数，s = ' + Lab.fmt(sExp, 1) : '窄井，r₀ = ' + Lab.fmt(r0, 2) + '（宽度 ' + WW + '）') + '\n';
+    s += '当前 τ = ' + Lab.fmt(tx, 3) + ' + ' + Lab.fmt(ty, 3) + ' i（' + kindOf(tx, ty) + '）\n';
+    s += '最近邻距离 ' + Lab.fmt(L.dmin, 4) + '；距离相差 1% 以内的最近邻个数：' + L.cnt + '\n';
+    s += '能量 E = ' + Lab.fmt(Ecur, 6) + '\n';
+    s += '三角格 E = ' + Lab.fmt(Etri, 6) + '，正方格 E = ' + Lab.fmt(Esq, 6) + '\n';
+    s += '当前比三角格' + (Ecur - Etri >= 0 ? '高' : '低') + ' ' + Lab.fmt(Math.abs(Ecur - Etri), 6);
+    if (note) s += '\n\n' + note;
+    out.html(s);
+  }
+
+  /* ---------- 拖动 τ ---------- */
+  function toTau(p) {
+    var x = XR[0] + (p.x - HM.x) / HM.w * (XR[1] - XR[0]), y = YR[1] - (p.y - HM.y) / HM.h * (YR[1] - YR[0]);
+    return clampDom(x, y);
+  }
+  Lab.drag(c1, {
+    down: function (p) { if (p.x < HM.x - 6 || p.x > HM.x + HM.w + 6 || p.y < HM.y - 6 || p.y > HM.y + HM.h + 6) return null; var q = toTau(p); tx = q[0]; ty = q[1]; note = ''; draw(); return { on: true }; },
+    move: function (p) { var q = toTau(p); tx = q[0]; ty = q[1]; draw(); },
+    hover: function (p) { c1.cv.style.cursor = (p.x >= HM.x && p.x <= HM.x + HM.w && p.y >= HM.y && p.y <= HM.y + HM.h) ? 'crosshair' : 'default'; }
+  });
+
+  layout(); recompute();
+})();
+</script>

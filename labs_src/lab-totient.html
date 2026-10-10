@@ -1,0 +1,110 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>先弄清规则：$\varphi(n)$ 是 $1,2,\dots,n$ 里与 $n$ <b>互素</b>（没有大于 1 的公因数）的数有几个。例如 $\varphi(10)$：$1,3,7,9$ 与 10 互素，所以 $\varphi(10)=4$。</li>
+<li>上图每个点是 $(n,\varphi(n))$。最上面那条线是素数（$\varphi(p)=p-1$）；其余点散落在下方，越"多因子"的数越低。拖动"范围 $N$"看整体形状。</li>
+<li>在"原像查询"里输入一个数 $v$，页面会找出<b>所有</b>满足 $\varphi(n)=v$ 的 $n$（图中画成金色圈）。试试 8、24、12；再试 14、26——它们<b>一个 $n$ 也没有</b>，是"取不到的值"。</li>
+<li>下图把 $10^6$ 以内所有 $\varphi$ 值数了一遍：$V(x)$ 是"不超过 $x$ 的 $\varphi$ 值"的种数。用下拉框换三种看法，观察它占 $x$ 的比例、乘上 $\ln x$ 之后的走势，以及 $V(2x)/V(x)$ 是否趋于 2。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>所有大于 2 的 $n$ 的 $\varphi(n)$ 都是偶数，所以奇数（除了 1）一个也取不到；偶数里也有不少"空位"，14 是最小的一个。随着 $x$ 变大，$V(x)/x$ 缓缓下降，大致像 $1/\ln x$，但又要乘上一个<b>增长极慢</b>的因子（所以第二种看法的曲线缓缓上升）。最后一种看法中，$V(2x)/V(x)$ 在大范围内越来越靠近 2：这些值在大尺度上"分布得很均匀"。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>$\varphi$ 是乘性的：$\varphi(p^k)=p^{k-1}(p-1)$，若 $m,n$ 互素则 $\varphi(mn)=\varphi(m)\varphi(n)$。所以一个数能不能是 $\varphi$ 的值，取决于它能否拆成一堆"$p^{k-1}(p-1)$"的乘积，并且这些 $p$ 互不相同。14 之所以取不到：若 $\varphi(n)=14$，则 $n$ 的每个素因子 $p$ 都满足 $(p-1)\mid14$，即 $p\in\{2,3,8,15\}$，其中只有 2 和 3 是素数；而只含素因子 2、3 的 $n$，它的 $\varphi(n)$ 里不可能出现因子 7。</p>
+<p>Erdős 在 1935 年证明了 $V(x)$ 的量级是 $x/\ln x$ 的某个倍数；Ford 在 1998 年算出了精确的渐近式，其中那个"倍数"是一个像 $\exp\bigl(C(\ln\ln\ln x)^2+\cdots\bigr)$ 的极慢增长的因子。页面下方列出的问题 024，稿件宣称更进一步给出了带"相位依赖因子"的渐近式，并证明了 $V(cx)/V(x)\to c$（回答 Erdős–Hall 的问题）。这些深层结果无法靠数值验证，本页只让你看到 $10^6$ 以内的数据。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 330), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 290), x2 = c2.ctx;
+
+  /* ---------- 线性筛求 φ(n)，n ≤ NS；并统计 10^6 以内的值 ---------- */
+  var NS = 6000000, XM = 1000000, phi = new Int32Array(NS + 1), comp = new Uint8Array(NS + 1), pr = [], i, j;
+  phi[1] = 1;
+  for (i = 2; i <= NS; i++) {
+    if (!comp[i]) { pr.push(i); phi[i] = i - 1; }
+    for (j = 0; j < pr.length; j++) {
+      var p = pr[j], v = i * p; if (v > NS) break;
+      comp[v] = 1;
+      if (i % p === 0) { phi[v] = phi[i] * p; break; } else phi[v] = phi[i] * (p - 1);
+    }
+  }
+  var tot = new Uint8Array(XM + 1), cum = new Int32Array(XM + 1);
+  for (i = 1; i <= NS; i++) if (phi[i] <= XM) tot[phi[i]] = 1;
+  for (i = 1; i <= XM; i++) cum[i] = cum[i - 1] + tot[i];
+
+  var N = 300, target = 8, mode = 'ratio';
+  var sN = Lab.slider(panel, { label: '上图的范围 n ≤ N', min: 30, max: 2000, step: 10, value: 300, onInput: function (v) { N = v; drawA(); } });
+  var nV = Lab.number(panel, { label: '原像查询：φ(n) = v 的 n 有哪些？（v ≤ 10⁶）', min: 1, max: 1000000, value: 8, onInput: function (v) { target = Math.max(1, Math.min(XM, Math.round(v) || 1)); drawA(); } });
+  var out1 = Lab.out(panel);
+  var sel = Lab.select(panel, {
+    label: '下图的看法', value: 'ratio',
+    options: [['ratio', 'V(x) / x（取得到的比例）'], ['scaled', 'V(x)·ln x / x（乘上 ln x 看慢变化）'], ['double', 'V(2x) / V(x)（是否趋于 2）']],
+    onChange: function (v) { mode = v; drawB(); }
+  });
+  var out2 = Lab.out(panel);
+  Lab.onTheme(function () { drawA(); drawB(); });
+
+  /* ---------- 上图：(n, φ(n)) 散点 ---------- */
+  function preimages(v) { var r = []; for (var n = 1; n <= NS; n++) if (phi[n] === v) r.push(n); return r; }
+  function drawA() {
+    var C = Lab.colors(), n;
+    c1.clear(C.card);
+    var box = { x: 56, y: 24, w: 564, h: 262 };
+    var ax = Lab.axes(x1, box, [0, N], [0, N], { nx: 6, ny: 5, fx: function (v) { return Lab.fmt(v, 0); }, fy: function (v) { return Lab.fmt(v, 0); }, xlabel: 'n', ylabel: 'φ(n)' });
+    Lab.label(x1, '每个点是 (n, φ(n))；最上面一条线是素数 (φ(p) = p − 1)', box.x, 10, C.ink2, 'left', 13);
+    x1.setLineDash([5, 4]); Lab.line(x1, ax.X(0), ax.Y(0), ax.X(N), ax.Y(N), C.warn, 1.3); x1.setLineDash([]);
+    var rs = Math.max(1.4, Math.min(3.4, 560 / N * 0.9));
+    for (n = 1; n <= N; n++) {
+      var pm = phi[n] === n - 1 && n > 1;
+      Lab.dot(x1, ax.X(n), ax.Y(phi[n]), pm ? rs * 1.15 : rs, pm ? C.accent : C.muted);
+    }
+    var pre = preimages(target), inView = target <= N;
+    if (inView) { x1.setLineDash([3, 4]); Lab.line(x1, ax.X(0), ax.Y(target), ax.X(N), ax.Y(target), Lab.hsl(42, 95, 55), 1.4); x1.setLineDash([]); }
+    pre.forEach(function (m) {
+      if (m <= N) { x1.strokeStyle = Lab.hsl(42, 95, 55); x1.lineWidth = 2.2; x1.beginPath(); x1.arc(ax.X(m), ax.Y(target), rs + 4, 0, Lab.TAU); x1.stroke(); }
+    });
+    out1.html(
+      'φ(n) = ' + Lab.big(target) + ' 的 n：' +
+      (pre.length ? '<b>' + pre.slice(0, 24).join(', ') + (pre.length > 24 ? ', …' : '') + '</b>（共 ' + pre.length + ' 个）'
+        : '<span class="no">没有！' + Lab.big(target) + ' 是"取不到的值"</span>')
+    );
+    if (target > N) out1.html(out1.el.innerHTML + '\n（v 超过当前的 N，图里没有画出）');
+  }
+  var gaps = []; (function () { for (var n = 2; n <= 400 && gaps.length < 18; n += 2) if (!tot[n]) gaps.push(n); })();   // 取不到的偶数
+
+  /* ---------- 下图：V(x) 的各种看法 ---------- */
+  function drawB() {
+    var C = Lab.colors(), t;
+    c2.clear(C.card);
+    var xmaxT = mode === 'double' ? Math.log10(XM / 2) : 6, ys = [], ymin = 1e9, ymax = -1e9;
+    for (t = 1; t <= xmaxT + 1e-9; t += 0.02) {
+      var x = Math.round(Math.pow(10, t)), y;
+      if (mode === 'ratio') y = cum[x] / x; else if (mode === 'scaled') y = cum[x] * Math.log(x) / x; else y = cum[2 * x] / cum[x];
+      ys.push([t, y]); ymin = Math.min(ymin, y); ymax = Math.max(ymax, y);
+    }
+    if (mode === 'double') { ymax = Math.max(ymax, 2.05); ymin = Math.min(ymin, 1.85); }
+    var pad = (ymax - ymin) * 0.1 || 0.1;
+    var box = { x: 64, y: 26, w: 556, h: 200 };
+    var ax = Lab.axes(x2, box, [1, xmaxT], [Math.max(0, ymin - pad), ymax + pad], { nx: 5, ny: 4, fx: function (v) { return '10^' + Lab.fmt(v, 0); }, fy: function (v) { return Lab.fmt(v, 2); }, xlabel: 'x（对数刻度）' });
+    var title = mode === 'ratio' ? 'V(x) / x：不超过 x 的数里，有多大比例是 φ 的值' : mode === 'scaled' ? 'V(x)·ln x / x：慢慢往上爬' : 'V(2x) / V(x)：越来越接近 2 吗？';
+    Lab.label(x2, title, box.x, 10, C.ink2, 'left', 13);
+    if (mode === 'double') { x2.setLineDash([6, 4]); Lab.line(x2, ax.X(1), ax.Y(2), ax.X(xmaxT), ax.Y(2), C.warn, 1.6); x2.setLineDash([]); }
+    x2.strokeStyle = Lab.hsl(250, 80, 62); x2.lineWidth = 2; x2.beginPath();
+    ys.forEach(function (p, k) { if (k === 0) x2.moveTo(ax.X(p[0]), ax.Y(p[1])); else x2.lineTo(ax.X(p[0]), ax.Y(p[1])); });
+    x2.stroke();
+    var vs = [10, 100, 1000, 10000, 100000, 1000000];
+    out2.html(
+      'V(x)：' + vs.map(function (x) { return 'x=' + (x >= 1000 ? Lab.big(x) : x) + ' → ' + Lab.big(cum[x]); }).join('； ') + '\n' +
+      '最小的几个取不到的偶数：<b>' + gaps.join(', ') + ', …</b>'
+    );
+  }
+  drawA(); drawB();
+})();
+</script>

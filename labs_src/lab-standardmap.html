@@ -1,0 +1,109 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>想象一个转子，每隔固定时间被"踢"一下，踢的力度取决于它当前的角度 $x$，强度由 $K$ 控制。每踢一次，状态 $(x,p)$（角度、角动量）按 $p'=p+K\sin x,\ x'=x+p'$ 更新（都按 $2\pi$ 取余，所以相空间是一个"甜甜圈"，画成正方形）。图里每种颜色是<b>一个起点</b>迭代 1200 次留下的所有点。</li>
+<li>先把 $K$ 拉到 $0$：每个起点只会在一条水平线上跑，整张图是整齐的水平条纹——完全规则。再慢慢增大 $K$：水平线开始起伏，出现一串串"岛"。</li>
+<li>把 $K$ 推过 $0.97$ 附近：最后一条横贯整张图的整齐曲线消失了，一条轨道可以从下面一路游荡到上面。继续增大 $K$，混沌的"海"越来越大，规则的岛越来越小。</li>
+<li>在图上<b>点任意一点</b>放一条加粗的轨道（红），读数里会给出它的"李雅普诺夫指数" $\lambda$：$\lambda>0$ 说明这条轨道对初值极端敏感（混沌），$\lambda\approx0$ 说明它是规则的。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>$K$ 很小时，大部分轨道躺在整齐的曲线上（那些是 KAM 曲线，像一层层"防火墙"，把相空间分隔开）；$K$ 大了，防火墙一条条被打破，混沌海连成一片。读数里的"混沌比例"（随机取 200 个起点，数 $\lambda>0.02$ 的占比）大致是：$K=0.5$ 约 1%，$K=0.97$ 约三分之一，$K=1.5$ 约 64%，$K=3$ 约 87%，$K\ge5$ 以后超过 97%（每次点"换一批起点"会有几个百分点的涨落）。它是<b>逐渐增大、而不是在某个 $K$ 处突然变成 100%</b>：$K<4$ 时 $(\pi,0)$ 这个不动点是线性稳定的，附近通常留着规则的岛；据我所知，$K$ 超过 $2\pi$ 以后又会冒出一些很小的"加速器模式"岛。所以"整个相空间都是混沌"这件事，电脑上看是越来越接近，但并没有那么干净。</p>
+<p>这正是这个问题难的地方：用电脑看，"大 $K$ 时一大片区域是混沌的"几乎是肯定的；但据我所知，<b>数学上严格证明</b>某个具体的 $K$ 对应正熵（真正的混沌），至今没有任何一个参数被证明过。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>标准映射（Chirikov–Taylor 映射）是被周期性"踢"的转子的离散模型，也是哈密顿系统里"规则与混沌共存"最典型的例子。$K=0$ 时可以精确求解；$K$ 小时，KAM 定理保证大量不变曲线（环面）存留；Greene 的数值研究（1979）表明最后一条贯穿整个相空间的曲线在 $K_c\approx0.9716$ 处消失（这是数值结果，未被严格证明）。</p>
+<p>李雅普诺夫指数 $\lambda$ 衡量邻近轨道分开的指数速度：$\lambda>0$ 即混沌。而 Pesin 理论说，对面积测度，正李雅普诺夫指数与正的度量熵（Kolmogorov–Sinai 熵）是一回事。Sinai 猜想：对标准映射，大 $K$ 时面积测度的熵为正。页面下方列出的问题 146，稿件宣称：对所有足够大的 $K$，熵都严格为正。这是稿件的宣称，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var cv = Lab.canvas(stage, 640, 500), ctx = cv.ctx;
+  var TAU = 2 * Math.PI, S = 440, OX = 100, OY = 14, bm = Lab.bitmap(S, S), K = 0.8, rnd = Lab.rng(5), seeds = [], mine = [], frac = 0, i;
+  var NIT = 1200;
+  function genSeeds() { seeds = []; for (var q = 0; q < 28; q++) seeds.push([Math.PI, TAU * (q + 0.5) / 28]); for (q = 0; q < 32; q++) seeds.push([rnd() * TAU, rnd() * TAU]); }
+  genSeeds();
+
+  var sK = Lab.slider(panel, { label: '踢的强度 K', min: 0, max: 7, step: 0.01, value: 0.8, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { K = v; recompute(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '🎲 换一批起点', function () { rnd = Lab.rng(Math.floor(Math.random() * 1e9)); genSeeds(); recompute(); }, 'pri');
+  Lab.button(row, '清除我的轨道', function () { mine = []; draw(); });
+  var row2 = Lab.row(panel);
+  [0.5, 0.97, 1.5, 3, 6.5].forEach(function (k) { Lab.button(row2, 'K = ' + k, function () { K = k; sK.set(k, true); recompute(); }); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：点图中任意一点，放一条加粗的红色轨道（最多 6 条）。读数里的 λ 是沿这条轨道算 20000 步得到的数值估计。');
+  Lab.onTheme(draw);
+
+  function wrap(v) { return v - TAU * Math.floor(v / TAU); }
+  function lyap(x, p, n) {
+    var dx = 1, dp = 0, s = 0, k, c, ndx, ndp, nr;
+    for (k = 0; k < n; k++) {
+      c = K * Math.cos(x);
+      ndx = (1 + c) * dx + dp; ndp = c * dx + dp;
+      p = wrap(p + K * Math.sin(x)); x = wrap(x + p);
+      nr = Math.hypot(ndx, ndp); s += Math.log(nr); dx = ndx / nr; dp = ndp / nr;
+    }
+    return s / n;
+  }
+  function recompute() {
+    var C = Lab.colors(), bg = Lab.parseColor(C.card), d = bm.data, dark = Lab.isDark(), q, k, x, p, rgb, j, ix, iy;
+    for (j = 0; j < S * S; j++) { d[4 * j] = bg[0]; d[4 * j + 1] = bg[1]; d[4 * j + 2] = bg[2]; d[4 * j + 3] = 255; }
+    for (q = 0; q < seeds.length; q++) {
+      rgb = Lab.rgb((q * 47) % 360, 78, dark ? 64 : 44);
+      x = seeds[q][0]; p = seeds[q][1];
+      for (k = 0; k < NIT; k++) {
+        p = wrap(p + K * Math.sin(x)); x = wrap(x + p);
+        ix = Math.floor(x / TAU * S); iy = S - 1 - Math.floor(p / TAU * S); j = 4 * (iy * S + ix);
+        d[j] = rgb[0]; d[j + 1] = rgb[1]; d[j + 2] = rgb[2];
+      }
+    }
+    bm.flush();
+    /* 混沌比例的估计 */
+    var r2 = Lab.rng(99), cnt = 0, tot = 200, lam;
+    for (q = 0; q < tot; q++) { lam = lyap(r2() * TAU, r2() * TAU, 4000); if (lam > 0.02) cnt++; }
+    frac = cnt / tot;
+    draw();
+  }
+  function draw() {
+    var C = Lab.colors(), q, k, x, p, px, py, s;
+    cv.clear(C.card);
+    bm.blit(ctx, OX, OY, S, S);
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1; ctx.strokeRect(OX + 0.5, OY + 0.5, S, S);
+    var TL = ['0', 'π/2', 'π', '3π/2', '2π'];
+    for (q = 0; q <= 4; q++) {
+      Lab.label(ctx, TL[q], OX - 6, OY + S - q * S / 4, C.muted, 'right', 11.5);
+      Lab.label(ctx, TL[q], OX + q * S / 4, OY + S + 12, C.muted, 'center', 11.5);
+    }
+    Lab.label(ctx, '角度 x', OX + S / 2, OY + S + 30, C.ink2, 'center', 12.5);
+    ctx.save(); ctx.translate(OX - 62, OY + S / 2); ctx.rotate(-Math.PI / 2); Lab.label(ctx, '角动量 p', 0, 0, C.ink2, 'center', 12.5); ctx.restore();
+    for (q = 0; q < mine.length; q++) {
+      x = mine[q].x0; p = mine[q].p0;
+      ctx.fillStyle = q === mine.length - 1 ? '#e5484d' : '#f59e0b';
+      for (k = 0; k < 2500; k++) {
+        p = wrap(p + K * Math.sin(x)); x = wrap(x + p);
+        px = OX + x / TAU * S; py = OY + S - p / TAU * S;
+        ctx.fillRect(px - 0.9, py - 0.9, 1.8, 1.8);
+      }
+      Lab.dot(ctx, OX + mine[q].x0 / TAU * S, OY + S - mine[q].p0 / TAU * S, 4, C.card, '#e5484d');
+    }
+    s = 'K = ' + Lab.fmt(K, 2) + '\n' +
+      '混沌比例的估计：<b>' + Lab.fmt(100 * frac, 0) + '%</b>（随机 200 个起点，λ > 0.02 的占比）\n' +
+      (K < 0.9716 ? 'K 还没到 0.9716：理论上（数值）还有横贯整张图的 KAM 曲线挡着。' : 'K 已经超过 0.9716：横贯整张图的整齐曲线已经消失。');
+    for (q = 0; q < mine.length; q++) s += '\n红轨道 #' + (q + 1) + '：λ ≈ <b>' + Lab.fmt(mine[q].lam, 3) + '</b> ' + (mine[q].lam > 0.02 ? '→ 混沌' : '→ 规则（λ≈0）');
+    out.html(s);
+  }
+  cv.cv.addEventListener('click', function (e) {
+    var pt = cv.pos(e);
+    if (pt.x < OX || pt.x > OX + S || pt.y < OY || pt.y > OY + S) return;
+    var x0 = (pt.x - OX) / S * TAU, p0 = (OY + S - pt.y) / S * TAU;
+    mine.push({ x0: x0, p0: p0, lam: lyap(x0, p0, 20000) });
+    if (mine.length > 6) mine.shift();
+    draw();
+  });
+  recompute();
+})();
+</script>

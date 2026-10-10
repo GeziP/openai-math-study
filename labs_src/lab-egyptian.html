@@ -1,0 +1,180 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>输入一个真分数 $a/b$（默认 $4/17$）。上面一条"积木条"表示 0 到 1 的长度，彩色块是一个个<b>单位分数</b>（分子是 1 的分数，如 $1/5$）；把它们首尾相接，正好拼出 $a/b$。</li>
+<li>第一条是<b>贪心法</b>：每次拿走"放得下的最大积木"，剩下的再继续。第二条是页面搜索出的<b>较短的表示</b>（项数最少、且不超过 3 项，分母 $b\le150$ 时才搜索）。</li>
+<li>看下面的柱状图：每个柱子是这一项分母的<b>位数</b>。贪心法的分母位数常常一项比一项翻倍地暴涨。</li>
+<li>点"扫描"，让页面把所有分母不超过 $B$ 的真分数都用贪心法分解一遍，看看项数的分布。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>$\frac4{17}$ 的贪心分解是 $\frac15+\frac1{29}+\frac1{1233}+\frac1{3039345}$，四项，分母却大到七位数；换个拆法，$\frac15+\frac1{34}+\frac1{170}$ 只要三项，分母最大才 170（页面搜到的拆法分母可能还更小）。所以"拆成多少块""最大那块多小"是两件不同的事，贪心法不一定最优。另一个观察：扫描结果里，项数通常很少，大多数分数用贪心法就在寥寥几项内拆完。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>任何真分数都能写成<b>互不相同</b>的单位分数之和，这一点贪心法就能保证（每一步分子严格变小，所以必然停下）。真正的问题是<b>要用几项</b>。对分母为 $b$ 的分数，Erdős 猜想只需要大约 $\log\log b$ 项这么一个极慢增长的量级：$b$ 是一百万时 $\ln\ln b\approx2.6$，$b=10^{100}$ 时也只有约 $5.4$。（项数的常数倍当然可以更大，这里只谈量级。）</p>
+<p>与之相关的著名问题是 Erdős–Straus 猜想：对每个 $n\ge2$，$\frac4n$ 都能写成三个单位分数之和。你可以在右边的面板里输入 $a=4$ 和各种 $n$ 试试"三项以内能不能拆"（本页要求三个分母互不相同；猜想本身允许相同）。据我所知，这个猜想已被计算机验证到极大的范围，但还没有证明。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 340), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 200), x2 = c2.ctx;
+  var st = { a: 0, b: 0, g: [], s: null, msg: '' }, scan = null;
+
+  /* ---------- 算法 ---------- */
+  function greedy(a, b) {                       // 贪心：每次取最大的单位分数（BigInt，不约分也不影响取值）
+    a = BigInt(a); b = BigInt(b);
+    var ns = [];
+    while (a > 0n && ns.length < 60) { var n = (b + a - 1n) / a; ns.push(n); a = a * n - b; b = b * n; }
+    return ns;
+  }
+  function two(a, b, lo) {                      // 1/y + 1/z = a/b，lo ≤ y < z；返回所有解
+    var res = [];
+    for (var y = Math.max(lo, Math.ceil(b / a)); y <= Math.floor(2 * b / a); y++) {
+      var m = a * y - b; if (m <= 0) continue;
+      if ((b * y) % m === 0) { var z = b * y / m; if (z > y) res.push([y, z]); }
+    }
+    return res;
+  }
+  function short3(a, b) {                       // 最多 3 项：1 项、2 项、3 项依次尝试，同项数里选最大分母最小的
+    if (a === 1) return [b];
+    var r2 = two(a, b, 1);
+    if (r2.length) return r2.sort(function (p, q) { return p[1] - q[1]; })[0];
+    var best = null;
+    for (var x = Math.ceil(b / a); x <= Math.floor(3 * b / a); x++) {
+      var na = a * x - b; if (na <= 0) continue;
+      var nb = b * x, g = Lab.gcd(na, nb); na /= g; nb /= g;
+      if (na === 1) continue;
+      two(na, nb, x + 1).forEach(function (yz) {
+        if (!best || yz[1] < best[2]) best = [x, yz[0], yz[1]];
+      });
+    }
+    return best;                                 // 找不到则为 null
+  }
+  function fmtN(n) { var s = String(n); return s.length <= 10 ? s : s.slice(0, 4) + '…(' + s.length + '位)'; }
+  function expr(ns) { return ns.map(function (n) { return '1/' + fmtN(n); }).join(' + '); }
+
+  /* ---------- 控件 ---------- */
+  var na = Lab.number(panel, { label: '分子 a', min: 1, max: 9999, value: 4, onInput: upd });
+  var nb = Lab.number(panel, { label: '分母 b（真分数 a < b）', min: 2, max: 9999, value: 17, onInput: upd });
+  var row = Lab.row(panel);
+  Lab.button(row, '🎲 随机一个', function () {
+    var b = 5 + Math.floor(Math.random() * 115), a = 1 + Math.floor(Math.random() * (b - 1));
+    na.set(a, true); nb.set(b, true); upd();
+  }, 'pri');
+  Lab.button(row, '4/n 试试', function () { na.set(4, true); nb.set(5 + Math.floor(Math.random() * 90), true); upd(); });
+  var out = Lab.out(panel);
+  Lab.h3(panel, '批量扫描');
+  var sB = Lab.slider(panel, { label: '分母不超过 B', min: 20, max: 300, step: 10, value: 100, onInput: function () { } });
+  var rowS = Lab.row(panel);
+  Lab.button(rowS, '扫描全部真分数', doScan, 'pri');
+  var out2 = Lab.out(panel);
+  Lab.legend(stage, [['hsl(222,70%,58%)', '贪心法'], ['hsl(150,60%,42%)', '搜索出的较短表示']]);
+  Lab.onTheme(draw);
+
+  function upd() {
+    var a = Math.round(na.get()), b = Math.round(nb.get());
+    if (!(a >= 1 && b >= 2 && a < b)) { st = { a: 0, b: 0, g: [], s: null, msg: '请输入真分数：1 ≤ a < b。' }; draw(); return; }
+    var g = Lab.gcd(a, b), a0 = a, b0 = b; a /= g; b /= g;
+    st = { a: a, b: b, g: greedy(a, b), s: b <= 150 ? short3(a, b) : 'skip', msg: g > 1 ? '（由 ' + a0 + '/' + b0 + ' 约分而来）' : '' };
+    draw();
+  }
+
+  /* ---------- 绘图 ---------- */
+  function bar(ctx, y, label, ns, hue, C) {
+    var X0 = 30, W = 580, H = 44, x = X0;
+    ctx.fillStyle = C.bg; ctx.fillRect(X0, y, W, H);
+    ns.forEach(function (n, i) {
+      var w = W / Number(n), col = Lab.hsl(hue + (i % 2 ? 22 : -14) + i * 7, 68, 58, 0.95);
+      ctx.fillStyle = col; ctx.fillRect(x, y, w, H);
+      if (w > 1.5) { ctx.strokeStyle = C.card; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, H); }
+      if (w >= 34 && String(n).length <= 6) Lab.label(ctx, '1/' + n, x + w / 2, y + H / 2, '#fff', 'center', 12.5);
+      x += w;
+    });
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1; ctx.strokeRect(X0 + 0.5, y + 0.5, W, H);
+    Lab.label(ctx, label, X0, y - 9, C.ink2, 'left', 12.5);
+    return x;
+  }
+  function draw() {
+    var C = Lab.colors(), i;
+    c1.clear(C.card);
+    if (!st.a) { Lab.label(x1, st.msg || '请输入真分数', 320, 150, C.bad, 'center', 15); out.text(st.msg); return; }
+    var X0 = 30, W = 580;
+    Lab.label(x1, st.a + '/' + st.b + ' ' + st.msg, X0, 14, C.ink, 'left', 14.5);
+    // 目标刻度
+    var tx = X0 + W * st.a / st.b;
+    Lab.label(x1, '0', X0, 38, C.muted, 'center', 11.5); Lab.label(x1, '1', X0 + W, 38, C.muted, 'center', 11.5);
+    bar(x1, 62, '贪心法：' + st.g.length + ' 项', st.g, 222, C);
+    var sArr = (st.s && st.s !== 'skip') ? st.s : null;
+    if (sArr) bar(x1, 140, '搜索出的较短表示：' + sArr.length + ' 项', sArr, 150, C);
+    else Lab.label(x1, st.s === 'skip' ? '（分母超过 150，不做"较短表示"搜索）' : '（3 项以内没有找到表示）', X0, 140, C.muted, 'left', 12.5);
+    x1.strokeStyle = C.warn; x1.lineWidth = 2; x1.setLineDash([5, 3]);
+    Lab.line(x1, tx, 54, tx, 200, C.warn, 2); x1.setLineDash([]);
+    Lab.label(x1, '目标 ' + st.a + '/' + st.b, tx, 210, C.warn, 'center', 12);
+
+    // 分母位数柱状图
+    var m = Math.max(st.g.length, sArr ? sArr.length : 0, 3), maxd = 3;
+    var gd = st.g.map(function (n) { return String(n).length; }), sd = sArr ? sArr.map(function (n) { return String(n).length; }) : [];
+    maxd = Math.max(3, Math.max.apply(null, gd), sd.length ? Math.max.apply(null, sd) : 0) + 1;
+    var box = { x: 64, y: 240, w: 556, h: 70 }, tk = []; for (i = 1; i <= m; i++) tk.push(i);
+    var ax = Lab.axes(x1, box, [0.4, m + 0.6], [0, maxd], { xticks: tk, nx: m, ny: 3, fx: function (v) { return '第' + v + '项'; }, fy: function (v) { return Lab.fmt(v, 0); }, ylabel: '分母位数' });
+    var bw = Math.min(26, box.w / (m + 1) / 2.4);
+    function bars(arr, off, col) {
+      arr.forEach(function (d, k) {
+        var xx = ax.X(k + 1) + off, yy = ax.Y(d);
+        x1.fillStyle = col; x1.fillRect(xx - bw / 2, yy, bw, ax.Y(0) - yy);
+        Lab.label(x1, String(d), xx, yy - 8, C.ink2, 'center', 11);
+      });
+    }
+    bars(gd, sd.length ? -bw * 0.6 : 0, Lab.hsl(222, 70, 58));
+    bars(sd, bw * 0.6, Lab.hsl(150, 60, 42));
+
+    out.html(
+      '贪心：<b>' + st.a + '/' + st.b + ' = ' + expr(st.g) + '</b>（' + st.g.length + ' 项，最大分母 ' + String(st.g[st.g.length - 1]).length + ' 位）\n' +
+      (sArr ? '较短：<b>' + st.a + '/' + st.b + ' = ' + expr(sArr) + '</b>（' + sArr.length + ' 项，最大分母 ' + fmtN(sArr[sArr.length - 1]) + '）'
+        : st.s === 'skip' ? '（b > 150：未做较短表示搜索）' : '3 项以内（分母互不相同）没有表示。')
+    );
+    drawScan();
+  }
+
+  function doScan() {
+    var B = sB.get();
+    out2.text('正在计算……');
+    setTimeout(function () {
+      var cnt = {}, total = 0, maxLen = 0, maxFrac = null, maxDig = 0, digFrac = null, le3 = 0;
+      for (var b = 2; b <= B; b++) for (var a = 1; a < b; a++) {
+        if (Lab.gcd(a, b) !== 1) continue;
+        var ns = greedy(a, b), L = ns.length, dg = String(ns[L - 1]).length;
+        cnt[L] = (cnt[L] || 0) + 1; total++;
+        if (L <= 3) le3++;
+        if (L > maxLen) { maxLen = L; maxFrac = a + '/' + b; }
+        if (dg > maxDig) { maxDig = dg; digFrac = a + '/' + b; }
+      }
+      scan = { B: B, cnt: cnt, total: total, maxLen: maxLen, maxFrac: maxFrac, maxDig: maxDig, digFrac: digFrac, le3: le3 };
+      out2.html('分母 ≤ ' + B + '，共 <b>' + Lab.big(total) + '</b> 个最简真分数：\n贪心项数最多：<b>' + maxLen + '</b> 项（' + maxFrac + '）\n项数 ≤ 3 的占 ' + Lab.fmt(100 * le3 / total, 1) + '%\n最大分母 <b>' + maxDig + '</b> 位（' + digFrac + '）');
+      drawScan();
+    }, 30);
+  }
+  function drawScan() {
+    var C = Lab.colors();
+    c2.clear(C.card);
+    if (!scan) { Lab.label(x2, '点右侧"扫描全部真分数"，这里会显示贪心项数的分布', 320, 100, C.muted, 'center', 14); return; }
+    var L = scan.maxLen, vals = [], mx = 1, i;
+    for (i = 1; i <= L; i++) { vals.push(scan.cnt[i] || 0); mx = Math.max(mx, scan.cnt[i] || 0); }
+    var box = { x: 64, y: 30, w: 556, h: 120 }, tk = []; for (i = 1; i <= L; i++) tk.push(i);
+    Lab.label(x2, '分母 ≤ ' + scan.B + ' 的所有最简真分数，贪心项数的分布', box.x, 12, C.ink2, 'left', 13);
+    var ax = Lab.axes(x2, box, [0.4, L + 0.6], [0, mx * 1.12], { xticks: tk, ny: 4, fx: function (v) { return v + '项'; }, fy: function (v) { return Lab.big(v); } });
+    var bw = Math.min(46, box.w / (L + 1) * 0.7);
+    vals.forEach(function (v, k) {
+      var xx = ax.X(k + 1), yy = ax.Y(v);
+      x2.fillStyle = Lab.hsl(222, 70, 58); x2.fillRect(xx - bw / 2, yy, bw, ax.Y(0) - yy);
+      if (v > 0) Lab.label(x2, Lab.big(v), xx, yy - 8, C.ink2, 'center', 11);
+    });
+  }
+  upd();
+})();
+</script>

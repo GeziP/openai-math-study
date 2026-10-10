@@ -1,0 +1,173 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上图是 $n$ 个点两两相连的"完全图"。游戏规则：每一步，从<b>还完整存在的三角形</b>里随机挑一个（每个被挑中的机会相等），把它的三条边全部拿掉。拿到没有任何三角形为止。点"删一个三角形"一步一步走，或者点"一口气删到底"。</li>
+<li>边的颜色：<b>蓝色</b>的边还属于某个完整的三角形，将来还有可能被删；<b>橙色</b>的边已经不在任何完整三角形里了——它再也不会被删掉。游戏结束的时候，所有剩下的边一定都是橙色的。</li>
+<li>点"对当前的 $n$ 重复 3000 次"：只数结果，不画图。把 $n$ 调到 7、9、13，看看有多大机会刚好把所有边删光。</li>
+<li>点"测量最终剩多少边"：对 $n=10,20,40,80,160,256$ 各做若干次（$n$ 越大，做的次数越少），下图画出"剩下的边数 ÷ $n^{3/2}$"，虚线是 $\dfrac1{2\sqrt2}\approx0.354$。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>① 一口气删到底，总会剩下一些边。</b>$n=12$ 时，重复 3000 次，平均剩 12.6 条（原来有 66 条，约 19%）；$n=20$ 时平均剩 28 条（原来 190 条，约 15%）。多点几次"一口气删到底"，剩下的橙色边稀稀拉拉，彼此之间凑不出任何三角形。每次剩下的具体条数不一样，但永远是 3 的倍数（$n=12$ 时 66 是 3 的倍数，所以剩下的也只可能是 9、12、15 这样的数）。</p>
+<p><b>② 剩下的比例越来越小，但离"零"还很远。</b>点"测量最终剩多少边"，$n=10$ 时平均剩约 9 条（占 45 条的约 21%），到 $n=256$ 时平均剩约 1400 条（占 32640 条的约 4%）。比例在缓缓下降，条数却一直在增加。</p>
+<p><b>③ 除以 $n^{3/2}$ 之后，数字慢慢爬向一个固定的值。</b>我这一次测到的比值依次是 0.294、0.312、0.320、0.331、0.329、0.342（$n=10$ 到 $256$）；另一次是 0.289、0.306、0.327、0.341、0.340、0.335。每次点按钮都会略有不同——$n$ 大时只做了 4–6 次，竖线（标准误）也不短。大体上看，它在往 0.354 靠，但目前每一格都还低于它。这符合"最后剩下的边数大约是 $n^{3/2}$ 的某个常数倍"，但这点数据<b>不足以</b>证明常数就是 0.354：这个数字是稿件的宣称，需要独立审查。</p>
+<p><b>④ 想把边删光，几乎做不到。</b>$n=7$ 时理想上可以删光，但随机乱删只有约 28% 的机会成功，其余 72% 都卡在"剩 6 条边"；$n=9$ 的成功率只有约 3.3%；$n=13$ 时 3000 次里一次也没有（我另外多跑过，大约是万分之一）；$n=15$ 则是 0%。而当 $n$ 是偶数，或者 $n$ 除以 6 余 5 时，不管怎么删都不可能删光（点"重复 3000 次"，页面会提醒你）。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>剩下的边数是怎么数出来的？</b>每删一个三角形就拿走恰好 3 条边，所以最后剩下的边数 $=\binom n2-3T$，其中 $T$ 是一共删掉的三角形个数。"剩多少条边"和"删了多少个三角形"其实是同一个问题；而且它除以 3 的余数永远固定——这就是为什么 $n=7$ 时只会剩 0 条或 6 条（21 条边本身是 3 的倍数），$n=9$ 时只会剩 6、9、12 这些 3 的倍数。</p>
+<p><b>什么时候有可能删光？</b>一个点连着 $n-1$ 条边，每个三角形经过这个点时恰好用掉其中 2 条，所以想删光，$n-1$ 必须是偶数，即 $n$ 是奇数；边的总数 $\binom n2$ 又必须能被 3 整除。两个条件合起来，恰好等价于 $n\equiv 1$ 或 $3 \pmod 6$。反过来，Kirkman 在 1847 年证明了：只要 $n\equiv 1,3\pmod 6$，就存在一种刚好"不重不漏"的分法，叫<b>Steiner 三元系</b>。$n=7$ 的分法就是著名的 Fano 平面（7 个点、7 条"线"，每两个点恰好在一条线上）；$n=9$ 是 12 条线的"仿射平面"。可是这样的完美分法在全部分法里占比极小，闭着眼睛随机删，几乎碰不上。</p>
+<p><b>为什么剩下的边数是 $n^{3/2}$ 这个量级？（粗略直觉，不是证明）</b>设剩下的图里，任意两点之间连着边的比例大约是 $p$。一条边 $uv$ 想"活着"，需要有第三个点 $w$ 同时连着 $u$ 和 $v$；这样的 $w$ 平均有约 $np^2$ 个。只要它远大于 1，几乎每条边都还在某个三角形里，游戏会继续；当 $np^2$ 降到 1 的量级，也就是 $p\sim n^{-1/2}$ 时，大部分边已经变成橙色，游戏结束，此时的边数约为 $p\cdot\frac{n^2}{2}\sim n^{3/2}$。顺便算一下：若取常数 0.354，剩下的比例约为 $0.354\,n^{3/2}\big/\frac{n^2}{2}\approx 0.71/\sqrt n$，$n=256$ 时约 4.4%——和页面上测到的约 4.3% 很接近。</p>
+<p><b>研究者说了什么？</b>据稿件介绍，Bohman–Frieze–Lubetzky（2015）已经严格证明：最后剩下 $n^{3/2+o(1)}$ 条边（指数上还有一点点没算准的余量 $o(1)$）；而 Joos 与 Kühn 猜想，精确的结果是 $n^{3/2}/(2\sqrt2)$，也就是上图虚线的位置。问题 188 的稿件宣称证明了这个猜想；这里只是转述，我没有核对原文，稿件的证明是否正确，需要独立审查。页面上的数值只能说"没有和它矛盾"。</p>
+<p><b>页面是怎么"每次随机选一个"的？</b>先把所有 $\binom n3$ 个三元组随机排成一队，然后从头到尾检查一遍：三条边都还在，就把这个三角形删掉，否则跳过。跳过的三元组之后也不可能重新变完整，所以"下一个被删的三角形"总是当前所有完整三角形里等可能的一个——和题目的规则完全一样。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 330), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 240), x2 = c2.ctx;
+  var n = 12, P = null, meas = null, busy = false;
+
+  /* ---------- 随机删三角形 ----------
+     等价写法：把所有三元组随机排成一列，依次检查；三条边都还在，就删。
+     （已经检查过的三元组，要么被删了，要么缺边，之后都不可能再变成"完整的三角形"，
+       所以下一个被删的三角形，总是当前所有完整三角形中均匀随机的一个。） */
+  function makeTri(nn) {
+    var N3 = nn * (nn - 1) * (nn - 2) / 6, tri = new Int32Array(N3), k = 0, a, b, c, i, j, t;
+    for (a = 0; a < nn; a++) for (b = a + 1; b < nn; b++) for (c = b + 1; c < nn; c++) tri[k++] = (a * nn + b) * nn + c;
+    for (i = N3 - 1; i > 0; i--) { j = (Math.random() * (i + 1)) | 0; t = tri[i]; tri[i] = tri[j]; tri[j] = t; }
+    return tri;
+  }
+  function fullEdges(nn) { var e = new Uint8Array(nn * nn), a, b; for (a = 0; a < nn; a++) for (b = a + 1; b < nn; b++) e[a * nn + b] = 1; return e; }
+  function newProc(nn) { return { n: nn, tri: makeTri(nn), e: fullEdges(nn), ptr: 0, removed: 0, edges: nn * (nn - 1) / 2, last: null }; }
+  function stepProc(Pr) {
+    var nn = Pr.n, t, a, b, c, e = Pr.e;
+    while (Pr.ptr < Pr.tri.length) {
+      t = Pr.tri[Pr.ptr++]; c = t % nn; b = ((t - c) / nn) % nn; a = (t - c - b * nn) / (nn * nn);
+      if (e[a * nn + b] && e[a * nn + c] && e[b * nn + c]) { e[a * nn + b] = 0; e[a * nn + c] = 0; e[b * nn + c] = 0; Pr.removed++; Pr.edges -= 3; Pr.last = [a, b, c]; return true; }
+    }
+    return false;
+  }
+  function finalEdges(nn) {                     /* 只数结果：返回最后剩下的边数 */
+    var Pr = newProc(nn);
+    while (stepProc(Pr)) { }
+    return Pr.edges;
+  }
+  function countTriangles(Pr) {
+    var nn = Pr.n, e = Pr.e, a, b, c, s = 0;
+    for (a = 0; a < nn; a++) for (b = a + 1; b < nn; b++) if (e[a * nn + b]) for (c = b + 1; c < nn; c++) if (e[a * nn + c] && e[b * nn + c]) s++;
+    return s;
+  }
+  function alive(Pr, a, b) { var nn = Pr.n, e = Pr.e, w, u, v; for (w = 0; w < nn; w++) { if (w === a || w === b) continue; u = a < w ? a * nn + w : w * nn + a; v = b < w ? b * nn + w : w * nn + b; if (e[u] && e[v]) return true; } return false; }
+
+  /* ---------- 控件 ---------- */
+  var sN = Lab.slider(panel, { label: '点数 n', min: 6, max: 24, step: 1, value: n, fmt: function (v) { return String(v); }, onInput: function (v) { n = v; reset(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '删一个三角形', function () { if (!stepProc(P)) { P.done = true; } drawAll(); }, 'pri');
+  Lab.button(row, '一口气删到底', function () { while (stepProc(P)) { } P.done = true; drawAll(); });
+  Lab.button(row, '重来', function () { reset(); });
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '对当前的 n 重复 3000 次', function () { repeat(); });
+  Lab.button(row2, '测量最终剩多少边', function () { measure(); }, 'pri');
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：每一步恰好删 3 条边，所以"最后剩下的边数" = n(n−1)/2 − 3 ×（删掉的三角形个数），它除以 3 的余数，永远和 n(n−1)/2 除以 3 的余数一样。');
+  Lab.onTheme(function () { drawAll(); });
+
+  function reset() { P = newProc(n); drawAll(); }
+
+  function repeat() {
+    var R = 3000, hist = {}, s = 0, i, v, keys, txt, zero = 0, E0 = n * (n - 1) / 2;
+    for (i = 0; i < R; i++) { v = finalEdges(n); s += v; hist[v] = (hist[v] || 0) + 1; if (v === 0) zero++; }
+    keys = Object.keys(hist).map(Number).sort(function (a, b) { return a - b; });
+    txt = 'n = ' + n + '，一开始有 ' + E0 + ' 条边，重复 ' + R + ' 次：\n最后剩下的边数，平均 ' + Lab.fmt(s / R, 2) + ' 条；刚好删光的有 ' + Lab.fmt(100 * zero / R, 1) + '%\n';
+    keys.slice(0, 8).forEach(function (k) { txt += '  剩 ' + k + ' 条：' + Lab.fmt(100 * hist[k] / R, 1) + '%\n'; });
+    if (keys.length > 8) txt += '  （其余 ' + (keys.length - 8) + ' 种较大的剩余数省略）\n';
+    if (n % 6 === 1 || n % 6 === 3) txt += '这个 n 理想情况下可以删光（见"背后的数学"），但盲目随机地删，很难恰好成功。';
+    else txt += '这个 n 无论怎么删都删不光：要么 n 是偶数（每个点连着奇数条边，而一个三角形在每个顶点上恰好用掉 2 条），要么边数不能被 3 整除。';
+    out.html(txt);
+  }
+
+  var SPEC = [[10, 40], [20, 30], [40, 20], [80, 10], [160, 6], [256, 4]];
+  function measure() {
+    if (busy) return;
+    busy = true; meas = []; var si = 0, done = 0, vals = [];
+    function tick() {
+      var spec = SPEC[si], s = 0, s2 = 0, i, m, sd, nn = spec[0], R = spec[1];
+      if (done < R) { vals.push(finalEdges(nn)); done++; drawChart(); setTimeout(tick, 0); return; }
+      for (i = 0; i < vals.length; i++) { s += vals[i]; s2 += vals[i] * vals[i]; }
+      m = s / R; sd = Math.sqrt(Math.max(0, s2 / R - m * m));
+      meas.push({ n: nn, R: R, mean: m, se: sd / Math.sqrt(R), ratio: m / Math.pow(nn, 1.5) });
+      si++; done = 0; vals = [];
+      if (si < SPEC.length) { drawChart(); setTimeout(tick, 0); } else { busy = false; drawChart(); report(); }
+    }
+    out.html('测量中……');
+    setTimeout(tick, 20);
+  }
+  function report() {
+    var s = '最后剩下的边数（各取若干次的平均）：\n';
+    meas.forEach(function (r) { s += '  n = ' + r.n + '：' + Lab.fmt(r.mean, 1) + ' 条，比值 ' + r.ratio.toFixed(3) + '（' + r.R + ' 次）\n'; });
+    s += '参照：1/(2√2) = ' + Lab.fmt(1 / (2 * Math.SQRT2), 3);
+    out.html(s);
+  }
+
+  /* ---------- 画图 ---------- */
+  function drawGraph() {
+    var C = Lab.colors(), cx = 190, cy = 168, R = 130, i, j, pts = [], nn = n, e = P.e, big = nn > 16, q;
+    c1.clear(C.card);
+    for (i = 0; i < nn; i++) pts.push([cx + R * Math.cos(2 * Math.PI * i / nn - Math.PI / 2), cy + R * Math.sin(2 * Math.PI * i / nn - Math.PI / 2)]);
+    if (P.last) {
+      q = P.last;
+      x1.fillStyle = C.warn; x1.globalAlpha = 0.22; x1.beginPath(); x1.moveTo(pts[q[0]][0], pts[q[0]][1]); x1.lineTo(pts[q[1]][0], pts[q[1]][1]); x1.lineTo(pts[q[2]][0], pts[q[2]][1]); x1.closePath(); x1.fill(); x1.globalAlpha = 1;
+      x1.setLineDash([5, 4]);
+      Lab.line(x1, pts[q[0]][0], pts[q[0]][1], pts[q[1]][0], pts[q[1]][1], C.warn, 1.8);
+      Lab.line(x1, pts[q[0]][0], pts[q[0]][1], pts[q[2]][0], pts[q[2]][1], C.warn, 1.8);
+      Lab.line(x1, pts[q[1]][0], pts[q[1]][1], pts[q[2]][0], pts[q[2]][1], C.warn, 1.8);
+      x1.setLineDash([]);
+    }
+    for (i = 0; i < nn; i++) for (j = i + 1; j < nn; j++) if (e[i * nn + j]) {
+      x1.globalAlpha = big ? 0.5 : 0.8;
+      Lab.line(x1, pts[i][0], pts[i][1], pts[j][0], pts[j][1], alive(P, i, j) ? C.accent : C.warn, big ? 1 : 1.5);
+    }
+    x1.globalAlpha = 1;
+    for (i = 0; i < nn; i++) Lab.dot(x1, pts[i][0], pts[i][1], big ? 3.5 : 5, C.ink, C.card);
+    var tcount = countTriangles(P), E0 = nn * (nn - 1) / 2;
+    Lab.label(x1, '已删三角形：' + P.removed + ' 个', 352, 50, C.ink, 'left', 13.5);
+    Lab.label(x1, '还剩边：' + P.edges + ' 条（原有 ' + E0 + '）', 352, 76, C.ink, 'left', 13.5);
+    Lab.label(x1, '还完整的三角形：' + tcount + ' 个', 352, 102, C.ink, 'left', 13.5);
+    Lab.label(x1, '蓝边：还属于某个完整三角形', 352, 150, C.accent, 'left', 12.5);
+    Lab.label(x1, '橙边：再也不会被删掉', 352, 172, C.warn, 'left', 12.5);
+    Lab.label(x1, '虚线三角形：上一步删掉的', 352, 194, C.warn, 'left', 12.5);
+    if (tcount === 0) {
+      Lab.label(x1, '游戏结束：剩 ' + P.edges + ' 条边，', 352, 244, C.good, 'left', 13.5);
+      Lab.label(x1, '再也没有完整的三角形了。', 352, 266, C.good, 'left', 13.5);
+      Lab.label(x1, '参照：n^1.5 ÷ (2√2) ≈ ' + Lab.fmt(Math.pow(nn, 1.5) / (2 * Math.SQRT2), 1), 352, 292, C.muted, 'left', 12);
+    }
+  }
+  function drawChart() {
+    var C = Lab.colors(), box = { x: 64, y: 14, w: 556, h: 168 }, lg = function (v) { return Math.log(v) / Math.LN2; }, ax, ref = 1 / (2 * Math.SQRT2), i, r, X0 = null;
+    c2.clear(C.card);
+    ax = Lab.axes(x2, box, [lg(8), lg(310)], [0.24, 0.4], { xticks: [10, 20, 40, 80, 160, 256].map(lg), yticks: [0.25, 0.3, 0.35, 0.4], fx: function (v) { return String(Math.round(Math.pow(2, v))); }, fy: function (v) { return Lab.fmt(v, 2); }, xlabel: '点数 n', ylabel: '剩下的边数 ÷ n^1.5' });
+    x2.setLineDash([6, 4]); Lab.line(x2, ax.X(lg(8)), ax.Y(ref), ax.X(lg(310)), ax.Y(ref), C.good, 1.6); x2.setLineDash([]);
+    Lab.label(x2, '1/(2√2) ≈ 0.354', box.x + box.w - 6, ax.Y(ref) - 9, C.good, 'right', 12);
+    if (meas && meas.length) {
+      x2.strokeStyle = C.accent; x2.lineWidth = 2; x2.beginPath();
+      meas.forEach(function (m, k) { if (k === 0) x2.moveTo(ax.X(lg(m.n)), ax.Y(m.ratio)); else x2.lineTo(ax.X(lg(m.n)), ax.Y(m.ratio)); });
+      x2.stroke();
+      meas.forEach(function (m) {
+        var hi = (m.mean + m.se) / Math.pow(m.n, 1.5), lo = (m.mean - m.se) / Math.pow(m.n, 1.5);
+        Lab.line(x2, ax.X(lg(m.n)), ax.Y(hi), ax.X(lg(m.n)), ax.Y(lo), C.accent, 1.5);
+        Lab.dot(x2, ax.X(lg(m.n)), ax.Y(m.ratio), 4.5, C.accent, C.card);
+      });
+    } else if (!busy) Lab.label(x2, '点右边的"测量最终剩多少边"，这里会出现数据点', box.x + box.w / 2, box.y + box.h / 2, C.ink2, 'center', 13);
+    if (busy) Lab.label(x2, '测量中……（已完成 ' + (meas ? meas.length : 0) + ' / ' + SPEC.length + ' 组）', box.x + 10, box.y + box.h - 10, C.accent, 'left', 12.5);
+    Lab.label(x2, '竖线：平均值的标准误（±1）', box.x + box.w - 6, box.y + box.h - 10, C.muted, 'right', 11.5);
+  }
+  function drawAll() { drawGraph(); drawChart(); }
+
+  out.html('统计结果会显示在这里。');
+  reset();
+})();
+</script>

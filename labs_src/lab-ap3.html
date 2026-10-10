@@ -1,0 +1,144 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>画面上是一排数字 $1,2,\dots,N$。<b>点击</b>数字可以把它放进（或拿出）你的集合。红色的弧线连着一个<b>三项等差数列</b> $a,\ a+d,\ a+2d$（三个数都在你的集合里）。</li>
+<li>目标：在 $\{1,\dots,N\}$ 里放尽量多的数，同时<b>不出现任何三项等差数列</b>。先自己试试 $N=20$ 左右，能放几个？</li>
+<li>点"贪心"：从小到大，能放就放。再点"精确最大"（$N\le30$），看页面穷举出的最优答案，和你的、和贪心的比比谁多。</li>
+<li>看下面的曲线：贪心集合在 $N$ 很大时占 $\{1,\dots,N\}$ 的比例（密度）。拖动 $N$ 看看它们长什么样；你会发现贪心选出来的数都有同一种怪异的数字模式。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>贪心法选出的数是 $1,2,4,5,10,11,13,14,28,\dots$。把它们各减 1 再写成三进制：$0,1,10,11,100,101,110,111,\dots$——<b>全都只含数字 0 和 1</b>。这样的集合里不可能出现三项等差数列（因为 $a+c=2b$ 在三进制里需要某一位出现 2）。它的大小只有 $N^{0.63}$ 量级，密度 $\to0$，但下降得非常缓慢：$N$ 乘以 1000，密度才缩小到原来的约 $1/13$。数轴越长，"不含三项等差"的集合就占得越稀——这就是 Roth 定理：任何有正密度的集合必含三项等差数列。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>设 $r_3(N)$ 是 $\{1,\dots,N\}$ 里不含三项等差数列的子集的最大大小。Roth（1953）证明 $r_3(N)=o(N)$，也就是密度会趋于 0；Szemerédi 把"三项"推广到任意长度 $k$。关键的定量问题是：密度究竟能降得多快？Behrend（1946）造出了密度约为 $\exp(-c\sqrt{\log N})$ 的集合，比三进制构造好得多（但要在非常大的 $N$ 才显出优势）；Kelley–Meka（2023）证明上界是 $N\exp(-c(\log N)^{1/12})$ 量级。Erdős 的倒数和猜想则从另一个角度看：如果一个整数集合的倒数之和发散（比如所有整数、所有素数），它是否一定含任意长的等差数列？注意你造的任何集合，倒数和都是有限的，这与"不含等差数列"相容。</p>
+<p>页面下方列出的问题 159，稿件宣称证明了倒数和猜想，并对每个 $k$ 给出了拟多项式形式的界。这需要独立审查，本页只带你体验三项等差数列这一最简单的情形。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 270), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 278), x2 = c2.ctx;
+  var N = 30, inSet = {}, MAXG = 1000000, i;
+
+  /* ---------- 贪心（三进制不含 2）数的前缀统计 ---------- */
+  var cumG = new Int32Array(MAXG + 1), recSum = new Float64Array(MAXG + 1);
+  for (i = 1; i <= MAXG; i++) {
+    var m = i - 1, ok = true;
+    while (m > 0) { if (m % 3 === 2) { ok = false; break; } m = (m - (m % 3)) / 3; }
+    cumG[i] = cumG[i - 1] + (ok ? 1 : 0);
+    recSum[i] = recSum[i - 1] + (ok ? 1 / i : 0);
+  }
+  var R3 = null;                                          // N ≤ 30 的精确最大值（懒计算）
+
+  var sN = Lab.slider(panel, { label: '数轴长度 N', min: 10, max: 120, step: 1, value: 30, onInput: function (v) { N = v; trim(); draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '清空', function () { inSet = {}; draw(); });
+  Lab.button(row, '贪心', function () { inSet = {}; for (var x = 1; x <= N; x++) { inSet[x] = 1; if (hasAP(x)) delete inSet[x]; } draw(); }, 'pri');
+  Lab.button(row, '精确最大（N ≤ 30）', exact);
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '随机再加一个', function () {
+    var cand = []; for (var x = 1; x <= N; x++) if (!inSet[x]) { inSet[x] = 1; if (!hasAP(x)) cand.push(x); delete inSet[x]; }
+    if (cand.length) inSet[cand[Math.floor(Math.random() * cand.length)]] = 1; draw();
+  });
+  Lab.button(row2, '乱点一把', function () { inSet = {}; for (var x = 1; x <= N; x++) if (Math.random() < 0.4) inSet[x] = 1; draw(); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示："随机再加一个"只会加不会造成三项等差的数；如果加不动了，说明你的集合已经"饱和"（但不一定是最大的）。');
+  Lab.onTheme(draw);
+
+  function trim() { Object.keys(inSet).forEach(function (k) { if (+k > N) delete inSet[k]; }); }
+  function hasAP(x) {                                    // 刚加入 x（可能是等差数列里任意一项）后，是否出现含 x 的三项等差
+    for (var d = 1; d <= N; d++) {
+      if (inSet[x - d] && inSet[x - 2 * d]) return true;
+      if (inSet[x - d] && inSet[x + d]) return true;
+      if (inSet[x + d] && inSet[x + 2 * d]) return true;
+    }
+    return false;
+  }
+  function allAPs() {
+    var res = [], a, d;
+    for (a = 1; a <= N; a++) if (inSet[a]) for (d = 1; a + 2 * d <= N; d++) if (inSet[a + d] && inSet[a + 2 * d]) res.push([a, d]);
+    return res;
+  }
+  /* 精确最大：深度优先 + 剪枝，用 30 位二进制表示 */
+  function exact() {
+    if (N > 30) { out.html('<span class="hi">N 超过 30 时精确搜索太慢，请把 N 调到 30 以内。</span>'); return; }
+    var best = 0, bestSet = [], cur = [];
+    function rec(x, forb) {
+      // x：下一个考虑的数（1 起）；forb：已被禁止的数（位 x-1）
+      var rest = 0, y;
+      for (y = x; y <= N; y++) if (!((forb >>> (y - 1)) & 1)) rest++;
+      if (cur.length + rest <= best) return;
+      if (x > N) { if (cur.length > best) { best = cur.length; bestSet = cur.slice(); } return; }
+      if (!((forb >>> (x - 1)) & 1)) {                    // 放 x
+        var nf = forb, k;
+        for (k = 0; k < cur.length; k++) { var t = 2 * x - cur[k]; if (t <= N) nf |= (1 << (t - 1)); }   // 以 (cur[k], x, t) 为等差
+        cur.push(x); rec(x + 1, nf); cur.pop();
+      }
+      rec(x + 1, forb);                                   // 不放 x
+    }
+    rec(1, 0);
+    inSet = {}; bestSet.forEach(function (v) { inSet[v] = 1; });
+    draw();
+    out.html(out.el.innerHTML + '\n<span class="ok">精确搜索：r₃(' + N + ') = ' + best + '</span>');
+  }
+
+  /* ---------- 上图：数轴与弧线 ---------- */
+  function draw() {
+    var C = Lab.colors(), cw = 600 / N, y0 = 170, h = 40, x, d;
+    c1.clear(C.card);
+    var aps = allAPs(), size = Object.keys(inSet).length;
+    // 弧线（最多画 60 条）
+    x1.lineWidth = 1.6;
+    aps.slice(0, 60).forEach(function (p) {
+      var a = p[0], dd = p[1], mid = 20 + (a - 1 + dd + 0.5) * cw, r = dd * cw;
+      x1.strokeStyle = Lab.hsl(0, 85, 62, 0.7); x1.beginPath(); x1.arc(mid, y0, r, Math.PI, 0); x1.stroke();
+    });
+    for (x = 1; x <= N; x++) {
+      var px = 20 + (x - 1) * cw;
+      x1.fillStyle = inSet[x] ? C.accent : C.bg; x1.fillRect(px + 0.5, y0, cw - 1, h);
+      x1.strokeStyle = C.line; x1.lineWidth = 1; x1.strokeRect(px + 0.5, y0 + 0.5, cw - 1, h - 1);
+      if (cw >= 13) Lab.label(x1, String(x), px + cw / 2, y0 + h / 2, inSet[x] ? '#fff' : C.muted, 'center', Math.min(13, cw * 0.7));
+    }
+    Lab.label(x1, '点击数字来选取；红色弧线 = 一个三项等差数列（弧的两端是首项和末项）', 20, 16, C.ink2, 'left', 13);
+    Lab.label(x1, '你的集合：' + size + ' 个数，密度 ' + Lab.fmt(100 * size / N, 1) + '%', 20, 236, C.ink, 'left', 14);
+    if (aps.length) Lab.label(x1, '含 ' + aps.length + ' 个三项等差数列' + (aps.length > 60 ? '（只画出前 60 个）' : ''), 620, 236, C.bad, 'right', 14);
+    else Lab.label(x1, size ? '✓ 不含三项等差数列' : '', 620, 236, C.good, 'right', 14);
+    var rs = 0; Object.keys(inSet).forEach(function (k) { rs += 1 / (+k); });
+    out.html(
+      '你的集合 A：' + size + ' 个数\n密度 |A|/N = ' + Lab.fmt(size / N, 3) + '\n三项等差数列：' + (aps.length ? '<span class="no">' + aps.length + ' 个</span>' : '<span class="ok">0 个 ✓</span>') + '\nΣ 1/a = ' + Lab.fmt(rs, 3) +
+      '\n贪心集合在 [1, ' + N + '] 里有 ' + cumG[N] + ' 个\n' +
+      '贪心集合的大小：N=10² → ' + cumG[100] + '，10³ → ' + cumG[1000] + '，10⁴ → ' + cumG[10000] + '，10⁵ → ' + cumG[100000] + '，10⁶ → ' + cumG[1000000]
+    );
+    drawChart();
+  }
+
+  /* ---------- 下图：贪心集合的密度随 N 的变化 ---------- */
+  function drawChart() {
+    var C = Lab.colors(), t, ys = [];
+    c2.clear(C.card);
+    var box = { x: 64, y: 26, w: 556, h: 170 };
+    var ax = Lab.axes(x2, box, [0.5, 6], [-2.6, 0.1], { nx: 5, ny: 5, fx: function (v) { return '10^' + Lab.fmt(v, 0); }, fy: function (v) { return Lab.fmt(Math.pow(10, v) * 100, v > -1 ? 0 : 1) + '%'; }, xlabel: 'N（对数刻度）', ylabel: '贪心集合的密度' });
+    Lab.label(x2, '密度 = (贪心集合在 1..N 里的个数) / N', box.x, 10, C.ink2, 'left', 13);
+    x2.setLineDash([6, 4]); Lab.line(x2, ax.X(0.5), ax.Y(-0.369 * 0.5), ax.X(6), ax.Y(-0.369 * 6), C.warn, 1.6); x2.setLineDash([]);
+    Lab.label(x2, '≈ N^(-0.37)', ax.X(5.0), ax.Y(-0.369 * 5.0) - 14, C.warn, 'left', 12);
+    x2.strokeStyle = Lab.hsl(250, 80, 62); x2.lineWidth = 2; x2.beginPath();
+    for (t = 0.5; t <= 6 + 1e-9; t += 0.01) {
+      var n = Math.round(Math.pow(10, t)), y = Math.log10(cumG[n] / n);
+      if (t === 0.5) x2.moveTo(ax.X(t), ax.Y(y)); else x2.lineTo(ax.X(t), ax.Y(y));
+    }
+    x2.stroke();
+    // 当前 N 的位置
+    var tN = Math.log10(N); x2.setLineDash([3, 4]); Lab.line(x2, ax.X(tN), box.y, ax.X(tN), box.y + box.h, C.accent, 1.4); x2.setLineDash([]);
+    Lab.dot(x2, ax.X(tN), ax.Y(Math.log10(cumG[N] / N)), 5, C.accent, C.card);
+    Lab.label(x2, '贪心集合的倒数和 Σ1/a（1..10⁶）≈ ' + Lab.fmt(recSum[MAXG], 3) + '（有限，不发散）', box.x, 258, C.ink2, 'left', 12.5);
+  }
+  // 初始：放一个贪心集合
+  for (i = 1; i <= N; i++) { inSet[i] = 1; if (hasAP(i)) delete inSet[i]; }
+  draw();
+})();
+</script>

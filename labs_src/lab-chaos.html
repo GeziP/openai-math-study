@@ -1,0 +1,139 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>规则只有一句：选一个多边形，在里面随便放一个起点；每一步<b>随机</b>挑一个顶点，从当前位置朝它走"一部分路"（走的比例是 $1-c$，$c=\tfrac12$ 就是走一半），在落脚处点一个点。重复十万次。</li>
+<li>先点"慢放前 60 步"，看看每一步有多么随意；再点"重画"，十万步之后的图案会让你吃惊——三角形里长出了谢尔宾斯基三角形。</li>
+<li>换预设，或者自己拖动 $c$ 和顶点数，看图案怎么变。右边读数里有两个数：<b>公式值</b> $\ln m/\ln(1/c)$（"每步选了哪个顶点"的信息量 ÷ 每步缩小的倍数），以及页面从点云里<b>实测</b>的信息维数。</li>
+<li>把三角形的 $c$ 拉到 0.55 附近：这时小三角形们互相重叠了，看看公式值和实测值是什么关系。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>$c=\tfrac12$ 的三角形：实测维数约 1.5，和公式值 $\ln3/\ln2\approx1.585$ 吻合得不错。正方形取 $c=\tfrac13$ 得到一撮"尘埃"（公式值 $\ln4/\ln3\approx1.26$，实测也在 1.26 左右）；取 $c=\tfrac12$ 时点铺满整个正方形，读数在 1.9 以上，真实值就是 2。</p>
+<p>再看重叠的情形。三角形的 $c$ 一旦超过 $\tfrac12$，三块就开始互相重叠，重叠处的点特别密，图案浓淡不均；但中间那个"洞"还在（要到 $c\ge\tfrac23$ 才会被完全盖住）。公式值 $\ln3/\ln(1/c)$ 在 $c=1/\sqrt3\approx0.577$ 时刚好等于 2，再大就超过 2——可是平面的维数最多是 2，所以页面会提示"维数就是 2"。实测读数则总比公式值低一些（比如 $c=0.55$ 时公式值 1.84，页面读数约 1.7）：一部分是因为这里只在 $5\times5$ 到 $30\times30$ 的粗网格上估计，偏低在预料之中；另一部分也许是重叠确实"浪费"了信息。到底哪些参数下公式仍然成立，正是这个领域的前沿问题。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>这个"随机朝顶点跳"的游戏叫<b>混沌游戏</b>。每一步的变换 $x\mapsto cx+(1-c)v_i$ 都是把整体缩小 $c$ 倍再平移的相似变换，点云趋向的是一个<b>自相似测度</b>：把整个图缩小后拼 $m$ 份，每份占 $1/m$ 的质量，就还原出整张图。</p>
+<p>它的"维数"可以这样想：每放大一次，要多问一个"落在哪一块"的问题，信息量是 $\ln m$；而图形的尺度缩小了 $1/c$ 倍，对应 $\ln(1/c)$。信息量之比 $\ln m/\ln(1/c)$ 就是<b>相似维数</b>。如果各块互不重叠，测度的维数恰好就是 $\ln m/\ln(1/c)$。但块与块<b>重叠</b>时，信息会损失，维数可能更小（而且不会超过空间维数 $d$），一般情形远比这复杂。页面下方列出的问题 148，稿件研究的正是直线上的这个公式：宣称把 $\ln m$ 换成"随机复合映射的熵率 $h_{\mathrm{RW}}$"后，不需要任何分离条件，$\dim\mu=\min\{1,\ h_{\mathrm{RW}}/\chi\}$ 就对所有直线上的自相似测度成立。这是稿件的宣称，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var cv = Lab.canvas(stage, 640, 456), ctx = cv.ctx;
+  var W = 420, bm = Lab.bitmap(W, W), cnt = new Uint32Array(W * W), who = new Uint8Array(W * W);
+  var m = 3, c = 0.5, N = 100000, V = [], demo = null, timer = 0, dimTxt = '', rnd = Lab.rng(11);
+  var PRESETS = {
+    sier: [3, 0.5], dust: [4, 1 / 3], square: [4, 0.5], penta: [5, 0.382], hexa: [6, 1 / 3], overlap: [3, 0.55]
+  };
+
+  var sPre = Lab.select(panel, {
+    label: '预设', value: 'sier',
+    options: [['sier', '谢尔宾斯基三角形（m=3，c=1/2）'], ['dust', '康托尘（正方形，c=1/3）'], ['square', '铺满正方形（c=1/2）'], ['penta', '五边形雪花（m=5，c≈0.382）'], ['hexa', '六边形雪花（m=6，c=1/3）'], ['overlap', '重叠的三角形（c=0.55）']],
+    onChange: function (v) { m = PRESETS[v][0]; c = PRESETS[v][1]; sM.set(m, true); sC.set(c, true); regen(); }
+  });
+  var sM = Lab.slider(panel, { label: '顶点数 m', min: 3, max: 6, step: 1, value: 3, onInput: function (v) { m = v; regen(); } });
+  var sC = Lab.slider(panel, { label: '留在原地的比例 c', min: 0.2, max: 0.8, step: 0.01, value: 0.5, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { c = v; regen(); } });
+  var sN = Lab.slider(panel, { label: '点数', min: 20000, max: 300000, step: 10000, value: 100000, fmt: function (v) { return Lab.big(v); }, onInput: function (v) { N = v; regen(); } });
+  var ck = Lab.check(panel, { label: '按"最后朝哪个顶点跳"给点上色', checked: false, onChange: function () { render(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '慢放前 60 步', slowMo, 'pri');
+  Lab.button(row, '重画', function () { rnd = Lab.rng(Math.floor(Math.random() * 1e9)); regen(); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：实测的是"测度的信息维数"：把画面切成小方块，算点落进各方块的概率分布的熵，再看熵随方块变小增长多快。点数太少或 c 太接近 0.8 时，这个估计会偏差较大。');
+  Lab.onTheme(function () { if (!demo) render(); else drawDemo(); });
+
+  function verts() {
+    var i, a0 = (m % 2 === 1) ? -Math.PI / 2 : -Math.PI / 2 + Math.PI / m;
+    V = [];
+    for (i = 0; i < m; i++) V.push([W / 2 + 200 * Math.cos(a0 + 2 * Math.PI * i / m), W / 2 + 200 * Math.sin(a0 + 2 * Math.PI * i / m)]);
+  }
+  function regen() {
+    stopDemo(); verts();
+    cnt.fill(0); who.fill(0);
+    var x = W / 2, y = W / 2, i, k, px, py;
+    for (i = 0; i < N + 30; i++) {
+      k = (rnd() * m) | 0;
+      x = c * x + (1 - c) * V[k][0]; y = c * y + (1 - c) * V[k][1];
+      if (i >= 30) { px = x | 0; py = y | 0; if (px >= 0 && px < W && py >= 0 && py < W) { cnt[py * W + px]++; who[py * W + px] = k; } }
+    }
+    estimate();
+    render();
+  }
+  /* 信息维数：用不同大小的方块，算分布的熵对 ln(1/边长) 的斜率 */
+  function estimate() {
+    var sizes = [5, 7, 10, 14, 20, 30], xs = [], ys = [], si, s, nb, box, i, j, tot = 0, H, v;
+    for (i = 0; i < cnt.length; i++) tot += cnt[i];
+    for (si = 0; si < sizes.length; si++) {
+      s = sizes[si]; nb = W / s; box = new Float64Array(nb * nb);
+      for (j = 0; j < W; j++) for (i = 0; i < W; i++) { v = cnt[j * W + i]; if (v) box[((j / s) | 0) * nb + ((i / s) | 0)] += v; }
+      H = 0; for (i = 0; i < box.length; i++) if (box[i] > 0) H -= (box[i] / tot) * Math.log(box[i] / tot);
+      xs.push(Math.log(1 / s)); ys.push(H);
+    }
+    var n = xs.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
+    for (i = 0; i < n; i++) { sx += xs[i]; sy += ys[i]; sxx += xs[i] * xs[i]; sxy += xs[i] * ys[i]; }
+    var slope = (n * sxy - sx * sy) / (n * sxx - sx * sx), sim = Math.log(m) / Math.log(1 / c), ct = touchC(m);
+    dimTxt = '顶点数 m = ' + m + '，c = ' + Lab.fmt(c, 3) + '\n' +
+      '公式值 ln m / ln(1/c) = <b>' + Lab.fmt(sim, 3) + '</b>' + (sim > 2 ? '（超过 2，所以维数就是 2）' : '') + '\n' +
+      '实测的信息维数 ≈ <b>' + Lab.fmt(slope, 2) + '</b>\n' +
+      (c > ct + 0.0005 ?
+        '各块已经互相重叠（刚好相碰的临界值是 c = ' + Lab.fmt(ct, 3) + '）' + (m * c * c > 1 ? '；而且 m·c² > 1，面积加起来超过整体，重叠是必然的。' : '，重叠处的点更密。') :
+        '各块互不重叠（至多在边或角上相碰）。');
+  }
+  /* 正 m 边形缩小后的"角落副本"刚好相碰的缩放比（m-flake 公式） */
+  function touchC(mm) { var s = 1, k; for (k = 1; k <= Math.floor(mm / 4); k++) s += Math.cos(2 * Math.PI * k / mm); return 1 / (2 * s); }
+
+  /* ---------- 绘制 ---------- */
+  function render() {
+    var C = Lab.colors(), bg = Lab.parseColor(C.card), fg = Lab.parseColor(C.accent), i, mx = 0, d = bm.data, v, k, rgb, dark = Lab.isDark(), t;
+    for (i = 0; i < cnt.length; i++) if (cnt[i] > mx) mx = cnt[i];
+    var lm = Math.log(1 + mx), colorMode = ck.get();
+    for (i = 0; i < cnt.length; i++) {
+      v = cnt[i]; k = 4 * i;
+      if (!v) { d[k] = bg[0]; d[k + 1] = bg[1]; d[k + 2] = bg[2]; d[k + 3] = 255; continue; }
+      t = Math.min(1, 0.35 + 0.65 * Math.log(1 + v) / lm);
+      rgb = colorMode ? Lab.rgb(360 * who[i] / m, 75, dark ? 62 : 46) : fg;
+      d[k] = Math.round(bg[0] + (rgb[0] - bg[0]) * t); d[k + 1] = Math.round(bg[1] + (rgb[1] - bg[1]) * t); d[k + 2] = Math.round(bg[2] + (rgb[2] - bg[2]) * t); d[k + 3] = 255;
+    }
+    bm.flush();
+    cv.clear(C.card);
+    bm.blit(ctx, 110, 10, W, W);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(110.5, 10.5, W, W);
+    for (i = 0; i < V.length; i++) { Lab.dot(ctx, 110 + V[i][0], 10 + V[i][1], 4, C.bad, C.card); }
+    Lab.label(ctx, Lab.big(N) + ' 个点；红点是多边形的顶点', 320, 444, C.muted, 'center', 12.5);
+    out.html(dimTxt);
+  }
+  /* ---------- 慢放 ---------- */
+  function stopDemo() { if (timer) { clearInterval(timer); timer = 0; } demo = null; }
+  function slowMo() {
+    stopDemo(); verts();
+    demo = { x: W / 2 + 40, y: W / 2 + 60, steps: 0, pts: [], k: -1, px: 0, py: 0 };
+    drawDemo();
+    timer = setInterval(function () {
+      var k = (rnd() * m) | 0;
+      demo.px = demo.x; demo.py = demo.y; demo.k = k;
+      demo.x = c * demo.x + (1 - c) * V[k][0]; demo.y = c * demo.y + (1 - c) * V[k][1];
+      demo.pts.push([demo.x, demo.y]); demo.steps++;
+      drawDemo();
+      if (demo.steps >= 60) { clearInterval(timer); timer = 0; }
+    }, 140);
+  }
+  function drawDemo() {
+    var C = Lab.colors(), i;
+    cv.clear(C.card);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(110.5, 10.5, W, W);
+    for (i = 0; i < V.length; i++) { Lab.dot(ctx, 110 + V[i][0], 10 + V[i][1], 5, C.bad, C.card); }
+    for (i = 0; i < demo.pts.length; i++) Lab.dot(ctx, 110 + demo.pts[i][0], 10 + demo.pts[i][1], 2.6, C.accent);
+    if (demo.k >= 0) {
+      ctx.setLineDash([4, 4]); Lab.line(ctx, 110 + demo.px, 10 + demo.py, 110 + V[demo.k][0], 10 + V[demo.k][1], C.warn, 1.6); ctx.setLineDash([]);
+      Lab.dot(ctx, 110 + demo.x, 10 + demo.y, 5, C.warn, C.card);
+    }
+    Lab.label(ctx, '第 ' + demo.steps + ' / 60 步' + (demo.k >= 0 ? '：随机选中了第 ' + (demo.k + 1) + ' 个顶点，朝它走 ' + Lab.fmt(100 * (1 - c), 0) + '% 的路' : ''), 320, 444, C.ink2, 'center', 13);
+    out.html('慢放中……点"重画"可以看十万步之后的结果。');
+  }
+
+  verts(); regen();
+})();
+</script>

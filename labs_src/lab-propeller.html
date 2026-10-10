@@ -1,0 +1,207 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>图上是一团"高斯云"：中心密、四周稀的随机点（每个点都是一次"标准正态"抽样）。我们把整个平面切成<b>三块</b>，三种颜色。对每一块，把落在这一块里的点<b>向量相加再取平均</b>，得到一个"重心向量"（图上的粗箭头，为了看得清，放大了 7 倍）。<b>目标：让三个重心向量长度的平方之和 $\sum|z_i|^2$ 尽量大。</b>（严格地说，是对整团云做积分，而不是数点；小点只是帮你想象。）</li>
+<li>先用"扇形"模式：三条从中心出发的射线，把平面分成三个扇形，拖动射线末端的圆点改变切法。右边的读数会实时给出总和。默认是三个张角相等的 120° 扇形——"螺旋桨"。试着把任何一条射线挪开一点，看总和是涨还是跌。再点"变成两个半平面"看看这时是多少。</li>
+<li>点"让电脑爬山"，它会随机地挪动射线，只要总和变大就保留，一直试几百到几千次；从各种乱七八糟的起点出发，看看它最后停在哪个切法上。</li>
+<li>换成"沃罗诺伊"模式：你拖动的是三个<b>种子点</b>，平面上每个点归属于离它最近的那个种子。这类切法比"三个扇形"自由得多（边界不一定从中心出发）。再试试"让电脑爬山"和"从 10 个随机起点各爬一次"，看看有没有哪个切法比螺旋桨更好。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>扇形模式里，螺旋桨是最高点。</b>默认的三个 $120^\circ$ 扇形，每块的 $|z|=0.3455$，总和 $\sum|z_i|^2=0.3581$（正好是 $9/(8\pi)$）。把一条射线拖开 $20^\circ$，三块的张角变成 $100^\circ,120^\circ,140^\circ$，总和落到 0.3533；点"变成两个半平面"，总和是 0.3183（正好是 $1/\pi$）。"让电脑爬山"我从随机起点连续试了 20 次，20 次都停在 $120^\circ,120^\circ,120^\circ$，总和 0.3581。</p>
+<p><b>沃罗诺伊模式里，也没有谁超过螺旋桨——但电脑有时会卡住。</b>螺旋桨摆法的数值是 0.35807（比精确值 0.35810 低 0.00003，这是网格积分的误差）。我点"从 10 个随机起点各爬一次"共 4 批，40 次里有 29 次停在 0.3576–0.3581（又长成了螺旋桨），11 次停在 0.3173–0.3183 附近，没有一次超过螺旋桨。</p>
+<p><b>卡住的那些，是"有一块被甩出去了"。</b>读数里"三块各占的概率"会像 0.001、0.5、0.5：一个种子点被抛到很远的地方，它那一块里几乎没有云；剩下两块把云对半分，也就是"两个半平面"（$1/\pi$）。这是"爬山"这种笨办法的局限（摸黑往高处走，走到一个小山包就停了），不是什么数学结论。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>一个张角为 $\theta$ 的扇形，按标准正态分布算出来的"重心向量"长度是 $|z|=\dfrac{\sin(\theta/2)}{\sqrt{2\pi}}$（用极坐标：沿半径积分得 $\int_0^\infty r^2e^{-r^2/2}\,dr=\sqrt{\pi/2}$，沿角度积分得 $2\sin(\theta/2)$，再除以归一化常数 $2\pi$）。于是三块扇形的总和是 $\sum_i\dfrac{\sin^2(\theta_i/2)}{2\pi}$，约束是 $\theta_1+\theta_2+\theta_3=2\pi$。用拉格朗日乘数法可以算出它在 $\theta_i=120^\circ$ 时最大，值为 $3\cdot\dfrac{3/4}{2\pi}=\dfrac{9}{8\pi}$；两个半平面是 $2\cdot\dfrac{1}{2\pi}=\dfrac1\pi$。顺带一提，平均切成 $k$ 个扇形时总和是 $\dfrac{k\sin^2(\pi/k)}{2\pi}$：$k=2,3,4,5$ 分别是 $0.3183,\ 0.3581,\ 0.3183,\ 0.2749$——三叶刚好最高。</p>
+<p>真正的"螺旋桨猜想"比页面里的小实验大得多：它问的是在<b>任意维数</b>的高斯空间里，把空间切成<b>任意形状</b>的若干块，总和是否仍然不超过 $9/(8\pi)$。页面只看了平面里的三块、两类切法，所以它只能让你对"为什么大家猜最优是螺旋桨"有点直觉，<b>不能验证猜想</b>。</p>
+<p>稿件 096 宣称给出了这个猜想的证明，并以此得到核聚类问题近似比的 NP 难结论（这一步稿件还借用了唯一博弈方面的结论）。据我所知，公开文献里已经有题为《Solving the propeller conjecture》的论文（Heilman–Jagannath–Naor）处理这个猜想。稿件的证明是否正确、和已有结果是什么关系，我都没有核实，<b>需要独立审查</b>。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 520), x1 = c1.ctx;
+  var PI = Math.PI, TAU = 2 * PI, S2PI = Math.sqrt(2 * PI);
+  var OX = 320, OY = 260, SC = 500 / 9, GR = 4.5, ARW = 7, HR = 3.6;
+  var mode = 'rays', ang = [PI / 2, PI / 2 + TAU / 3, PI / 2 + 2 * TAU / 3], seeds = [[0, 2.2], [-1.9053, -1.1], [1.9053, -1.1]], note = '';
+  var rnd = Lab.rng(7), cloud = [], hue = [8, 140, 218], i0;
+  for (i0 = 0; i0 < 1300; i0++) cloud.push([rnd.normal(), rnd.normal()]);
+  var bmp = Lab.bitmap(270, 270), labels = new Uint8Array(270 * 270);
+  function X(x) { return OX + x * SC; }
+  function Y(y) { return OY - y * SC; }
+  function nrm(a) { a = a % TAU; return a < 0 ? a + TAU : a; }
+
+  /* ---------- 三个扇形：精确公式 ---------- */
+  function raysInfo() {
+    var idx = [0, 1, 2].sort(function (a, b) { return nrm(ang[a]) - nrm(ang[b]); }), t = idx.map(function (i) { return nrm(ang[i]); });
+    var w = [t[1] - t[0], t[2] - t[1], TAU - (t[2] - t[0])], mid = [t[0] + w[0] / 2, t[1] + w[1] / 2, t[2] + w[2] / 2], z = [], val = 0, i, m;
+    for (i = 0; i < 3; i++) { m = Math.sin(w[i] / 2) / S2PI; z.push([m * Math.cos(mid[i]), m * Math.sin(mid[i])]); val += m * m; }
+    return { t: t, w: w, mid: mid, z: z, val: val };
+  }
+  function raysLabel(R, x, y) { var f = nrm(Math.atan2(y, x)); return f < R.t[0] ? 2 : f < R.t[1] ? 0 : f < R.t[2] ? 1 : 2; }
+
+  /* ---------- 沃罗诺伊：在网格上积分 ---------- */
+  var grids = {};
+  function grid(N) {
+    if (grids[N]) return grids[N];
+    var h = 2 * GR / N, gx = new Float64Array(N * N), gy = new Float64Array(N * N), gw = new Float64Array(N * N), i, j, x, y;
+    for (j = 0; j < N; j++) { y = -GR + (j + 0.5) * h; for (i = 0; i < N; i++) { x = -GR + (i + 0.5) * h; gx[j * N + i] = x; gy[j * N + i] = y; gw[j * N + i] = Math.exp(-(x * x + y * y) / 2) / TAU * h * h; } }
+    grids[N] = { N: N, x: gx, y: gy, w: gw };
+    return grids[N];
+  }
+  function vorEval(S, N, lab) {
+    var G = grid(N), n = N * N, k, x, y, d0, d1, d2, b, zx = [0, 0, 0], zy = [0, 0, 0], ms = [0, 0, 0], val = 0, s0 = S[0], s1 = S[1], s2 = S[2];
+    for (k = 0; k < n; k++) {
+      x = G.x[k]; y = G.y[k];
+      d0 = (x - s0[0]) * (x - s0[0]) + (y - s0[1]) * (y - s0[1]); d1 = (x - s1[0]) * (x - s1[0]) + (y - s1[1]) * (y - s1[1]); d2 = (x - s2[0]) * (x - s2[0]) + (y - s2[1]) * (y - s2[1]);
+      b = d0 <= d1 ? (d0 <= d2 ? 0 : 2) : (d1 <= d2 ? 1 : 2);
+      zx[b] += x * G.w[k]; zy[b] += y * G.w[k]; ms[b] += G.w[k];
+      if (lab) lab[k] = b;
+    }
+    for (k = 0; k < 3; k++) val += zx[k] * zx[k] + zy[k] * zy[k];
+    return { z: [[zx[0], zy[0]], [zx[1], zy[1]], [zx[2], zy[2]]], mass: ms, val: val };
+  }
+
+  /* ---------- 控件 ---------- */
+  var sMode = Lab.select(panel, { label: '切法', value: mode, options: [['rays', '扇形：三条从中心出发的射线'], ['vor', '沃罗诺伊：三个种子点，各归最近的']], onChange: function (v) { mode = v; note = ''; draw(); } });
+  var row1 = Lab.row(panel);
+  Lab.button(row1, '回到螺旋桨', function () { resetProp(); note = ''; draw(); }, 'pri');
+  Lab.button(row1, '变成两个半平面', function () {
+    if (mode !== 'rays') { note = '这个按钮只在"扇形"模式里有用（沃罗诺伊模式里没法让第三块变空）。'; draw(); return; }
+    ang = [0, PI, PI]; note = ''; draw();
+  });
+  Lab.button(row1, '随机起点', function () { randomStart(); note = ''; draw(); });
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '让电脑爬山', function () { var r = climb(false); note = '爬山前 ' + Lab.fmt(r.start, 5) + '，爬山后 ' + Lab.fmt(r.end, 5) + '。'; draw(); });
+  Lab.button(row2, '从 10 个随机起点各爬一次', function () {
+    var res = [], i, r, t0 = performance.now();
+    for (i = 0; i < 10; i++) { randomStart(); r = climb(true); res.push(r.end); }
+    res.sort(function (a, b) { return a - b; });
+    note = '10 次爬山的终点（由小到大）：\n' + res.map(function (v) { return Lab.fmt(v, 5); }).join('，') + '\n用时 ' + Math.round(performance.now() - t0) + ' ms';
+    draw();
+  });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：高斯云的"密度"取标准正态分布；每一块的重心向量是这一块里 x 的积分（积分里已经带了概率权重，所以越靠外的点贡献越小）。');
+  Lab.onTheme(function () { draw(); });
+  function resetProp() { ang = [PI / 2, PI / 2 + TAU / 3, PI / 2 + 2 * TAU / 3]; seeds = [[0, 2.2], [-1.9053, -1.1], [1.9053, -1.1]]; }
+  function randomStart() {
+    var i, a, r;
+    if (mode === 'rays') { for (i = 0; i < 3; i++) ang[i] = rnd() * TAU; }
+    else { for (i = 0; i < 3; i++) { a = rnd() * TAU; r = 0.6 + rnd() * 2.6; seeds[i] = [r * Math.cos(a), r * Math.sin(a)]; } }
+  }
+
+  /* ---------- 爬山 ---------- */
+  function climb(quiet) {
+    var S = mode === 'rays' ? 3000 : 700, i, k, step, best, old, v, N = 100, start;
+    if (mode === 'rays') {
+      best = start = raysInfo().val;
+      for (i = 0; i < S; i++) {
+        step = 0.5 * Math.pow(0.002 / 0.5, i / S); k = rnd.int(3); old = ang[k];
+        ang[k] = old + step * rnd.normal(); v = raysInfo().val;
+        if (v > best) best = v; else ang[k] = old;
+      }
+      return { start: start, end: raysInfo().val };
+    }
+    start = vorEval(seeds, 270).val; best = vorEval(seeds, N).val;
+    for (i = 0; i < S; i++) {
+      step = 0.8 * Math.pow(0.01 / 0.8, i / S); k = rnd.int(3); old = seeds[k];
+      seeds[k] = [Math.max(-4.2, Math.min(4.2, old[0] + step * rnd.normal())), Math.max(-4.2, Math.min(4.2, old[1] + step * rnd.normal()))];
+      v = vorEval(seeds, N).val;
+      if (v > best) best = v; else seeds[k] = old;
+    }
+    return { start: start, end: vorEval(seeds, 270).val };
+  }
+
+  /* ---------- 画图 ---------- */
+  function arrowFrom(zv, color) {
+    var ex = X(zv[0] * ARW), ey = Y(zv[1] * ARW);
+    if (Math.hypot(ex - OX, ey - OY) < 4) return;
+    x1.lineJoin = 'round'; x1.lineCap = 'round';
+    Lab.arrow(x1, OX, OY, ex, ey, color, 3.4);
+  }
+  function draw() {
+    var C = Lab.colors(), dark = Lab.isDark(), R, V, i, k, d = bmp.data, p, rgb, info, z, ms, val, s, col = [], q, lab;
+    c1.clear(C.card);
+    /* 分块背景 */
+    if (mode === 'rays') { R = raysInfo(); info = R; for (k = 0; k < 270 * 270; k++) labels[k] = raysLabel(R, grid(270).x[k], grid(270).y[k]); z = R.z; val = R.val; }
+    else { V = vorEval(seeds, 270, labels); info = V; z = V.z; val = V.val; }
+    for (i = 0; i < 3; i++) col.push(Lab.rgb(hue[i], dark ? 45 : 70, dark ? 22 : 90));
+    for (k = 0; k < 270 * 270; k++) { rgb = col[labels[k]]; p = k * 4; d[p] = rgb[0]; d[p + 1] = rgb[1]; d[p + 2] = rgb[2]; d[p + 3] = 255; }
+    bmp.flush();
+    /* bitmap 的第 0 行是 y 最小处，需要上下翻转后再画 */
+    x1.save(); x1.translate(0, 2 * 10 + 500); x1.scale(1, -1); bmp.blit(x1, 70, 10, 500, 500); x1.restore();
+    /* 同心圆（1、2、3 倍标准差） */
+    x1.strokeStyle = C.muted; x1.globalAlpha = 0.5; x1.lineWidth = 1; x1.setLineDash([3, 5]);
+    for (i = 1; i <= 3; i++) { x1.beginPath(); x1.arc(OX, OY, i * SC, 0, TAU); x1.stroke(); }
+    x1.setLineDash([]); x1.globalAlpha = 1;
+    /* 云里的点 */
+    for (i = 0; i < cloud.length; i++) {
+      q = cloud[i];
+      lab = mode === 'rays' ? raysLabel(R, q[0], q[1]) : nearest(q[0], q[1]);
+      x1.fillStyle = Lab.hsl(hue[lab], 70, dark ? 62 : 38, 0.8);
+      x1.fillRect(X(q[0]) - 1.1, Y(q[1]) - 1.1, 2.2, 2.2);
+    }
+    x1.strokeStyle = C.ink2; x1.lineWidth = 1.2; x1.strokeRect(70.5, 10.5, 500, 500);
+    /* 射线或种子 */
+    if (mode === 'rays') {
+      for (i = 0; i < 3; i++) {
+        x1.strokeStyle = C.ink; x1.lineWidth = 2.2; x1.beginPath(); x1.moveTo(OX, OY); x1.lineTo(X(HR * 1.2 * Math.cos(ang[i])), Y(HR * 1.2 * Math.sin(ang[i]))); x1.stroke();
+      }
+      for (i = 0; i < 3; i++) { x1.lineWidth = 2.2; Lab.dot(x1, X(HR * Math.cos(ang[i])), Y(HR * Math.sin(ang[i])), 8, C.card, C.ink); }
+    } else {
+      for (i = 0; i < 3; i++) { x1.lineWidth = 2.4; Lab.dot(x1, X(seeds[i][0]), Y(seeds[i][1]), 8, Lab.hsl(hue[i], 70, dark ? 62 : 38), C.card); }
+    }
+    /* 重心向量 */
+    for (i = 0; i < 3; i++) arrowFrom(z[i], Lab.hsl(hue[i], 80, dark ? 70 : 28));
+    Lab.dot(x1, OX, OY, 3.5, C.ink, null);
+    Lab.label(x1, '虚线圆：1、2、3 倍标准差；粗箭头：每块的重心向量（放大 ' + ARW + ' 倍）', 76, 24, C.ink2, 'left', 12);
+    /* 读数 */
+    s = (mode === 'rays' ? '三个扇形' : '沃罗诺伊（三个种子点）') + '\n';
+    if (mode === 'rays') {
+      s += '张角：' + info.w.map(function (v) { return Lab.fmt(v * 180 / PI, 1) + '°'; }).join('、') + '\n';
+    } else {
+      s += '三块各占的概率：' + info.mass.map(function (v) { return Lab.fmt(v, 3); }).join('、') + '\n';
+    }
+    s += '重心向量的长度 |z|：' + z.map(function (v) { return Lab.fmt(Math.hypot(v[0], v[1]), 4); }).join('、') + '\n';
+    s += '总和 Σ|z|² = ' + Lab.fmt(val, 5) + '\n';
+    s += '对照：两个半平面 1/π = ' + Lab.fmt(1 / PI, 5) + '；螺旋桨 9/(8π) = ' + Lab.fmt(9 / (8 * PI), 5) + '\n';
+    s += '当前比螺旋桨' + (val >= 9 / (8 * PI) ? '高' : '低') + ' ' + Lab.fmt(Math.abs(val - 9 / (8 * PI)), 5);
+    if (mode === 'vor') s += '\n（沃罗诺伊的数值来自 270×270 的网格积分，有 1e-4 量级的误差）';
+    if (note) s += '\n\n' + note;
+    out.html(s);
+  }
+  function nearest(x, y) {
+    var b = 0, bd = 1e18, i, d;
+    for (i = 0; i < 3; i++) { d = (x - seeds[i][0]) * (x - seeds[i][0]) + (y - seeds[i][1]) * (y - seeds[i][1]); if (d < bd) { bd = d; b = i; } }
+    return b;
+  }
+
+  /* ---------- 拖动 ---------- */
+  Lab.drag(c1, {
+    down: function (p) {
+      var i, best = -1, bd = 18, d;
+      for (i = 0; i < 3; i++) {
+        d = mode === 'rays' ? Math.hypot(X(HR * Math.cos(ang[i])) - p.x, Y(HR * Math.sin(ang[i])) - p.y) : Math.hypot(X(seeds[i][0]) - p.x, Y(seeds[i][1]) - p.y);
+        if (d < bd) { bd = d; best = i; }
+      }
+      return best >= 0 ? { i: best } : null;
+    },
+    move: function (p, st) {
+      var x = (p.x - OX) / SC, y = (OY - p.y) / SC;
+      if (mode === 'rays') ang[st.i] = Math.atan2(y, x); else seeds[st.i] = [Math.max(-4.2, Math.min(4.2, x)), Math.max(-4.2, Math.min(4.2, y))];
+      note = ''; draw();
+    },
+    hover: function (p) {
+      var i, near = false;
+      for (i = 0; i < 3; i++) { if ((mode === 'rays' ? Math.hypot(X(HR * Math.cos(ang[i])) - p.x, Y(HR * Math.sin(ang[i])) - p.y) : Math.hypot(X(seeds[i][0]) - p.x, Y(seeds[i][1]) - p.y)) < 18) near = true; }
+      c1.cv.style.cursor = near ? 'grab' : 'default';
+    }
+  });
+
+  draw();
+})();
+</script>

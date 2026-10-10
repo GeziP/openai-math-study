@@ -1,0 +1,167 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>把 $n$ 个人画成圆周上的点，每两个人之间连一条线：<b>红线</b>表示"互相认识"，<b>蓝线</b>表示"互相陌生"。<b>点击任意一条线</b>可以换颜色。粗亮的线说明它属于一个<b>单色团</b>：$k$ 个人两两之间的线全是同一种颜色。</li>
+<li>默认是 $n=5,\ k=3$：外圈五条边是红的、里面的五角星是蓝的，没有任何三个人"互相全认识或全陌生"。把人数拉到 $n=6$，再怎么点都消除不了单色三角形——这就是 $R(3,3)=6$。</li>
+<li>点"全穷举检查"，让页面把 $n\le6$ 时<b>所有</b>可能的染色（最多 $2^{15}=32768$ 种）逐一检查。</li>
+<li>把 $k$ 改成 4：现在要避免的是"4 个人两两同色"。点"自动找"让页面碰碰运气；点"Paley 染色"得到一个著名的、用 17 个人做到的无单色 $K_4$ 的染色。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>$k=3$ 时，5 个人还有办法避开，6 个人就必然出现单色三角形；穷举检查会告诉你，5 个点恰好有 <b>12</b> 种染色避开了单色三角形，6 个点一种也没有。$k=4$ 时，17 个人仍然可以避开（Paley 染色），而 18 个人不行，$R(4,4)=18$。$k=5$ 的 $R(5,5)$ 至今没人知道，只知道介于 43 与 46 之间（据我所知）。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>Ramsey 数</b> $R(s,t)$ 是最小的人数，使得任何红蓝染色都含"$s$ 个人全红"或"$t$ 个人全蓝"的团。它存在这件事本身就是 Ramsey 理论的起点：彻底的无序不可能存在。难点在于它到底有多大。Erdős 的随机染色论证给出下界：若 $\binom nk2^{1-\binom k2}<1$，则存在 $n$ 个点没有单色 $K_k$ 的染色，所以 $R(k,k)$ 至少像 $2^{k/2}$ 那样增长；上界则是 $4^{k}$ 量级。这两个指数底数 $\sqrt2$ 与 4 之间的差距，数十年来只被略微缩小。</p>
+<p>页面下方列出的问题 170，稿件研究的是"非对角"情形 $r(s,t)$：$s$ 固定而 $t\to\infty$。已知 $s=3$ 时 $r(3,t)\asymp t^2/\log t$（见下方的小表格，比值相当稳定）；$s=4$ 时上下界还差一个对数因子的幂；稿件宣称对每个 $s\ge5$ 把对数的指数确定了，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var cv = Lab.canvas(stage, 640, 470), ctx = cv.ctx;
+  var MAXN = 17, n = 5, k = 3, col = [], i, j, cx = 320, cy = 235, R = 192;
+  for (i = 0; i < MAXN; i++) col.push(new Int8Array(MAXN));
+  function setC(a, b, c) { col[a][b] = col[b][a] = c; }
+  function randomize(from) { for (var a = from; a < MAXN; a++) for (var b = 0; b < a; b++) setC(a, b, Math.random() < 0.5 ? 1 : 0); }
+  function pentagon() {                                  // 五边形（红）+ 五角星（蓝）
+    for (var a = 0; a < 5; a++) for (var b = 0; b < a; b++) { var d = Math.min(a - b, 5 - (a - b)); setC(a, b, d === 1 ? 0 : 1); }
+  }
+  randomize(0); pentagon();
+
+  var sN = Lab.slider(panel, { label: '人数 n', min: 3, max: MAXN, step: 1, value: 5, onInput: function (v) { var old = n; n = v; msg = ''; if (n > old) randomize(old); draw(); } });
+  var sK = Lab.select(panel, { label: '要避免的单色团大小 k', value: '3', options: [['3', 'k = 3（三个人）'], ['4', 'k = 4（四个人）']], onChange: function (v) { k = +v; msg = ''; draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '🎲 随机染色', function () { randomize(0); msg = ''; draw(); }, 'pri');
+  Lab.button(row, '🔎 自动找', autoFind);
+  Lab.button(row, '全穷举检查', exhaustive);
+  Lab.button(row, 'Paley 染色（k = 4）', paley);
+  var out = Lab.out(panel);
+  var msg = '';
+  Lab.hint(panel, '提示：点击图中的线可以换颜色；亮粗线 = 属于某个单色团。"自动找"用的是随机局部搜索（改色最少地消灭单色团），找不到并不能说明不存在。');
+  Lab.h3(panel, '已知的 r(3, t)');
+  var out2 = Lab.out(panel);
+  (function () {
+    var known = [[3, 6], [4, 9], [5, 14], [6, 18], [7, 23], [8, 28], [9, 36]], s = '';
+    known.forEach(function (p) { var t = p[0], v = t * t / Math.log(t); s += 't=' + t + '：r(3,t)=' + p[1] + '，t²/ln t=' + Lab.fmt(v, 1) + '，比值 ' + Lab.fmt(p[1] / v, 2) + '\n'; });
+    out2.text(s.trim());
+  })();
+  Lab.onTheme(draw);
+
+  /* ---------- 团的计算 ---------- */
+  function cliquesOf(c) {
+    var res = [], cur = [];
+    (function rec(start) {
+      if (cur.length === k) { res.push(cur.slice()); return; }
+      for (var v = start; v < n; v++) {
+        var ok = true;
+        for (var a = 0; a < cur.length; a++) if (col[cur[a]][v] !== c) { ok = false; break; }
+        if (ok) { cur.push(v); rec(v + 1); cur.pop(); }
+      }
+    })(0);
+    return res;
+  }
+  /* 经过边 (a,b) 的、颜色为 c 的单色 k-团个数（k = 3 或 4；不看边 ab 自己的颜色） */
+  function through(a, b, c) {
+    var com = [], v, x, y, cnt = 0;
+    for (v = 0; v < n; v++) if (v !== a && v !== b && col[a][v] === c && col[b][v] === c) com.push(v);
+    if (k === 3) return com.length;
+    for (x = 0; x < com.length; x++) for (y = x + 1; y < com.length; y++) if (col[com[x]][com[y]] === c) cnt++;
+    return cnt;
+  }
+  function totalCost() { return cliquesOf(0).length + cliquesOf(1).length; }
+
+  /* ---------- 局部搜索 ---------- */
+  function autoFind() {
+    var t0 = performance.now(), a, b, steps = 0, cost;
+    randomize(0);
+    cost = totalCost();
+    while (cost > 0 && performance.now() - t0 < 1800) {
+      var cand = [], bestD = 1e9, bestE = [];
+      for (a = 1; a < n; a++) for (b = 0; b < a; b++) {
+        var c0 = col[a][b], rem = through(a, b, c0);
+        if (rem > 0) {
+          var d = through(a, b, 1 - c0) - rem;
+          cand.push([a, b, d]);
+          if (d < bestD) { bestD = d; bestE = [[a, b]]; } else if (d === bestD) bestE.push([a, b]);
+        }
+      }
+      var pick = Math.random() < 0.12 ? cand[Math.floor(Math.random() * cand.length)] : bestE[Math.floor(Math.random() * bestE.length)];
+      var dd = pick.length === 3 ? pick[2] : bestD;
+      setC(pick[0], pick[1], 1 - col[pick[0]][pick[1]]);
+      cost += dd; steps++;
+    }
+    cost = totalCost();
+    msg = cost === 0 ? '<span class="ok">找到了！没有单色 K' + k + '</span>（用了 ' + steps + ' 步）' : '<span class="no">1.8 秒内没找到</span>（n = ' + n + '，k = ' + k + '；不代表不存在）';
+    draw();
+  }
+  function paley() {
+    if (k !== 4) { msg = '<span class="hi">Paley 染色是为 k = 4 准备的：请先把 k 改成 4。</span>'; draw(); return; }
+    var qr = {}, a, b; for (a = 1; a < 17; a++) qr[(a * a) % 17] = 1;
+    for (a = 0; a < 17; a++) for (b = 0; b < a; b++) setC(a, b, qr[(a - b) % 17] ? 0 : 1);
+    sN.set(17, true); n = 17;
+    msg = 'Paley 染色：红边 = 两点编号之差是模 17 的平方剩余 {1,2,4,8,9,13,15,16}。';
+    draw();
+  }
+  function exhaustive() {
+    if (k !== 3 || n > 6) { msg = '<span class="hi">穷举只对 k = 3、n ≤ 6 做（n = 6 要检查 32768 种染色）。</span>'; draw(); return; }
+    var edges = [], eid = {}, a, b, c, tri = [], mask;
+    for (a = 1; a < n; a++) for (b = 0; b < a; b++) { eid[a + ',' + b] = edges.length; edges.push([a, b]); }
+    function E(x, y) { return x > y ? eid[x + ',' + y] : eid[y + ',' + x]; }
+    for (a = 2; a < n; a++) for (b = 1; b < a; b++) for (c = 0; c < b; c++) tri.push([E(a, b), E(a, c), E(b, c)]);
+    var good = 0, total = 1 << edges.length;
+    for (mask = 0; mask < total; mask++) {
+      var ok = true;
+      for (var t = 0; t < tri.length; t++) {
+        var x = (mask >> tri[t][0]) & 1, y = (mask >> tri[t][1]) & 1, z = (mask >> tri[t][2]) & 1;
+        if (x === y && y === z) { ok = false; break; }
+      }
+      if (ok) good++;
+    }
+    msg = '穷举了 n = ' + n + ' 的全部 <b>' + Lab.big(total) + '</b> 种染色：<b>' + good + '</b> 种没有单色三角形' + (good === 0 ? ' → 必有单色三角形 ✓' : '') + '。';
+    draw();
+  }
+
+  /* ---------- 绘图与交互 ---------- */
+  function P(v) { var ang = -Math.PI / 2 + Lab.TAU * v / n; return [cx + R * Math.cos(ang), cy + R * Math.sin(ang)]; }
+  var RED = Lab.hsl(356, 82, 58), BLUE = Lab.hsl(216, 88, 62);
+  function draw() {
+    var C = Lab.colors(), a, b, hot = [], list0 = cliquesOf(0), list1 = cliquesOf(1);
+    cv.clear(C.card);
+    for (a = 0; a < n; a++) hot.push(new Int8Array(n));
+    list0.concat(list1).forEach(function (q) { for (var x = 0; x < q.length; x++) for (var y = x + 1; y < q.length; y++) { hot[q[x]][q[y]] = hot[q[y]][q[x]] = 1; } });
+    var cold = [], warm = [];
+    for (a = 1; a < n; a++) for (b = 0; b < a; b++) (hot[a][b] ? warm : cold).push([a, b]);
+    function paint(arr, w, alpha) {
+      arr.forEach(function (e) { var p = P(e[0]), q = P(e[1]); ctx.strokeStyle = col[e[0]][e[1]] ? BLUE : RED; ctx.globalAlpha = alpha; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); });
+      ctx.globalAlpha = 1;
+    }
+    paint(cold, n > 12 ? 1.2 : 1.8, 0.5);
+    paint(warm, 3.6, 1);
+    for (a = 0; a < n; a++) {
+      var p = P(a); ctx.lineWidth = 1.5; Lab.dot(ctx, p[0], p[1], 12, C.card, C.muted);
+      Lab.label(ctx, String(a + 1), p[0], p[1], C.ink, 'center', 12.5);
+    }
+    var nc = list0.length + list1.length;
+    Lab.label(ctx, 'n = ' + n + '，避免的是单色 K' + k, 12, 16, C.ink2, 'left', 14);
+    out.html(
+      '红色 K' + k + '：<b>' + list0.length + '</b> 个；蓝色 K' + k + '：<b>' + list1.length + '</b> 个\n' +
+      (nc === 0 ? '<span class="ok">✓ 没有单色 K' + k + '：这是一个"好染色"</span>' : '<span class="no">还有 ' + nc + ' 个单色 K' + k + '</span>') +
+      (msg ? '\n' + msg : '')
+    );
+  }
+  cv.cv.addEventListener('click', function (e) {
+    var pt = cv.pos(e), best = null, bd = 9, a, b;
+    for (a = 1; a < n; a++) for (b = 0; b < a; b++) {
+      var p = P(a), q = P(b), dx = q[0] - p[0], dy = q[1] - p[1], t = ((pt.x - p[0]) * dx + (pt.y - p[1]) * dy) / (dx * dx + dy * dy);
+      t = Math.max(0, Math.min(1, t));
+      var d = Math.hypot(pt.x - (p[0] + t * dx), pt.y - (p[1] + t * dy));
+      if (d < bd && t > 0.08 && t < 0.92) { bd = d; best = [a, b]; }
+    }
+    if (best) { setC(best[0], best[1], 1 - col[best[0]][best[1]]); msg = ''; draw(); }
+  });
+  draw();
+})();
+</script>

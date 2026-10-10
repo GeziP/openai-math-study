@@ -1,0 +1,131 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>先弄清规则：把整数 $n$ 分解成素数的乘积，数一数一共有几个素因子（重复的也算，$12=2\times2\times3$ 有 3 个）。个数是偶数就标 $+1$，奇数就标 $-1$，这个符号记作 $\lambda(n)$。</li>
+<li>上图里的<b>蓝紫色实线</b>是把 $\lambda(1),\lambda(2),\dots,\lambda(x)$ 一路加起来得到的"累加和" $L(x)$。<b>橙色细线</b>是同样长度的真正随机的 $\pm1$（抛硬币）累加和。虚线是 $\pm\sqrt{x}$，抛硬币的累加和大致就在这个范围里晃。</li>
+<li>下图数的是"连续 $k$ 个数的符号长什么样"。把 $k$ 调成 2、3、4，看每一种符号组合出现的频率是不是都接近"公平硬币"的 $1/2^k$。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>下图里每种符号组合的频率都紧贴着虚线，也就是说，素因子个数的奇偶性"像抛硬币一样"。但上图又告诉你：它并不是真正的抛硬币。在这个范围内，除了 $x=1$ 以外，蓝紫色的累加和 $L(x)$ 从不超过 0，而真正的随机游走会在零点两侧来回穿过。这种"偏向负数"的现象，曾让数学家猜想 $L(x)\le0$ 永远成立（Pólya 猜想），但它最终被证明是错的，第一个反例要到大约 9 亿才出现。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>$\lambda(n)=(-1)^{\Omega(n)}$ 叫做<b>刘维尔函数</b>。它和素数分布紧紧联系在一起：$L(x)$ 的大小，等价于黎曼猜想那一类的问题。人们相信 $|L(x)|$ 大致就是 $\sqrt{x}$ 的量级，和抛硬币一样。</p>
+<p>如果符号真的"像抛硬币"，那么相邻两项的符号应该互不相干，连续 $k$ 项的各种组合应该出现得一样多。这类"相关性为零"的说法叫做 Chowla 型猜想。你看到的直方图，就是它们的数值证据：误差大约是 $1/\sqrt{N}$ 的量级。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var cv = Lab.canvas(stage, 640, 500), ctx = cv.ctx;
+  var MAXN = 2000000;
+  var spf = new Int32Array(MAXN + 1), i, j;
+  for (i = 2; i <= MAXN; i++) if (!spf[i]) for (j = i; j <= MAXN; j += i) if (!spf[j]) spf[j] = i;
+  var om = new Uint8Array(MAXN + 1);
+  for (i = 2; i <= MAXN; i++) om[i] = om[i / spf[i]] ^ 1;
+  var L = new Int32Array(MAXN + 1);
+  for (i = 1; i <= MAXN; i++) L[i] = L[i - 1] + (om[i] ? -1 : 1);
+
+  var seed = 12345, R = null, N = 100000, K = 2;
+  function makeR() {
+    var r = Lab.rng(seed);
+    R = new Int32Array(MAXN + 1);
+    for (var t = 1; t <= MAXN; t++) R[t] = R[t - 1] + (r() < 0.5 ? -1 : 1);
+  }
+  makeR();
+
+  Lab.slider(panel, {
+    label: '范围上限 N', min: 3, max: 6.3, step: 0.02, value: 5,
+    fmt: function (v) { return Lab.big(Math.pow(10, v)); },
+    onInput: function (v) { N = Math.min(MAXN, Math.round(Math.pow(10, v))); draw(); }
+  });
+  Lab.select(panel, {
+    label: '下图：看连续 k 个数的符号组合', value: '2',
+    options: [['1', 'k = 1（单个符号）'], ['2', 'k = 2（相邻两个）'], ['3', 'k = 3'], ['4', 'k = 4']],
+    onChange: function (v) { K = +v; draw(); }
+  });
+  Lab.button(panel, '🎲 换一条随机游走', function () { seed = (seed * 1103515245 + 12345) >>> 0; makeR(); draw(); });
+  var out = Lab.out(panel);
+  Lab.onTheme(draw);
+
+  function draw() {
+    var C = Lab.colors();
+    cv.clear(C.card);
+    var box = { x: 66, y: 28, w: 556, h: 222 };
+    var S = 700, xs = [], lv = [], rv = [], ym = 2.2 * Math.sqrt(N), a;
+    for (a = 0; a <= S; a++) {
+      var x = Math.max(1, Math.round(1 + (N - 1) * a / S));
+      xs.push(x); lv.push(L[x]); rv.push(R[x]);
+      ym = Math.max(ym, Math.abs(L[x]), Math.abs(R[x]));
+    }
+    ym *= 1.06;
+    var ax = Lab.axes(ctx, box, [0, N], [-ym, ym], { nx: 5, ny: 4, fx: Lab.big, fy: function (v) { return Lab.big(v); }, xlabel: 'x' });
+    // 虚线 ±√x、±2√x
+    ctx.lineWidth = 1.3;
+    [1, 2].forEach(function (m) {
+      [-1, 1].forEach(function (sg) {
+        ctx.strokeStyle = C.muted; ctx.globalAlpha = m === 1 ? 0.9 : 0.4; ctx.setLineDash([5, 4]); ctx.beginPath();
+        for (a = 0; a <= 100; a++) { var xx = N * a / 100; var yy = sg * m * Math.sqrt(xx); if (a === 0) ctx.moveTo(ax.X(xx), ax.Y(yy)); else ctx.lineTo(ax.X(xx), ax.Y(yy)); }
+        ctx.stroke();
+      });
+    });
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    // 抛硬币的游走
+    ctx.strokeStyle = C.warn; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.85; ctx.beginPath();
+    for (a = 0; a <= S; a++) { if (a === 0) ctx.moveTo(ax.X(xs[a]), ax.Y(rv[a])); else ctx.lineTo(ax.X(xs[a]), ax.Y(rv[a])); }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    // λ 的累加和
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 2; ctx.beginPath();
+    for (a = 0; a <= S; a++) { if (a === 0) ctx.moveTo(ax.X(xs[a]), ax.Y(lv[a])); else ctx.lineTo(ax.X(xs[a]), ax.Y(lv[a])); }
+    ctx.stroke();
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; Lab.line(ctx, box.x, ax.Y(0), box.x + box.w, ax.Y(0), C.muted, 1);
+    Lab.line(ctx, box.x + 12, box.y + 14, box.x + 34, box.y + 14, C.accent, 2.4); Lab.label(ctx, 'λ 的累加和 L(x)', box.x + 40, box.y + 14, C.ink2, 'left', 12.5);
+    Lab.line(ctx, box.x + 12, box.y + 32, box.x + 34, box.y + 32, C.warn, 2); Lab.label(ctx, '抛硬币的累加和', box.x + 40, box.y + 32, C.ink2, 'left', 12.5);
+    Lab.label(ctx, '虚线：±√x 与 ±2√x', box.x + box.w - 8, box.y + 14, C.muted, 'right', 12);
+
+    // ——下图：k 个连续符号的组合频率
+    var P = 1 << K, cnt = new Array(P).fill(0), n, m, idx;
+    for (n = 1; n + K - 1 <= N; n++) {
+      idx = 0;
+      for (m = 0; m < K; m++) idx = idx * 2 + (om[n + m] ? 1 : 0);
+      cnt[idx]++;
+    }
+    var tot = N - K + 1, fr = cnt.map(function (v) { return v / tot; });
+    var box2 = { x: 66, y: 318, w: 556, h: 124 };
+    var top = Math.max(1 / P * 1.35, Math.max.apply(null, fr) * 1.1);
+    var ax2 = Lab.axes(ctx, box2, [0, P], [0, top], { xticks: [], ny: 3, fy: function (v) { return Lab.fmt(v, 3); } });
+    var bw = box2.w / P;
+    for (idx = 0; idx < P; idx++) {
+      var h = ax2.Y(0) - ax2.Y(fr[idx]);
+      ctx.fillStyle = C.accent; ctx.globalAlpha = 0.55; ctx.fillRect(box2.x + idx * bw + 2, ax2.Y(fr[idx]), bw - 4, h); ctx.globalAlpha = 1;
+      var s = '';
+      for (m = K - 1; m >= 0; m--) s += ((idx >> m) & 1) ? '−' : '+';
+      Lab.label(ctx, s, box2.x + (idx + 0.5) * bw, box2.y + box2.h + 12, C.muted, 'center', P > 8 ? 10.5 : 12.5);
+    }
+    ctx.setLineDash([6, 4]); Lab.line(ctx, box2.x, ax2.Y(1 / P), box2.x + box2.w, ax2.Y(1 / P), C.warn, 1.8); ctx.setLineDash([]);
+    Lab.label(ctx, '公平硬币：每种 1/' + P + ' = ' + Lab.fmt(1 / P, 4), box2.x + box2.w - 6, box2.y + 12, C.warn, 'right', 12.5);
+    Lab.label(ctx, '连续 ' + K + ' 个数的符号组合出现的频率（+ 表示 λ=+1，− 表示 λ=−1）', box2.x, box2.y - 12, C.ink2, 'left', 13);
+
+    // ——数据
+    var c1 = 0;
+    for (n = 1; n < N; n++) c1 += (om[n] ? -1 : 1) * (om[n + 1] ? -1 : 1);
+    c1 /= (N - 1);
+    var pos = 0;
+    for (n = 2; n <= N; n++) if (L[n] > 0) pos++;
+    var maxdev = 0;
+    for (idx = 0; idx < P; idx++) maxdev = Math.max(maxdev, Math.abs(fr[idx] - 1 / P));
+    out.html(
+      'N = <b>' + Lab.big(N) + '</b>\n' +
+      'L(N) = <b>' + L[N] + '</b>（√N ≈ ' + Lab.fmt(Math.sqrt(N), 1) + '）\n' +
+      '抛硬币的游走在 N 处 = ' + R[N] + '\n' +
+      '2 ≤ x ≤ N 中 L(x) &gt; 0 的有 <b>' + pos + '</b> 个\n' +
+      'λ(n)·λ(n+1) 的平均值 = ' + Lab.fmt(c1, 5) + '（随机时的典型大小 ≈ ' + Lab.fmt(1 / Math.sqrt(N), 5) + '）\n' +
+      '各组合与 1/' + P + ' 的最大偏差 = ' + Lab.fmt(maxdev, 5)
+    );
+  }
+  draw();
+})();
+</script>

@@ -1,0 +1,143 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>故事是这样的：发信人有一串 $n$ 个随机比特 $X$（公平硬币抛出来的 0 和 1）。他想把整串压缩成<b>一个</b>比特 $f(X)$（一句"是 / 否"的摘要），再通过一条<b>有噪声的电话线</b>发出去——线路里每个比特独立地以概率 $\alpha$ 被翻转，收信人收到的是被弄脏的 $Y$。问：从 $Y$ 里，收信人最多能了解关于摘要 $f(X)$ 的多少信息？衡量的尺子叫<b>互信息</b> $I(f(X);Y)$，单位是比特：1 表示知道得一清二楚，0 表示毫无头绪。</li>
+<li>上图画的是：几种有代表性的摘要方式 $f$，在不同的噪声强度 $\alpha$ 下，互信息各是多少。"独裁者"（只看第一个比特）画成最粗的那条线，同时也是 Courtade–Kumar 猜想所说的<b>上限</b>；"多数表决"是取前面奇数个比特、少数服从多数（$n$ 是偶数时就不看最后一个）。拖动 $\alpha$ 和 $n$，看看其他的摘要方式有没有哪一种、在哪一个噪声强度下，能超过最粗的那条线。</li>
+<li>下图把当前 $\alpha$ 下各种摘要方式的互信息画成柱子，高度是"互信息 ÷ 上限"，虚线就是 100%。</li>
+<li>点"穷举 $n=4$ 的全部函数"：4 个比特共有 $2^{16}=65536$ 种不同的摘要方式，页面把它们一个一个算过，按互信息从高到低分组列出。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>① 最粗的那条线（独裁者）永远在最上面。</b>把 $\alpha$ 从 0.01 拖到 0.49，把 $n$ 取遍 3 到 7，页面上的 6 种摘要方式没有一种越过它。下面的柱状图里，只有"独裁者"那根柱子恰好是 100%，其余的都低一截。</p>
+<p><b>② 不只这 6 种——所有的函数都查一遍，结果一样。</b>点"穷举 $n=4$ 的全部函数"，页面把 65536 个摘要方式一个一个精确算出来（几十毫秒），没有任何一个的互信息超过 $1-h(\alpha)$。恰好等于它的只有 8 个：4 个"只看某一个比特"，加上它们各自的取反（"只看第 $i$ 个比特，但反着说"，信息量一样）。我另外对 $n=3$（254 个非常数函数）和 $n=4$、在 $\alpha=0.01,0.05,\dots,0.49$ 共 13 个噪声强度下都查过，每次的结论都是这样。</p>
+<p><b>③ 第二名是"几乎独裁者"，但仍然差一截。</b>$\alpha=0.2$、$n=4$ 时，第二档有 128 个函数，信息量是上限的 86.4%。它们长这样：<b>跟着第 $i$ 个比特说，但如果另外三个比特恰好凑成某个特定的组合，就强行改口</b>——也就是说，它和"独裁者"只在 16 种输入里的 1 种上不同。噪声很小（$\alpha=0.01$）时它能到上限的 97.3%，噪声很大（$\alpha=0.49$）时降到 82.5%。"离独裁者很近"，也没能让它翻盘。</p>
+<p><b>④ 越"聪明"的函数，越怕噪声。</b>$\alpha=0.2$、$n=5$ 时：多数表决是上限的 74.8%，"前两个都为 1"是 71.2%，"前两个异或"只有 34.4%，"五个全为 1"是 16.7%，"五个的奇偶"只剩 1.6%（互信息约 0.0044 比特，几乎等于没传）。把 $n$ 拉到 7，奇偶只剩约 0.2%：只要有一个比特被翻转，奇偶就跟着变，而 7 个比特里至少翻转一个的机会很大。</p>
+<p><b>⑤ 噪声非常大时，各条线的比值"定格"成固定的数。</b>把 $\alpha$ 拖到 0.49：多数表决在 $n=3,5,7$ 时分别是 75%、70.3%、68.4%；"前两个都为 1"是 66.7%；奇偶、异或则掉到接近 0。这些固定的数从哪来，见下面的"背后的数学"。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>互信息是什么？</b>$I(U;V)=H(U)-H(U\mid V)$：知道 $V$ 之后，对 $U$ 的不确定性少了多少，单位是比特。$H$ 叫"熵"，就是不确定性的大小：一枚公平硬币的熵是 1 比特；"以概率 $\alpha$ 出现 1"的硬币，熵是 $h(\alpha)=-\alpha\log_2\alpha-(1-\alpha)\log_2(1-\alpha)$（二元熵函数）。</p>
+<p><b>为什么"独裁者"的信息量正好是 $1-h(\alpha)$？</b>$f(X)=X_1$ 时，收信人只能从 $Y_1$ 里学到东西，而 $Y_1$ 就是 $X_1$ 以概率 $\alpha$ 被翻转的结果——相当于一条"每次出错的概率是 $\alpha$"的单比特电话线，这种线能传的信息恰好是 $1-h(\alpha)$。其余的 $Y_2,\dots,Y_n$ 和 $X_1$ 毫无关系，帮不上忙。页面按"把 $2^n$ 个可能的 $X$ 和 $2^n$ 个可能的 $Y$ 逐一求和"算出的独裁者的互信息，和这个公式一致（差别在计算机精度之内）。同样，"全部比特的奇偶"也有公式：$I=1-h\!\left(\dfrac{1-(1-2\alpha)^n}{2}\right)$，我核对过，和页面算出的数一致。</p>
+<p><b>猜想说了什么？</b>Courtade 与 Kumar 在 2014 年猜想：不管 $n$ 多大、$\alpha$ 取多少、$f$ 是哪一种"0/1 摘要"，永远有 $I(f(X);Y)\le1-h(\alpha)$——"只看第一个比特"就是最能抵抗噪声的摘要。直觉是：复杂的函数要综合很多个比特，每个比特上的噪声都会污染结果；"多数表决"靠多个比特互相纠错，但每个比特分到的话语权变小了，总账还是亏。页面里的数据都支持这个说法，但"不管 $n$ 多大"这一半，页面检验不了：$n=4$ 有 65536 个函数，$n=5$ 已经有 $2^{32}\approx 43$ 亿个，$n$ 再大就根本无法穷举——所以它必须靠数学证明。</p>
+<p><b>噪声很大时，那些固定的比值是什么？</b>把 $f$ 的取值记成 $\pm1$。当 $\rho=1-2\alpha$ 很小（$\alpha$ 接近 0.5），对"平衡"的 $f$（取 $+1$ 和 $-1$ 的机会各一半），有近似 $I(f(X);Y)\approx\dfrac{\rho^2}{2\ln2}\,W_1$，其中 $W_1=\sum_i\hat f(i)^2$，$\hat f(i)$ 是 $f$ 与第 $i$ 个比特的相关系数（傅里叶分析里叫"一阶权重"）。由帕塞瓦尔恒等式，$W_1\le1$，等号当且仅当 $f$ 就是"只看某一个比特"（或它的取反）。所以高噪声时，一个平衡函数与独裁者的比值，就是它的 $W_1$。例如 5 个比特的多数表决：每个比特的相关系数是 $\binom42/2^4=\tfrac38$，$W_1=5\times(\tfrac38)^2=\tfrac{45}{64}\approx0.703$——和页面上拖到 0.49 时读到的 70.3% 吻合；3 个比特是 $3\times(\tfrac12)^2=\tfrac34$，7 个比特是 $7\times(\tfrac{20}{64})^2\approx0.684$，也都和页面一致。$n\to\infty$ 时它趋向 $2/\pi\approx0.637$。对不平衡的函数，要再除以 $p(1-p)$（$p$ 是取 1 的概率）：比如"前两个都为 1"，相关系数各为 $\tfrac14$，$W_1=2\times\tfrac1{16}=\tfrac18$，$p(1-p)=\tfrac3{16}$，比值 $\tfrac23$，正是页面上的 66.7%。</p>
+<p><b>研究者知道什么？</b>据我所知：这个猜想由 Courtade 与 Kumar 在 2014 年提出，到我所知的资料为止，一般情形仍未被公认证明。已知的部分结果有：Samorodnitsky（2016）证明了在噪声足够大（$\alpha$ 离 $1/2$ 不超过某个与 $n$ 无关的常数）时猜想成立；Pichler、Piantanida 与 Matz（2018）证明了一个弱化的版本——收信人和发信人各自再把自己的信息压成一个 0/1 摘要 $f(X)$、$g(Y)$，则它们之间的互信息也不超过 $1-h(\alpha)$。问题 119 的稿件宣称给出了完整证明，还宣称证明了更强的"随机二元摘要"版本以及 Hellinger 猜想——这些都需要独立审查；本页只是用精确计算演示猜想在小 $n$ 时的样子，不构成证明。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 290), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 200), x2 = c2.ctx;
+  var n = 5, al = 0.2, POP = new Uint8Array(256), i0;
+  for (i0 = 1; i0 < 256; i0++) POP[i0] = POP[i0 >> 1] + (i0 & 1);
+
+  /* ---------- 精确计算 I(f(X); Y) ----------
+     X 均匀分布在 {0,1}^n 上，Y 是 X 每一位独立以概率 a 翻转的结果；f 用 0/1 数组（长度 2^n）表示。 */
+  function h2(a) { return a <= 0 || a >= 1 ? 0 : -a * Math.log(a) / Math.LN2 - (1 - a) * Math.log(1 - a) / Math.LN2; }
+  function mutual(nn, F, a) {
+    var N = 1 << nn, w = new Float64Array(nn + 1), d, x, y, i, ones = [], P1, P0, py = 1 / N, p1, p0, I = 0;
+    for (d = 0; d <= nn; d++) w[d] = Math.pow(a, d) * Math.pow(1 - a, nn - d);
+    for (x = 0; x < N; x++) if (F[x]) ones.push(x);
+    P1 = ones.length / N; P0 = 1 - P1;
+    if (ones.length === 0 || ones.length === N) return 0;
+    for (y = 0; y < N; y++) {
+      p1 = 0; for (i = 0; i < ones.length; i++) p1 += w[POP[ones[i] ^ y]];
+      p1 /= N; p0 = py - p1;
+      if (p1 > 1e-15) I += p1 * Math.log(p1 / (P1 * py)) / Math.LN2;
+      if (p0 > 1e-15) I += p0 * Math.log(p0 / (P0 * py)) / Math.LN2;
+    }
+    return I;
+  }
+  function table(nn, fn) { var N = 1 << nn, F = new Uint8Array(N), x; for (x = 0; x < N; x++) F[x] = fn(x, nn) ? 1 : 0; return F; }
+  var PRESETS = [
+    { id: 'dict', name: '独裁者：只看第 1 个比特', col: 'ink', fn: function (x) { return x & 1; } },
+    { id: 'maj', name: '多数表决', col: 'accent', fn: function (x, nn) { var m = nn % 2 ? nn : nn - 1, c = POP[x & ((1 << m) - 1)]; return c > m / 2; } },
+    { id: 'and2', name: '前两个比特同时为 1', col: 'good', fn: function (x) { return (x & 3) === 3; } },
+    { id: 'andall', name: '全部比特都是 1', col: 'warn', fn: function (x, nn) { return x === (1 << nn) - 1; } },
+    { id: 'xor2', name: '前两个比特的异或', col: 'bad', fn: function (x) { return ((x ^ (x >> 1)) & 1) === 1; } },
+    { id: 'par', name: '全部比特的奇偶', col: 'muted', fn: function (x) { return (POP[x] & 1) === 1; } }
+  ];
+
+  /* ---------- 控件 ---------- */
+  var sN = Lab.slider(panel, { label: '比特数 n', min: 3, max: 7, step: 1, value: n, fmt: function (v) { return String(v); }, onInput: function (v) { n = v; draw(); } });
+  var sA = Lab.slider(panel, { label: '噪声强度 α（每个比特被翻转的概率）', min: 0.01, max: 0.49, step: 0.01, value: al, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { al = v; draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '穷举 n = 4 的全部函数', function () { exhaustive(); }, 'pri');
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：所有互信息都是精确计算出来的（把 2^n 个可能的 X 和 2^n 个可能的 Y 逐一求和），不是抽样模拟。');
+  Lab.onTheme(function () { draw(); });
+
+  var exInfo = '';
+  function exhaustive() {
+    var nn = 4, N = 16, a = al, w = [], d, mask, x, y, i, ones, groups = {}, key, I, P1, py = 1 / N, p1, p0, keys, top, dep, s, bound = 1 - h2(a), t0 = performance.now();
+    for (d = 0; d <= nn; d++) w.push(Math.pow(a, d) * Math.pow(1 - a, nn - d));
+    for (mask = 1; mask < 65535; mask++) {
+      ones = []; for (x = 0; x < N; x++) if ((mask >> x) & 1) ones.push(x);
+      P1 = ones.length / N; I = 0;
+      for (y = 0; y < N; y++) {
+        p1 = 0; for (i = 0; i < ones.length; i++) p1 += w[POP[ones[i] ^ y]];
+        p1 /= N; p0 = py - p1;
+        if (p1 > 1e-15) I += p1 * Math.log(p1 / (P1 * py)) / Math.LN2;
+        if (p0 > 1e-15) I += p0 * Math.log(p0 / ((1 - P1) * py)) / Math.LN2;
+      }
+      key = Math.round(I * 1e9);
+      if (!groups[key]) groups[key] = { I: I, count: 0, mask: mask, ones: ones.length };
+      groups[key].count++;
+    }
+    keys = Object.keys(groups).map(Number).sort(function (p, q) { return q - p; });
+    s = 'n = 4，α = ' + Lab.fmt(a, 2) + '：65536 个函数里，常数函数 2 个（互信息为 0）；其余 65534 个，按互信息分成 ' + keys.length + ' 组。上限 1 − h(α) = ' + Lab.fmt(bound, 4) + '\n';
+    s += '前 6 组（互信息｜占上限｜函数个数｜依赖几个比特｜P(f=1)）：\n';
+    for (i = 0; i < Math.min(6, keys.length); i++) {
+      top = groups[keys[i]];
+      dep = 0; for (d = 0; d < 4; d++) { var dd = false; for (x = 0; x < N; x++) if (((top.mask >> x) & 1) !== ((top.mask >> (x ^ (1 << d))) & 1)) { dd = true; break; } if (dd) dep++; }
+      s += '  ' + (i + 1) + '. ' + Lab.fmt(top.I, 4) + '｜' + Lab.fmt(100 * top.I / bound, 1) + '%｜' + top.count + ' 个｜' + dep + ' 个｜' + Lab.fmt(top.ones / 16, 3) + '\n';
+    }
+    s += '（耗时 ' + Math.round(performance.now() - t0) + ' ms）';
+    exInfo = s; draw();
+  }
+
+  /* ---------- 画图 ---------- */
+  function drawCurves() {
+    var C = Lab.colors(), box = { x: 60, y: 14, w: 566, h: 190 }, ax, K = 49, k, a;
+    c1.clear(C.card);
+    ax = Lab.axes(x1, box, [0, 0.5], [0, 1.02], { xticks: [0, 0.1, 0.2, 0.3, 0.4, 0.5], yticks: [0, 0.25, 0.5, 0.75, 1], fx: function (v) { return Lab.fmt(v, 1); }, fy: function (v) { return Lab.fmt(v, 2); }, xlabel: '噪声强度 α', ylabel: '互信息（比特）' });
+    PRESETS.forEach(function (P, pi) {
+      var F = table(n, P.fn), col = C[P.col];
+      x1.strokeStyle = col; x1.lineWidth = P.id === 'dict' ? 3.2 : 2; x1.beginPath();
+      for (k = 0; k <= K; k++) { a = 0.005 + (0.49 - 0.005) * k / K; var v = mutual(n, F, a); if (k === 0) x1.moveTo(ax.X(a), ax.Y(v)); else x1.lineTo(ax.X(a), ax.Y(v)); }
+      x1.stroke();
+    });
+    x1.setLineDash([4, 4]); Lab.line(x1, ax.X(al), box.y, ax.X(al), box.y + box.h, C.muted, 1.2); x1.setLineDash([]);
+    PRESETS.forEach(function (P, pi) {
+      var col = C[P.col], lx = 70 + (pi % 3) * 196, ly = 262 + Math.floor(pi / 3) * 18;
+      Lab.line(x1, lx - 8, ly - 4, lx + 8, ly - 4, col, P.id === 'dict' ? 3.2 : 2.2);
+      Lab.label(x1, P.name, lx + 14, ly, C.ink, 'left', 11.5);
+    });
+  }
+  function drawBars() {
+    var C = Lab.colors(), box = { x: 60, y: 28, w: 566, h: 120 }, bound = 1 - h2(al), bw = 52, gap = (box.w - bw * PRESETS.length) / (PRESETS.length + 1), top = 1.12, yb;
+    c2.clear(C.card);
+    Lab.axes(x2, box, [0, 1], [0, top], { xticks: [], yticks: [0, 0.5, 1], fy: function (v) { return Lab.fmt(100 * v, 0) + '%'; }, ylabel: '占上限的比例' });
+    PRESETS.forEach(function (P, pi) {
+      var F = table(n, P.fn), v = mutual(n, F, al) / bound, x = box.x + gap + pi * (bw + gap), hgt = box.h * Math.min(v, top) / top;
+      x2.fillStyle = C[P.col]; x2.fillRect(x, box.y + box.h - hgt, bw, hgt);
+      Lab.label(x2, Lab.fmt(100 * v, 1) + '%', x + bw / 2, box.y + box.h - hgt - 9, C.ink, 'center', 11.5);
+      Lab.label(x2, ['独裁者', '多数表决', '前两个都为 1', '全部都为 1', '前两个异或', '全部奇偶'][pi], x + bw / 2, box.y + box.h + 14, C.ink2, 'center', 11);
+    });
+    yb = box.y + box.h - box.h / top;
+    x2.setLineDash([5, 4]); Lab.line(x2, box.x, yb, box.x + box.w, yb, C.ink, 1.4); x2.setLineDash([]);
+    Lab.label(x2, 'n = ' + n + '，α = ' + Lab.fmt(al, 2) + '。虚线 = 上限 1 − h(α) = ' + Lab.fmt(bound, 4) + '（记作 100%）', box.x, 12, C.ink2, 'left', 12);
+  }
+  function describe() {
+    var s = 'n = ' + n + '，α = ' + Lab.fmt(al, 2) + '，上限 1 − h(α) = ' + Lab.fmt(1 - h2(al), 4) + '\n';
+    PRESETS.forEach(function (P) { var v = mutual(n, table(n, P.fn), al); s += '  ' + P.name + '：' + Lab.fmt(v, 4) + '（' + Lab.fmt(100 * v / Math.max(1e-12, 1 - h2(al)), 1) + '%）\n'; });
+    if (exInfo) s += '\n' + exInfo;
+    out.html(s.replace(/\n$/, ''));
+  }
+  function draw() { drawCurves(); drawBars(); describe(); }
+
+  draw();
+})();
+</script>

@@ -1,0 +1,50 @@
+name: 打包离线版
+
+# 发布 Release（或手动触发）时，生成一个解压即用的离线包并挂到该 Release 上。
+# 离线包不带 --site-url：全部是相对路径，双击 index.html 就能看，公式与互动实验都不联网。
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 要附加离线包的 Release 标签（如 v0.1.0）
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: 构建离线版
+        run: python tools/build.py --strict --out _offline
+
+      - name: 打包
+        id: pack
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          name="math-study-guide-offline-${TAG}"
+          mkdir -p dist
+          rm -rf "dist/${name}"
+          cp -r _offline "dist/${name}"
+          rm -f "dist/${name}/.sg-build"
+          (cd dist && zip -qr "${name}.zip" "${name}")
+          echo "zip=dist/${name}.zip" >> "$GITHUB_OUTPUT"
+          ls -lh dist
+
+      - name: 上传到 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: gh release upload "$TAG" "${{ steps.pack.outputs.zip }}" --clobber --repo "$GITHUB_REPOSITORY"

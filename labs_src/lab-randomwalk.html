@@ -1,0 +1,208 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>先看"普通随机游走"：站在方格纸的原点，每一步<b>随机</b>朝上下左右走一格，走 $n$ 步。拖动 $n$、点"再走一次"，路径像一团到处折返的乱毛线；虚线圆的半径是 $\sqrt n$。</li>
+<li>点"测量指数"：页面会对 $n=8,16,32,\dots,256$ 各做几百到几千次实验，算出"典型离出发点多远"（把各次的距离平方、取平均、再开方），画在<b>对数坐标</b>上（横纵轴都是"每格翻一倍"）。在这种坐标里，$\text{距离}\approx n^{\nu}$ 会变成斜率为 $\nu$ 的直线。普通随机游走的点应当排成斜率约 $\tfrac12$ 的直线。</li>
+<li>换成"自回避行走"：新规则是<b>绝不踩回走过的格子</b>。看路径——被迫舒展了很多。再点一次"测量指数"，橙色那条线就是它的斜率。</li>
+<li>最后试"随机环境中的随机游走"：每个格点<b>事先</b>就定好了向四个方向走的概率（"环境"，抽好以后不再变），然后让 5 个行人在同一个环境里走。拖动混乱度 $\sigma$ 和朝东的偏向 $b$，看他们平均每步向东前进多少（读数里的"速度"）。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>笔直地走，斜率是 1；普通随机游走是 $\tfrac12$；自回避行走介于两者之间，理论值是 $\tfrac34$。我多次点"测量指数"，普通游走总在 0.49–0.50 之间，自回避行走总在 0.73–0.74 之间——比 0.75 略低一点，因为只量到 256 步，小尺寸的"修正项"还没有消失。仅仅多了一条"不许走回头路"的规则，人就从"原地打转"变成了"大步向前"：走 256 步，普通随机游走的典型距离是 $\sqrt{256}=16$ 格，自回避行走约 56 格（读数里有这一行）。</p>
+<p>随机环境那一档：$\sigma=0$ 时环境处处一样，速度就是 $b/(4+b)$（$b=0.5$ 时是 0.111，页面实测也是 0.11）；$\sigma$ 越大，环境里的"陷阱"（两个相邻格点互相把人弹回来）越多越深，行人被拖得越慢。我在 $b=0.5$、$n=2000$ 下换了很多个环境取平均，速度大约依次是：$\sigma=1$ 时 0.09，$\sigma=2$ 时 0.05，$\sigma=4$ 时 0.01（不同环境之间有 ±0.01 左右的波动）。但页面只能看到有限的步数，分不出"速度很小"和"速度为零"。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>普通随机游走每一步的方向互相独立，所以 $n$ 步之后离原点距离的平方平均恰好是 $n$（每一步贡献 1），典型距离是 $\sqrt n$，指数 $\tfrac12$。自回避行走（SAW）是高分子长链的数学模型：在<b>所有</b>不自交的 $n$ 步路径里均匀地挑一条。物理学家用 Flory 的粗略论证（"伸展的弹性能" $R^2/n$ 与"互相排斥的能量" $n^2/R^d$ 的平衡）得到 $R\sim n^{3/(d+2)}$，二维时就是 $\tfrac34$；Nienhuis 在 1982 年用统计物理的方法"预言"了二维的 $\tfrac34$ 是精确的。严格证明到今天仍然是难题：据我所知，维数 $d\ge5$ 时 Hara–Slade 证明了它和普通随机游走一样是 $\tfrac12$；二维时连"比 $n$ 小"这样粗的上界，也是 2013 年 Duminil-Copin 与 Hammond 才证明的。页面下方列出的问题 237，稿件宣称对蜂窝格（这里的方格是为了好画，物理上预期两者指数相同）证明了直径是 $n^{3/4+o(1)}$。这是稿件的宣称，需要独立审查。</p>
+<p>"随机环境中的随机游走"是在无序介质里运动的粒子模型。一维时有怪事：粒子可以一路向东逃去，速度却是零（陷阱太深）。二维以上人们相信怪事会消失；页面下方列出的问题 220，稿件宣称对独立同分布、一致椭圆的环境（$d\ge2$）证明了"方向性瞬态蕴含正的极限速度"。同样是稿件的宣称，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 360), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 250), x2 = c2.ctx;
+  var mode = 'srw', n = 400, sigma = 1.5, bias = 0.5, paths = [], envSeed = 7, envCache = {}, meas = null;
+  var CFG = { srw: [10, 5000, 10, 400], saw: [10, 300, 5, 100], rwre: [200, 6000, 100, 2000] };
+
+  var sM = Lab.select(panel, {
+    label: '游走的类型', value: 'srw',
+    options: [['srw', '普通随机游走'], ['saw', '自回避行走（不许踩回走过的格子）'], ['rwre', '随机环境中的随机游走']],
+    onChange: function (v) { mode = v; cfg(); redo(); }
+  });
+  var sN = Lab.slider(panel, { label: '步数 n', min: 10, max: 5000, step: 10, value: 400, fmt: function (v) { return Lab.big(v); }, onInput: function (v) { n = v; redo(); } });
+  var sS = Lab.slider(panel, { label: '环境的混乱度 σ', min: 0, max: 4, step: 0.1, value: 1.5, fmt: function (v) { return Lab.fmt(v, 1); }, onInput: function (v) { sigma = v; envCache = {}; redo(); } });
+  var sB = Lab.slider(panel, { label: '朝东的偏向 b', min: 0, max: 1, step: 0.05, value: 0.5, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { bias = v; envCache = {}; redo(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '再走一次', function () { redo(); }, 'pri');
+  var bEnv = Lab.button(row, '换一个环境', function () { envSeed = Math.floor(Math.random() * 1e9); envCache = {}; redo(); });
+  Lab.button(row, '测量指数（n = 8 … 256）', function () { measure(); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：自回避行走用"枢轴算法"（随机选一个点，把后半段整体旋转或翻转，若不自交就接受）从全部自回避路径中均匀取样。"测量指数"会花几分之一秒。');
+  Lab.onTheme(function () { draw(); });
+
+  function cfg() {
+    var c = CFG[mode], el = sN.el, disp = mode === 'rwre' ? '' : 'none';
+    el.min = c[0]; el.max = c[1]; el.step = c[2]; n = c[3]; sN.set(n, true);
+    sS.el.parentNode.style.display = disp; sB.el.parentNode.style.display = disp; bEnv.style.display = disp;
+  }
+
+  /* ---------- 三种游走 ---------- */
+  function srw(m) {
+    var p = [[0, 0]], x = 0, y = 0, i, r;
+    for (i = 0; i < m; i++) { r = (Math.random() * 4) | 0; if (r === 0) x++; else if (r === 1) x--; else if (r === 2) y++; else y--; p.push([x, y]); }
+    return p;
+  }
+  var SYM = [[0, -1, 1, 0], [-1, 0, 0, -1], [0, 1, -1, 0], [1, 0, 0, -1], [-1, 0, 0, 1], [0, 1, 1, 0], [0, -1, -1, 0]];
+  function Chain(N) {
+    var X = new Int32Array(N + 1), Y = new Int32Array(N + 1), NX = new Int32Array(N + 1), NY = new Int32Array(N + 1), W = 2 * N + 3, st = new Int32Array(W * W), tick = 0, i;
+    for (i = 0; i <= N; i++) X[i] = i;
+    this.attempt = function () {
+      var k = 1 + ((Math.random() * (N - 1)) | 0), s = SYM[(Math.random() * 7) | 0], px = X[k], py = Y[k], j, dx, dy, x, y;
+      tick++;
+      for (j = 0; j <= k; j++) st[(X[j] + N + 1) * W + Y[j] + N + 1] = tick;
+      for (j = k + 1; j <= N; j++) {
+        dx = X[j] - px; dy = Y[j] - py;
+        x = px + s[0] * dx + s[1] * dy; y = py + s[2] * dx + s[3] * dy;
+        if (st[(x + N + 1) * W + y + N + 1] === tick) return false;
+        NX[j] = x; NY[j] = y;
+      }
+      for (j = k + 1; j <= N; j++) { X[j] = NX[j]; Y[j] = NY[j]; }
+      return true;
+    };
+    this.r2 = function () { return X[N] * X[N] + Y[N] * Y[N]; };
+    this.pts = function () { var p = [], j; for (j = 0; j <= N; j++) p.push([X[j], Y[j]]); return p; };
+  }
+  function sawSample(N) { var c = new Chain(N), t, burn = 20 * N + 400; for (t = 0; t < burn; t++) c.attempt(); return c.pts(); }
+  function envProbs(x, y) {
+    var key = (x + 20000) * 40001 + (y + 20000), e = envCache[key], r, h, w0, w1, w2, w3, s;
+    if (e) return e;
+    h = (Math.imul(x + 20000, 73856093) ^ Math.imul(y + 20000, 19349663) ^ Math.imul(envSeed, 83492791)) >>> 0;
+    r = Lab.rng(h); r(); r();
+    w0 = (1 + bias) * Math.exp(sigma * (2 * r() - 1)); w1 = Math.exp(sigma * (2 * r() - 1)); w2 = Math.exp(sigma * (2 * r() - 1)); w3 = Math.exp(sigma * (2 * r() - 1));
+    s = w0 + w1 + w2 + w3;
+    e = [w0 / s, (w0 + w1) / s, (w0 + w1 + w2) / s];
+    envCache[key] = e;
+    return e;
+  }
+  function rwre(m) {
+    var p = [[0, 0]], x = 0, y = 0, i, e, r;
+    for (i = 0; i < m; i++) {
+      e = envProbs(x, y); r = Math.random();
+      if (r < e[0]) x++; else if (r < e[1]) y++; else if (r < e[2]) x--; else y--;
+      p.push([x, y]);
+    }
+    return p;
+  }
+  function redo() {
+    var i;
+    if (mode === 'srw') paths = [srw(n)];
+    else if (mode === 'saw') paths = [sawSample(n)];
+    else { paths = []; for (i = 0; i < 5; i++) paths.push(rwre(n)); }
+    draw();
+  }
+
+  /* ---------- 测量指数 ---------- */
+  function rmsSRW(m, T) {
+    var t, i, r, x, y, s = 0;
+    for (t = 0; t < T; t++) {
+      x = 0; y = 0;
+      for (i = 0; i < m; i++) { r = (Math.random() * 4) | 0; if (r === 0) x++; else if (r === 1) x--; else if (r === 2) y++; else y--; }
+      s += x * x + y * y;
+    }
+    return Math.sqrt(s / T);
+  }
+  function rmsSAW(m) {
+    var c = new Chain(m), t, u, s = 0, M = 800, stride = Math.max(3, m >> 3), burn = 20 * m + 400;
+    for (t = 0; t < burn; t++) c.attempt();
+    for (t = 0; t < M; t++) { for (u = 0; u < stride; u++) c.attempt(); s += c.r2(); }
+    return Math.sqrt(s / M);
+  }
+  function fit(ns, ys) {
+    var k, sx = 0, sy = 0, sxx = 0, sxy = 0, m = ns.length, a, b, sl;
+    for (k = 0; k < m; k++) { a = Math.log(ns[k]) / Math.LN2; b = Math.log(ys[k]) / Math.LN2; sx += a; sy += b; sxx += a * a; sxy += a * b; }
+    sl = (m * sxy - sx * sy) / (m * sxx - sx * sx);
+    return { s: sl, c: (sy - sl * sx) / m };
+  }
+  function measure() {
+    var ns = [8, 16, 32, 64, 128, 256], rs = [], ra = [], i, t0 = performance.now();
+    for (i = 0; i < ns.length; i++) { rs.push(rmsSRW(ns[i], 3000)); ra.push(rmsSAW(ns[i])); }
+    meas = { ns: ns, srw: rs, saw: ra, f1: fit(ns, rs), f2: fit(ns, ra), ms: Math.round(performance.now() - t0) };
+    draw();
+  }
+
+  /* ---------- 绘制 ---------- */
+  function drawChart() {
+    var C = Lab.colors(), box = { x: 66, y: 12, w: 548, h: 198 }, ax, k, lx, f, L = ['笔直地走：斜率 1'];
+    c2.clear(C.card);
+    ax = Lab.axes(x2, box, [2.6, 8.4], [0.8, 8.6], {
+      xticks: [3, 4, 5, 6, 7, 8], yticks: [1, 2, 3, 4, 5, 6, 7, 8],
+      fx: function (v) { return String(Math.pow(2, v)); }, fy: function (v) { return String(Math.pow(2, v)); },
+      xlabel: '步数 n（对数刻度）', ylabel: '离出发点的典型距离（对数刻度）'
+    });
+    x2.setLineDash([5, 4]); Lab.line(x2, ax.X(2.6), ax.Y(2.6), ax.X(8.4), ax.Y(8.4), C.muted, 1.4); x2.setLineDash([]);
+    lx = box.x + 10;
+    Lab.label(x2, '- - -  笔直地走：斜率 1', lx, box.y + 12, C.muted, 'left', 12.5);
+    if (!meas) { Lab.label(x2, '点右边的"测量指数"，这里会画出两类游走的实测点', box.x + box.w / 2, box.y + box.h / 2 + 10, C.ink2, 'center', 13.5); return; }
+    [['srw', C.accent, meas.f1, '普通随机游走：斜率 ' + Lab.fmt(meas.f1.s, 2)], ['saw', C.warn, meas.f2, '自回避行走：斜率 ' + Lab.fmt(meas.f2.s, 2)]].forEach(function (d, idx) {
+      var xs = Math.log(8) / Math.LN2 - 0.2, xe = 8.2;
+      Lab.line(x2, ax.X(xs), ax.Y(d[2].c + d[2].s * xs), ax.X(xe), ax.Y(d[2].c + d[2].s * xe), d[1], 1.6);
+      for (k = 0; k < meas.ns.length; k++) Lab.dot(x2, ax.X(Math.log(meas.ns[k]) / Math.LN2), ax.Y(Math.log(meas[d[0]][k]) / Math.LN2), 4.5, d[1], C.card);
+      Lab.dot(x2, lx + 3, box.y + 30 + idx * 18, 4.5, d[1]);
+      Lab.label(x2, d[3], lx + 14, box.y + 30 + idx * 18, C.ink, 'left', 12.5);
+    });
+  }
+  function draw() {
+    var C = Lab.colors(), i, j, p, minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9, sc, w, h, cx, cy, X, Y, pts, G, g, a, b, hue, r, txt = '', dark = Lab.isDark();
+    c1.clear(C.card);
+    for (j = 0; j < paths.length; j++) for (i = 0; i < paths[j].length; i++) {
+      p = paths[j][i]; if (p[0] < minx) minx = p[0]; if (p[0] > maxx) maxx = p[0]; if (p[1] < miny) miny = p[1]; if (p[1] > maxy) maxy = p[1];
+    }
+    if (mode === 'srw') { r = Math.sqrt(n); minx = Math.min(minx, -r); maxx = Math.max(maxx, r); miny = Math.min(miny, -r); maxy = Math.max(maxy, r); }
+    w = Math.max(maxx - minx, 2); h = Math.max(maxy - miny, 2);
+    sc = Math.min(600 / w, 316 / h, 40); cx = (minx + maxx) / 2; cy = (miny + maxy) / 2;
+    X = function (x) { return 320 + (x - cx) * sc; };
+    Y = function (y) { return 178 - (y - cy) * sc; };
+    if (mode === 'srw') {
+      x1.strokeStyle = C.muted; x1.lineWidth = 1.2; x1.setLineDash([5, 4]); x1.beginPath(); x1.arc(X(0), Y(0), r * sc, 0, Lab.TAU); x1.stroke(); x1.setLineDash([]);
+    }
+    for (j = 0; j < paths.length; j++) {
+      pts = paths[j]; G = mode === 'rwre' ? 1 : Math.min(48, pts.length - 1);
+      for (g = 0; g < G; g++) {
+        a = Math.floor((pts.length - 1) * g / G); b = Math.floor((pts.length - 1) * (g + 1) / G);
+        hue = mode === 'rwre' ? [220, 150, 35, 300, 0][j % 5] : 215 - 205 * g / Math.max(1, G - 1);
+        x1.strokeStyle = Lab.hsl(hue, 72, dark ? 62 : 46); x1.lineWidth = mode === 'rwre' ? 1.3 : (sc > 6 ? 2.2 : 1.4); x1.globalAlpha = mode === 'rwre' ? 0.85 : 1;
+        x1.beginPath(); x1.moveTo(X(pts[a][0]), Y(pts[a][1]));
+        if (mode === 'rwre') b = pts.length - 1;
+        for (i = a + 1; i <= b; i++) x1.lineTo(X(pts[i][0]), Y(pts[i][1]));
+        x1.stroke();
+      }
+      x1.globalAlpha = 1;
+      if (mode === 'saw' && sc >= 9) for (i = 0; i < pts.length; i++) Lab.dot(x1, X(pts[i][0]), Y(pts[i][1]), 2, C.ink2);
+      Lab.dot(x1, X(pts[pts.length - 1][0]), Y(pts[pts.length - 1][1]), 4.5, mode === 'rwre' ? Lab.hsl([220, 150, 35, 300, 0][j % 5], 72, dark ? 62 : 46) : C.bad, C.card);
+    }
+    Lab.dot(x1, X(0), Y(0), 5.5, C.good, C.card);
+    Lab.label(x1, mode === 'srw' ? '绿点：出发点；红点：终点；虚线圆：半径 √n' : mode === 'saw' ? '绿点：出发点；红点：终点' : '绿点：出发点（5 个行人同时从这里出发）；彩色点：各自的终点', 12, 346, C.muted, 'left', 12.5);
+    drawChart();
+
+    /* 读数 */
+    if (mode === 'srw') {
+      p = paths[0][n];
+      txt = '普通随机游走，n = ' + Lab.big(n) + ' 步\n这一次的终点离出发点 ' + Lab.fmt(Math.hypot(p[0], p[1]), 1) + ' 格\n典型距离 √n = ' + Lab.fmt(Math.sqrt(n), 1) + '（每次的实际值上下浮动）';
+    } else if (mode === 'saw') {
+      p = paths[0][n];
+      txt = '自回避行走，n = ' + n + ' 步\n这一次的终点离出发点 ' + Lab.fmt(Math.hypot(p[0], p[1]), 1) + ' 格\n作对比：√n = ' + Lab.fmt(Math.sqrt(n), 1) + '，n^(3/4) = ' + Lab.fmt(Math.pow(n, 0.75), 1) + '，n = ' + n;
+    } else {
+      var sum = 0, lines = [];
+      paths.forEach(function (q, j2) { var v = q[n][0] / n; sum += v; lines.push('行人 ' + (j2 + 1) + '：向东速度 x/n = ' + Lab.fmt(v, 3)); });
+      txt = 'n = ' + Lab.big(n) + ' 步，σ = ' + Lab.fmt(sigma, 1) + '，b = ' + Lab.fmt(bias, 2) + '\n' + lines.join('\n') + '\n平均速度 ≈ ' + Lab.fmt(sum / paths.length, 3) + '\nσ = 0（环境处处一样）时的理论速度 b/(4+b) = ' + Lab.fmt(bias / (4 + bias), 3);
+    }
+    if (meas) txt += '\n\n（实测完成，用时 ' + meas.ms + ' 毫秒）\n普通随机游走 斜率 ' + Lab.fmt(meas.f1.s, 3) + '，自回避行走 斜率 ' + Lab.fmt(meas.f2.s, 3) + '\nn = 256 时的典型距离：普通游走 ' + Lab.fmt(meas.srw[5], 1) + ' 格，自回避行走 ' + Lab.fmt(meas.saw[5], 1) + ' 格';
+    out.html(txt);
+  }
+
+  cfg(); redo();
+})();
+</script>

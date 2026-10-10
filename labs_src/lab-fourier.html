@@ -1,0 +1,182 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上图里<b>灰线</b>是要"拼"出来的函数，<b>彩线</b>是只用前 $N$ 个正弦波拼出来的近似（叫"部分和"）。拖动 $N$ 从 1 到 100，看彩线怎样一点点贴近灰线。先选"方波"（只取 $+1$、$-1$ 两个值，中间有跳变），最直观。</li>
+<li>盯住<b>跳变的地方</b>：不管 $N$ 多大，彩线在跳变旁边总会"冲过头"一小截，再来回抖几下——这就是吉布斯现象。右边的读数会告诉你"最高冲到了多少"。</li>
+<li>把"拼法"换成"Fejér 平均"，或者"平滑截断"并拖动 $\delta$：不再是"前 $N$ 个波原样加上，后面的一刀切掉"，而是给越高频的波乘一个越小的权重（最下面那张小图画的就是各个波的权重），边缘一"羽化"，冲过头就消失了。$\delta$ 越大，权重变化越柔和。</li>
+<li>下图的横轴是 $N$，纵轴是在<b>某一个固定的点</b> $x_0$ 处的近似值。拖动 $x_0$：随着 $N$ 变大，近似值是不是在靠近真值？换成"尖峰"函数，再把 $x_0$ 拖到 0 附近，看看会发生什么。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>方波的"冲过头"，拼多少个波都赖不掉。</b>选"方波＋直接截断"，把 $N$ 拖到 21、51、99：彩线在跳变旁边的最高值是 1.180、1.179、1.179。$N$ 越大，冲过头的那一小截越窄、越贴着跳变处，但<b>高度不再下降</b>，稳定在约 1.179——比目标的 1 高出 0.179，大约是跳变幅度 2 的 9%。这个数不是巧合：它等于 $\frac{2}{\pi}\int_0^{\pi}\frac{\sin t}{t}\,dt\approx 1.1790$。</p>
+<p><b>加权能治冲过头，但要付代价。</b>把拼法换成"Fejér 平均"：$N=9,21,51,99$ 时最高值是 0.936、0.971、0.988、0.994，从来没有超过 1，冲过头完全消失；代价是跳变处被抹得更"糊"，整体的均方误差反而更大（$N=99$ 时是 0.090，直接截断是 0.064）。"平滑截断"介于两者之间：$\delta=0.5,1,2,3,4$ 时，$N$ 大了之后的最高值约为 1.092、1.054、1.022、1.011、1.006——$\delta$ 越大冲得越小，但在这个页面的公式里一直没有降到 1 以下。</p>
+<p><b>折点比跳变好拼得多。</b>选"三角波"，$N=100$ 时均方误差只有 0.0002；方波却要慢得多：$N=10,50,100$ 时是 0.201、0.090、0.064，大致按 $1/\sqrt N$ 缩小。函数越光滑，需要的波越少。</p>
+<p><b>盯住一个点看。</b>选方波、$x_0=0.5$：下图里近似值围着真值 1 来回抖动，抖动越来越小。把 $x_0$ 拖到 0（跳变处），近似值永远恰好是 0——也就是左右两侧取值 $-1$ 和 $1$ 的中点。再选"尖峰"函数：$x_0=1$ 时 $N=100$ 的近似值是 0.9987，几乎贴着真值 1；可是在尖峰的正中心 $x_0=0$，$N=10,30,100$ 时近似值是 3.6、5.5、8.8，一路往上长（大约按 $N^{0.4}$ 增长），根本停不下来；离中心很近的 $x_0=0.05$ 处，$N=100$ 时近似值是 2.64，离真值 3.31 还差一截。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>傅里叶级数的想法是：把一个周期函数 $f$ 看成许多正弦、余弦波的叠加，$f(x)=\frac{a_0}{2}+\sum_{k\ge1}(a_k\cos kx+b_k\sin kx)$。方波的"配方"是 $b_k=\frac{4}{\pi k}$（$k$ 为奇数），这正是页面里灰线背后的数据。只用前 $N$ 项叫<b>部分和</b> $S_Nf$。两个最基本的问题：（一）$S_Nf(x)$ 会不会趋近 $f(x)$——在哪些点上、对哪些函数 $f$？（二）如果不会，给高频的波乘上适当的权重，能不能收敛得更好？</p>
+<p>直接截断相当于拿 $f$ 去和"狄利克雷核"做加权平均，而这个核有正有负、起伏很大，吉布斯冲过头就来自它。Fejér 平均用的"Fejér 核"处处非负，所以结果是 $f$ 的一个真正的加权平均，数值不可能跑出 $f$ 的取值范围，自然没有冲过头。"平滑截断"里的权重 $(1-k^2/R^2)^{\delta}$，是一维版本的 Bochner–Riesz 平均：$\delta=0$ 就是直接截断，$\delta$ 越大，"软着陆"得越彻底。</p>
+<p>页面上的三个设置都能和问题对应起来，但请记住：<b>页面只演示一维的现象，没有验证任何论文的结论</b>。问题 075 关心的是"函数到底要多规矩，傅里叶级数才几乎处处还原它"。据我所知：Kolmogorov 早在 20 世纪 20 年代就造出过一个可积函数，它的傅里叶级数处处发散；Carleson 在 1966 年证明了平方可积函数的部分和几乎处处收敛，后来 Hunt 等人推广到 $p\gt1$ 的情形。中间还剩一条缝，就是"只比可积稍微规矩一点点"的那类函数；稿件宣称补上了 $L\log L$ 这一档，<b>这需要独立审查</b>。页面里的"尖峰"函数让你看到：在函数越来越陡的地方，部分和确实追得吃力。</p>
+<p>问题 078 把同样的"软着陆"放到三维：权重是 $(1-|\xi|^2)_+^{\delta}$，要问的是 $\delta$ 至少多大，这种平均在 $L^p$ 里才会收敛。据我所知，这是 Bochner–Riesz 猜想；二维的情形早已解决（Carleson–Sjölin，1972 年），三维仍然是公开问题；稿件宣称给出了三维的证明，同样<b>需要独立审查</b>。在一维里这个问题几乎不构成难题——只要 $\delta\gt0$ 就行——所以页面里你看到的是"好玩的那一半"，难的那一半在更高的维数里。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 312), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 230), x2 = c2.ctx;
+  var c3 = Lab.canvas(stage, 640, 136), x3 = c3.ctx;
+  var KMAX = 100, PI = Math.PI;
+  var fkey = 'square', N = 9, meth = 'cut', delta = 1, x0 = 0.5;
+  var cache = {};
+
+  /* ---------- 四个函数的傅里叶系数 f(x) = a0/2 + Σ a_k cos kx + b_k sin kx，x∈(−π,π) ---------- */
+  var FUN = {
+    square: { name: '方波（跳变）', f: function (x) { return x > 0 ? 1 : x < 0 ? -1 : 0; }, yr: [-1.5, 1.5], nrm2: 1 },
+    saw: { name: '锯齿波（跳变）', f: function (x) { return x / PI; }, yr: [-1.45, 1.45], nrm2: 1 / 3 },
+    tri: { name: '三角波（有折点）', f: function (x) { return 1 - 2 * Math.abs(x) / PI; }, yr: [-1.4, 1.4], nrm2: 1 / 3 },
+    spike: { name: '尖峰 |x|^(−0.4)（在 0 处无限高）', f: function (x) { return Math.pow(Math.abs(x), -0.4); }, yr: [-0.8, 4.2], nrm2: 5 * Math.pow(PI, -0.8) }
+  };
+  function coeffs(key) {
+    if (cache[key]) return cache[key];
+    var a = new Float64Array(KMAX + 1), b = new Float64Array(KMAX + 1), k, M, h, s, i, u, p;
+    if (key === 'square') { for (k = 1; k <= KMAX; k += 2) b[k] = 4 / (PI * k); }
+    else if (key === 'saw') { for (k = 1; k <= KMAX; k++) b[k] = (2 / PI) * (k % 2 ? 1 : -1) / k; }
+    else if (key === 'tri') { for (k = 1; k <= KMAX; k += 2) a[k] = 8 / (PI * PI * k * k); }
+    else {
+      /* a_k = (2/π)∫_0^π x^(−0.4) cos(kx) dx；令 u = x^0.6，化成光滑的积分 (1/0.6)∫_0^{π^0.6} cos(k u^(5/3)) du，用辛普森公式 */
+      a[0] = 2 * Math.pow(PI, -0.4) / 0.6;
+      M = 4000; h = Math.pow(PI, 0.6) / M; p = 5 / 3;
+      for (k = 1; k <= KMAX; k++) {
+        s = 1 + Math.cos(k * Math.pow(M * h, p));
+        for (i = 1; i < M; i++) { u = i * h; s += (i % 2 ? 4 : 2) * Math.cos(k * Math.pow(u, p)); }
+        a[k] = (2 / PI) * (s * h / 3) / 0.6;
+      }
+    }
+    cache[key] = { a: a, b: b };
+    return cache[key];
+  }
+  function weights(n) {
+    var w = new Float64Array(KMAX + 1), k, R = n + 1;
+    for (k = 1; k <= n; k++) w[k] = meth === 'cut' ? 1 : meth === 'fejer' ? 1 - k / R : Math.pow(1 - (k / R) * (k / R), delta);
+    return w;
+  }
+  function partial(key, n, x) {
+    var C = coeffs(key), w = weights(n), s = C.a[0] / 2, k;
+    for (k = 1; k <= n; k++) s += w[k] * (C.a[k] * Math.cos(k * x) + C.b[k] * Math.sin(k * x));
+    return s;
+  }
+  /* 一次性算出 S_n 在一排点上的取值（权重只算一遍） */
+  function partialMany(key, n, xs) {
+    var C = coeffs(key), w = weights(n), out = new Float64Array(xs.length), i, k, x, s;
+    for (i = 0; i < xs.length; i++) {
+      x = xs[i]; s = C.a[0] / 2;
+      for (k = 1; k <= n; k++) s += w[k] * (C.a[k] * Math.cos(k * x) + C.b[k] * Math.sin(k * x));
+      out[i] = s;
+    }
+    return out;
+  }
+  function l2err(key, n) {
+    var C = coeffs(key), w = weights(n), k, c2, inside = 0, wsum = 0, mean = C.a[0] / 2;
+    for (k = 1; k <= n; k++) { c2 = (C.a[k] * C.a[k] + C.b[k] * C.b[k]) / 2; inside += c2; wsum += (1 - w[k]) * (1 - w[k]) * c2; }
+    return Math.sqrt(Math.max(0, FUN[key].nrm2 - mean * mean - inside) + wsum);
+  }
+
+  /* ---------- 控件 ---------- */
+  var sF = Lab.select(panel, { label: '要拼的函数', value: fkey, options: [['square', '方波（跳变）'], ['saw', '锯齿波（跳变）'], ['tri', '三角波（有折点）'], ['spike', '尖峰 |x|^(−0.4)']], onChange: function (v) { fkey = v; draw(); } });
+  var sN = Lab.slider(panel, { label: '正弦波的个数 N', min: 1, max: KMAX, step: 1, value: N, onInput: function (v) { N = v; draw(); } });
+  var sM = Lab.select(panel, { label: '拼法', value: meth, options: [['cut', '直接截断：前 N 个波原样相加'], ['fejer', 'Fejér 平均：权重 1 − k/(N+1)'], ['riesz', '平滑截断：权重 (1 − k²/(N+1)²)^δ']], onChange: function (v) { meth = v; draw(); } });
+  var sD = Lab.slider(panel, { label: '平滑度 δ（只对"平滑截断"有用）', min: 0, max: 4, step: 0.5, value: delta, fmt: function (v) { return Lab.fmt(v, 1); }, onInput: function (v) { delta = v; draw(); } });
+  var sX = Lab.slider(panel, { label: '观察点 x₀', min: -3.1, max: 3.1, step: 0.05, value: x0, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { x0 = v; draw(); } });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：k 号波的系数来自公式（方波 4/(πk)，k 为奇数……）；"尖峰"函数的系数用数值积分算出。全部只画前 100 个波。');
+  Lab.onTheme(function () { draw(); });
+
+  /* ---------- 画图 ---------- */
+  var NG = 1400;
+  var GRID = (function () { var g = [], i; for (i = 0; i <= NG; i++) g.push(-PI + 2 * PI * i / NG); return g; })();
+  /* 在网格最高点附近用黄金分割法找真正的最高点（峰很窄，光靠网格会低估） */
+  function refineMax(key, n, xc, vc) {
+    var g = 0.6180339887498949, lo = Math.max(-PI, xc - 2 * PI / NG), hi = Math.min(PI, xc + 2 * PI / NG), a1 = hi - g * (hi - lo), b1 = lo + g * (hi - lo), fa = partial(key, n, a1), fb = partial(key, n, b1), it;
+    for (it = 0; it < 40; it++) {
+      if (fa < fb) { lo = a1; a1 = b1; fa = fb; b1 = lo + g * (hi - lo); fb = partial(key, n, b1); }
+      else { hi = b1; b1 = a1; fb = fa; a1 = hi - g * (hi - lo); fa = partial(key, n, a1); }
+    }
+    return fa > fb ? (fa > vc ? { v: fa, x: a1 } : { v: vc, x: xc }) : (fb > vc ? { v: fb, x: b1 } : { v: vc, x: xc });
+  }
+  function drawTop() {
+    var C = Lab.colors(), F = FUN[fkey], box = { x: 52, y: 14, w: 576, h: 232 }, ax, ys, i, xs = GRID, first, mx = -1e9, mxx = 0, v, clipTop = F.yr[1];
+    c1.clear(C.card);
+    ax = Lab.axes(x1, box, [-PI, PI], F.yr, { xticks: [-PI, -PI / 2, 0, PI / 2, PI], fx: function (t) { return Math.abs(t) < 1e-9 ? '0' : Math.abs(Math.abs(t) - PI) < 1e-9 ? (t < 0 ? '−π' : 'π') : (t < 0 ? '−π/2' : 'π/2'); }, yticks: fkey === 'spike' ? [0, 1, 2, 3, 4] : [-1, -0.5, 0, 0.5, 1], fy: function (t) { return Lab.fmt(t, 1); }, xlabel: 'x' });
+    x1.save(); x1.beginPath(); x1.rect(box.x, box.y, box.w, box.h); x1.clip();
+    /* 目标函数 */
+    x1.strokeStyle = C.muted; x1.lineWidth = 3.2; x1.globalAlpha = 0.65; x1.beginPath(); first = true;
+    if (fkey === 'square') {
+      x1.moveTo(ax.X(-PI), ax.Y(-1)); x1.lineTo(ax.X(0), ax.Y(-1)); x1.lineTo(ax.X(0), ax.Y(1)); x1.lineTo(ax.X(PI), ax.Y(1));
+    } else {
+      for (i = 0; i < xs.length; i++) {
+        v = F.f(xs[i]); if (fkey === 'spike') v = Math.min(v, clipTop + 1);
+        if (first) { x1.moveTo(ax.X(xs[i]), ax.Y(v)); first = false; } else x1.lineTo(ax.X(xs[i]), ax.Y(v));
+      }
+    }
+    x1.stroke(); x1.globalAlpha = 1;
+    /* 部分和 */
+    ys = partialMany(fkey, N, xs);
+    x1.strokeStyle = C.accent; x1.lineWidth = 2; x1.beginPath(); first = true;
+    for (i = 0; i < xs.length; i++) {
+      if (first) { x1.moveTo(ax.X(xs[i]), ax.Y(ys[i])); first = false; } else x1.lineTo(ax.X(xs[i]), ax.Y(ys[i]));
+      if (ys[i] > mx) { mx = ys[i]; mxx = xs[i]; }
+    }
+    x1.stroke();
+    x1.restore();
+    if (fkey !== 'spike') { var rf = refineMax(fkey, N, mxx, mx); mx = rf.v; mxx = rf.x; }
+    /* 观察点 */
+    x1.setLineDash([4, 4]); Lab.line(x1, ax.X(x0), box.y, ax.X(x0), box.y + box.h, C.warn, 1.3); x1.setLineDash([]);
+    Lab.dot(x1, ax.X(x0), ax.Y(Math.min(partial(fkey, N, x0), clipTop)), 4.5, C.warn, C.card);
+    if (fkey !== 'spike') Lab.dot(x1, ax.X(mxx), ax.Y(mx), 4.5, C.bad, C.card);
+    Lab.label(x1, '灰线：目标；彩线：只用前 ' + N + ' 个波' + (fkey === 'spike' ? '' : '；红点：彩线的最高处') + '；橙色虚线：观察点 x₀', box.x + 8, box.y + box.h + 52, C.muted, 'left', 12);
+    return { max: mx, maxx: mxx };
+  }
+  function drawBottom() {
+    var C = Lab.colors(), F = FUN[fkey], box = { x: 52, y: 14, w: 576, h: 150 }, ax, n, vals = [], lo = 1e9, hi = -1e9, target = F.f(x0), v, yr;
+    if (fkey === 'square' && Math.abs(x0) < 1e-9) target = 0;
+    for (n = 1; n <= KMAX; n++) { v = partial(fkey, n, x0); /* 用 n 个波、权重按 n 算 */ vals.push(v); }
+    c2.clear(C.card);
+    vals.forEach(function (t) { if (t < lo) lo = t; if (t > hi) hi = t; });
+    if (isFinite(target)) { lo = Math.min(lo, target); hi = Math.max(hi, target); }
+    if (fkey === 'spike') { lo = Math.min(lo, 0); }
+    yr = [lo - 0.12 * (hi - lo + 0.2), hi + 0.12 * (hi - lo + 0.2)];
+    ax = Lab.axes(x2, box, [1, KMAX], yr, { xticks: [1, 20, 40, 60, 80, 100], fx: function (t) { return String(Math.round(t)); }, fy: function (t) { return Lab.fmt(t, 2); }, xlabel: 'N（拼进去的正弦波个数）', ylabel: '在 x₀ 处的值' });
+    if (isFinite(target) && !(fkey === 'spike' && Math.abs(x0) < 0.02)) { x2.setLineDash([6, 4]); Lab.line(x2, box.x, ax.Y(target), box.x + box.w, ax.Y(target), C.good, 1.6); x2.setLineDash([]); Lab.label(x2, '真值 ' + Lab.fmt(target, 3), box.x + box.w - 6, ax.Y(target) - 9, C.good, 'right', 12); }
+    x2.strokeStyle = C.accent; x2.lineWidth = 1.8; x2.beginPath();
+    vals.forEach(function (t, i) { if (i === 0) x2.moveTo(ax.X(i + 1), ax.Y(t)); else x2.lineTo(ax.X(i + 1), ax.Y(t)); });
+    x2.stroke();
+    Lab.dot(x2, ax.X(N), ax.Y(vals[N - 1]), 4.5, C.warn, C.card);
+    return { vals: vals, target: target };
+  }
+  function drawWeights() {
+    var C = Lab.colors(), box = { x: 52, y: 10, w: 576, h: 78 }, ax, w = weights(N), k;
+    c3.clear(C.card);
+    ax = Lab.axes(x3, box, [0, KMAX + 1], [0, 1.1], { xticks: [0, 20, 40, 60, 80, 100], fx: function (t) { return String(Math.round(t)); }, yticks: [0, 0.5, 1], fy: function (t) { return Lab.fmt(t, 1); }, xlabel: 'k（第 k 号正弦波）', ylabel: '权重' });
+    x3.fillStyle = C.accent; x3.globalAlpha = 0.55;
+    for (k = 1; k <= N; k++) { x3.fillRect(ax.X(k - 0.4), ax.Y(w[k]), Math.max(1, ax.X(k + 0.4) - ax.X(k - 0.4)), ax.Y(0) - ax.Y(w[k])); }
+    x3.globalAlpha = 1;
+    Lab.label(x3, '每个波被乘上的权重（k > N 的波被直接丢掉）', box.x + box.w - 6, box.y + 12, C.muted, 'right', 12);
+  }
+  function draw() {
+    var T = drawTop(), B = drawBottom(), F = FUN[fkey], s;
+    drawWeights();
+    s = F.name + '；N = ' + N + '；' + (meth === 'cut' ? '直接截断' : meth === 'fejer' ? 'Fejér 平均' : '平滑截断 δ = ' + Lab.fmt(delta, 1)) + '\n';
+    if (fkey === 'spike') s += '彩线最高处（图上被截断）：' + Lab.fmt(T.max, 2) + '，在 x = ' + Lab.fmt(T.maxx, 2) + '\n';
+    else s += '彩线最高值：' + Lab.fmt(T.max, 4) + '（在 x = ' + Lab.fmt(T.maxx, 2) + '）；目标最高值：1\n';
+    s += '整体的均方误差（L² 误差）：' + Lab.fmt(l2err(fkey, N), 4) + '\n';
+    s += '在 x₀ = ' + Lab.fmt(x0, 2) + ' 处：近似值 ' + Lab.fmt(B.vals[N - 1], 4) + (isFinite(B.target) ? '，真值 ' + Lab.fmt(B.target, 4) : '');
+    out.html(s);
+  }
+
+  draw();
+})();
+</script>

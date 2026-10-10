@@ -1,0 +1,71 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>规则：抛一串硬币，第 $n$ 次抛出正面就加 $\lambda^n$，反面就减 $\lambda^n$（$n=0,1,2,\dots$），无限加下去，得到一个随机数 $X=\sum_{n\ge0}\pm\lambda^n$。页面用 50 万次独立的随机抛掷，画出 $X$ 落在各个小区间里的比例（直方图）。</li>
+<li>先点预设 $\lambda=\tfrac12$：直方图是平的——$X$ 在 $[-2,2]$ 上<b>均匀</b>分布（这就是二进制展开）。</li>
+<li>再点"黄金比例的倒数 $0.618\ldots$"：图变成了怪异的、一层套一层的锯齿；把"格子数"拉到最大，锯齿仍然在——这就是 Erdős 在 1939 年发现的"尘埃式"奇异分布。对比 $\lambda=0.9$ 或 $0.7071$：格子细到一定程度之后，轮廓就是一条光滑的曲线，剩下的毛刺只是随机抽样的抖动。</li>
+<li>右边读数里的"粗糙度"：相邻两格的计数差的平方和，除以计数之和。完全光滑的分布只剩随机抽样的抖动，这个数接近 1；越"尘埃"数越大。格子太粗时，光滑曲线本身的坡度也会让它偏大，所以请把格子数拉到 1000 以上再比较。拖动 $\lambda$ 滑块，能找到哪些 $\lambda$ 特别粗糙吗？</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>对绝大多数 $\lambda\in(\tfrac12,1)$，$X$ 的分布是光滑的（有密度函数）；Solomyak 在 1995 年证明了这一点对"几乎所有"$\lambda$ 成立。但有一些特殊的 $\lambda$，分布是奇异的"尘埃"：这些 $\lambda$ 是 Pisot 数（一类特殊的代数整数）的倒数，比如黄金比例的倒数 $0.618\ldots$、$1/1.4656\ldots=0.6823\ldots$、$1/1.3247\ldots=0.7549\ldots$。试着把格子数拉到 2000，再依次点各个预设比较"粗糙度"：$\lambda=\tfrac12$、$0.7071$、$0.9$ 都在 $1.0\sim1.05$（光滑，只剩随机抽样的抖动）；黄金比例倒数 $0.618\ldots$ 约 $4.1$；$0.6823\ldots$ 约 $1.3$；$\lambda=0.4$（康托集，大片空白）则高达几百。</p>
+<p>要提醒的是：这个读数只是肉眼可见的"毛糙程度"，既证明不了奇异，也证明不了光滑。最好的例子就是 $0.7549\ldots$：它同样是 Pisot 数 $1.3247\ldots$ 的倒数，按 Erdős 的结果是奇异的，可页面上读数只有约 $1.1$，和光滑分布几乎没有区别——50 万个样本、2000 个格子，还看不出它的"尘埃"本性。到底是奇异还是光滑，是数学定理的事。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>$X=\sum\pm\lambda^n$ 的分布叫<b>伯努利卷积</b> $\nu_\lambda$。$\lambda<\tfrac12$ 时它集中在一个康托集上（奇异）；$\lambda=\tfrac12$ 时是均匀分布；$\lambda\in(\tfrac12,1)$ 时情形微妙：哪些 $\lambda$ 给出光滑（绝对连续）的分布，哪些给出奇异分布，至今没有完整的刻画。已知的奇异例子主要是 Pisot 数的倒数（Erdős，1939）；Salem 数的情形则要更微妙得多。页面下方列出的问题 153，稿件宣称给出了一个只用"代数单位的无穷逼近"的判别条件，把所有 $\lambda$ 分成两类，并证明了每个位于 $(1,2)$ 的四次 Salem 数的倒数处分布也是奇异的——这给出了超出 Pisot 数倒数的新例子。这些是稿件的宣称，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var cv = Lab.canvas(stage, 640, 340), ctx = cv.ctx;
+  var NS = 500000, NB = 8, rnd = Lab.rng(2024), idx = new Uint16Array(NS * NB), vals = new Float32Array(NS), tab = new Float64Array(NB * 1024);
+  var lam = 0.618034, bins = 400, A = 2, counts = null, i, rough = 0;
+  for (i = 0; i < idx.length; i++) idx[i] = (rnd() * 1024) | 0;
+
+  var sL = Lab.slider(panel, { label: '比例 λ', min: 0.3, max: 0.95, step: 0.0005, value: 0.618034, fmt: function (v) { return Lab.fmt(v, 4); }, onInput: function (v) { lam = v; compute(); } });
+  var sB = Lab.slider(panel, { label: '格子数（越大越细）', min: 40, max: 2000, step: 10, value: 400, onInput: function (v) { bins = v; histo(); draw(); } });
+  var PRE = [['λ = 1/2（均匀）', 0.5], ['黄金比例的倒数 0.618…', 0.6180339887], ['0.6823…（1/1.4656…，Pisot）', 0.6823278038], ['0.7071…（1/√2）', 0.7071067812], ['0.7549…（1/1.3247…，Pisot）', 0.7548776662], ['λ = 0.9', 0.9], ['λ = 0.4（康托集）', 0.4]];
+  var row = Lab.row(panel);
+  PRE.forEach(function (p) { Lab.button(row, p[0], function () { lam = p[1]; sL.set(p[1], true); compute(); }); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：页面取 80 项，并用 50 万个独立的随机符号序列；λ 不超过 0.95 时，被忽略的尾部（典型大小不到 0.06）相对于整幅分布的宽度（约 6）可以忽略。');
+  Lab.onTheme(draw);
+
+  function compute() {
+    var pw = new Float64Array(NB * 10), b, pat, j, s, k, v, base;
+    pw[0] = 1; for (j = 1; j < pw.length; j++) pw[j] = pw[j - 1] * lam;
+    A = (1 - Math.pow(lam, NB * 10)) / (1 - lam);
+    for (b = 0; b < NB; b++) for (pat = 0; pat < 1024; pat++) { s = 0; for (j = 0; j < 10; j++) s += (((pat >> j) & 1) ? 1 : -1) * pw[10 * b + j]; tab[b * 1024 + pat] = s; }
+    for (k = 0; k < NS; k++) { v = 0; base = k * NB; for (b = 0; b < NB; b++) v += tab[b * 1024 + idx[base + b]]; vals[k] = v; }
+    histo(); draw();
+  }
+  function histo() {
+    var k, b, num = 0, den = 0;
+    counts = new Float64Array(bins);
+    for (k = 0; k < NS; k++) { b = Math.floor((vals[k] + A) / (2 * A) * bins); if (b >= bins) b = bins - 1; if (b < 0) b = 0; counts[b]++; }
+    for (k = 0; k + 1 < bins; k++) { num += (counts[k + 1] - counts[k]) * (counts[k + 1] - counts[k]); den += counts[k + 1] + counts[k]; }
+    rough = num / den;
+  }
+  function draw() {
+    var C = Lab.colors(), box = { x: 62, y: 18, w: 560, h: 260 }, dens = bins / (NS * 2 * A), mx = 0, k, ax, yr;
+    for (k = 0; k < bins; k++) if (counts[k] > mx) mx = counts[k];
+    yr = Math.max(0.1, mx * dens * 1.08);
+    cv.clear(C.card);
+    ax = Lab.axes(ctx, box, [-A, A], [0, yr], { nx: 8, ny: 5, xlabel: 'X = Σ ± λⁿ 的取值', ylabel: '概率密度', fx: function (v) { return Lab.fmt(v, 1); }, fy: function (v) { return Lab.fmt(v, 2); } });
+    ctx.fillStyle = C.accent; ctx.globalAlpha = 0.85;
+    var w = box.w / bins;
+    for (k = 0; k < bins; k++) { var hh = counts[k] * dens / yr * box.h; if (hh > 0) ctx.fillRect(box.x + k * w, box.y + box.h - hh, Math.max(0.6, w), hh); }
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([5, 4]); Lab.line(ctx, box.x, ax.Y(1 / (2 * A)), box.x + box.w, ax.Y(1 / (2 * A)), C.warn, 1.4); ctx.setLineDash([]);
+    Lab.label(ctx, '虚线 = 均匀分布的高度（1 ÷ 取值范围的长度）', box.x + box.w - 6, box.y + 10, C.warn, 'right', 12);
+    Lab.label(ctx, 'λ = ' + Lab.fmt(lam, 4) + '，取值范围 [−' + Lab.fmt(A, 2) + ', ' + Lab.fmt(A, 2) + ']', box.x + 6, box.y + 10, C.ink2, 'left', 12.5);
+    var empty = 0; for (k = 0; k < bins; k++) if (counts[k] === 0) empty++;
+    out.html('λ = <b>' + Lab.fmt(lam, 4) + '</b>' + (lam < 0.5 ? '（< 1/2：落在一个康托集上，必然奇异）' : '') + '\n格子数 ' + bins + '，其中空格 ' + empty + ' 个\n粗糙度 = <b>' + Lab.fmt(rough, 2) + '</b>（光滑分布 ≈ 1）');
+  }
+  compute();
+})();
+</script>

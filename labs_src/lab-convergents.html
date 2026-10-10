@@ -1,0 +1,175 @@
+<div class="lab-grid">
+  <div class="lab-stage">
+    <div id="stage"></div>
+    <div class="lab-scroll" id="tbl" style="margin-top:10px;max-height:300px;overflow-y:auto"></div>
+  </div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>先选一个数（比如 $\pi$）。页面用"连分数"把它一层一层地剥开：$x=a_0+\cfrac{1}{a_1+\cfrac{1}{a_2+\cdots}}$。每截取到第 $k$ 层，就得到一个分数 $p_k/q_k$，叫第 $k$ 个<b>渐近分数</b>。</li>
+<li>看表格：误差一栏随着分母变大急剧变小。最后一栏 $\mu_k$ 是"指数"：误差恰好等于 $q^{-\mu}$ 时的 $\mu$。注意 $\pi$ 的 $k=3$ 那一行 $355/113$：它的指数特别大，因为后面紧跟着一个巨大的 $a_4=292$。</li>
+<li>拖动"分母不超过 D"滑块，用暴力方法找出分母 $\le D$ 的最接近分数（图里的红星），看它是不是渐近分数。多数时候是；偶尔会是夹在两个渐近分数之间的"中间分数"，但绝不会落到别的地方。</li>
+<li>换成别的数试试：黄金分割 $\varphi$ 的连分数全是 1，它是"最难被分数逼近"的数；也可以输入你自己的小数——有限小数的连分数是有限长的，到最后一步误差变成 0。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>对每个无理数，渐近分数的误差都小于 $1/q^2$（图中蓝点永远在虚线下方）。黄金分割的指数很快就贴近 2，因为它的连分数里每个 $a_k$ 都是 1；$\pi$ 的指数偶尔蹦得很高，是因为它的连分数里偶尔会出现较大的数。问题是：这样的"大数"会越来越夸张吗？$\pi$ 的指数最终会比 2 大吗？这就是"无理指数"要回答的问题。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>数轴上"分母不超过 $D$ 的分数"是一些稀疏的点，每个无理数周围总有若干分数特别近。连分数的魔法在于：<b>最佳逼近（让 $|qx-p|$ 最小的那种）一定是渐近分数</b>；就算只要求 $|x-p/q|$ 最小，也只会多出一些夹在渐近分数之间的"中间分数"。把误差写成 $\approx 1/(a_{k+1}q_k^2)$ 的量级，就看清了：后一项 $a_{k+1}$ 越大，这个渐近分数就越"惊艳"。</p>
+<p>一个实数的<b>无理指数</b>衡量它能被分数逼近到多好：几乎所有实数的指数都是 2，也就是说"最普通"。已知 $\pi$ 的无理指数不超过 7.1 左右，人们相信它恰好是 2，但这需要证明连分数里的大数不会无节制地增长。本页的数是用高精度整数算出来的（70 位有效数字，只取其中可靠的前 40 项）。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel'), tbl = Lab.$('#tbl');
+  var cv = Lab.canvas(stage, 640, 340), ctx = cv.ctx;
+
+  /* ---------- 高精度常数（定点 BigInt，S = 10^70） ---------- */
+  var S = 10n ** 70n;
+  function atanInv(x) {            // arctan(1/x)·S
+    x = BigInt(x);
+    var x2 = x * x, t = S / x, sum = t, n = 0n;
+    while (t > 0n) { t = t / x2; n++; var term = t / (2n * n + 1n); sum += (n % 2n === 0n) ? term : -term; }
+    return sum;
+  }
+  function isqrt(n) {
+    var x = BigInt(Math.floor(Math.sqrt(Number(n)) * 1.0001)) + 1n;
+    for (;;) { var y = (x + n / x) >> 1n; if (y >= x) return x; x = y; }
+  }
+  function constant(name) {
+    if (name === 'pi') return 16n * atanInv(5) - 4n * atanInv(239);      // 梅钦公式
+    if (name === 'e') { var t = S, sum = S, k = 1n; while (t > 0n) { t = t / k; sum += t; k++; } return sum; }
+    if (name === 'sqrt2') return isqrt(2n * S * S);
+    if (name === 'sqrt3') return isqrt(3n * S * S);
+    if (name === 'phi') return (S + isqrt(5n * S * S)) / 2n;
+    if (name === 'ln2') { var s2 = 0n, kk = 1n, p = S / 2n; while (p > 0n) { s2 += p / kk; kk++; p = p / 2n; } return s2; }
+    return 0n;
+  }
+  var CONST = {}, NAMES = { pi: 'π', e: 'e', sqrt2: '√2', sqrt3: '√3', phi: 'φ（黄金分割）', ln2: 'ln 2' };
+
+  /* ---------- 连分数：欧几里得辗转相除 ---------- */
+  function cf(X, D, exact) {
+    var a = [], conv = [], h1 = 1n, h2 = 0n, k1 = 0n, k2 = 1n, num = X, den = D;
+    for (var i = 0; i < (exact ? 80 : 40) && den !== 0n; i++) {
+      var q = num / den, r = num % den, h = q * h1 + h2, k = q * k1 + k2;
+      if (!exact && k * k * 1000n > D) break;       // 超出可靠范围就停
+      a.push(q); conv.push([h, k]);
+      h2 = h1; h1 = h; k2 = k1; k1 = k; num = den; den = r;
+    }
+    return { a: a, c: conv };
+  }
+  function blog10(n) {              // BigInt 的常用对数
+    var s = n.toString();
+    if (s.length <= 15) return Math.log10(Number(n));
+    return (s.length - 15) + Math.log10(Number(s.slice(0, 15)));
+  }
+  function absBig(n) { return n < 0n ? -n : n; }
+  function short(n) {               // 大整数缩写（带上标）
+    var s = n.toString();
+    return s.length <= 11 ? s : s[0] + '.' + s.slice(1, 4) + '×10<sup>' + (s.length - 1) + '</sup>';
+  }
+  function sci(l) {                 // log10 值 → 科学计数法字符串
+    var e = Math.floor(l), m = Math.pow(10, l - e);
+    if (m.toFixed(2) === '10.00') { m = 1; e += 1; }
+    return m.toFixed(2) + '×10<sup>' + e + '</sup>';
+  }
+
+  /* ---------- 状态与控件 ---------- */
+  var cur = { res: null }, Dmax = 1000;
+  var sel = Lab.select(panel, {
+    label: '选一个数', value: 'pi',
+    options: [['pi', 'π'], ['e', 'e'], ['sqrt2', '√2'], ['sqrt3', '√3'], ['phi', 'φ（黄金分割）'], ['ln2', 'ln 2'], ['custom', '自己输入的小数']],
+    onChange: function (v) { load(v); }
+  });
+  var tx = Lab.text(panel, {
+    label: '自己输入一个小数（上面选"自己输入"才生效）', value: '3.14159', placeholder: '例如 0.142857',
+    onInput: function () { if (sel.get() === 'custom') load('custom'); }
+  });
+  Lab.slider(panel, {
+    label: '暴力搜索：分母不超过 D', min: 1, max: 5, step: 0.05, value: 3,
+    fmt: function (v) { return Lab.big(Math.pow(10, v)); },
+    onInput: function (v) { Dmax = Math.round(Math.pow(10, v)); draw(); }
+  });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '图的横轴是 log₁₀ q（分母的位数），纵轴是 log₁₀（误差）。虚线是"误差 = 1/q²"，所有渐近分数都在它的下方。');
+  Lab.onTheme(draw);
+
+  function load(v) {
+    if (v === 'custom') {
+      var s = tx.get().trim().replace(/^[+-]/, '');
+      var m = /^(\d*)\.?(\d*)$/.exec(s);
+      if (!m || (m[1] === '' && m[2] === '')) { out.text('请输入形如 3.14159 的小数（负号会被忽略）。'); return; }
+      var frac = m[2] || '';
+      cur = { X: BigInt((m[1] || '0') + frac), D: 10n ** BigInt(frac.length), exact: true, name: '你输入的数' };
+    } else {
+      if (!CONST[v]) CONST[v] = constant(v);
+      cur = { X: CONST[v], D: S, exact: false, name: NAMES[v] };
+    }
+    cur.res = cf(cur.X, cur.D, cur.exact);
+    cur.val = Number(cur.X) / Number(cur.D);
+    draw();
+  }
+
+  function draw() {
+    if (!cur.res) return;
+    var C = Lab.colors(), res = cur.res, pts = [], rows = '', i;
+    cv.clear(C.card);
+    for (i = 0; i < res.c.length; i++) {
+      var h = res.c[i][0], k = res.c[i][1];
+      var num = absBig(cur.X * k - h * cur.D), lq = blog10(k);
+      var le = num === 0n ? null : blog10(num) - blog10(k * cur.D);
+      var mu = (le !== null && lq > 0) ? -le / lq : null;
+      pts.push({ i: i, lq: lq, le: le });
+      rows += '<tr><td>' + i + '</td><td>' + short(res.a[i]) + '</td><td>' + short(h) + ' / ' + short(k) + '</td><td>' +
+        (le === null ? '0（精确）' : sci(le)) + '</td><td>' + (mu === null ? '—' : Lab.fmt(mu, 2)) + '</td></tr>';
+    }
+    tbl.innerHTML = '<table class="lab-table"><tr><th>k</th><th>a<sub>k</sub></th><th>渐近分数 p<sub>k</sub> / q<sub>k</sub></th><th>误差</th><th>指数 μ<sub>k</sub></th></tr>' + rows + '</table>';
+
+    var valid = pts.filter(function (p) { return p.le !== null; });
+    var xmax = Math.max(2, valid.length ? Math.max.apply(null, valid.map(function (p) { return p.lq; })) : 2) * 1.08;
+    var box = { x: 64, y: 28, w: 556, h: 268 };
+    var ax = Lab.axes(ctx, box, [0, xmax], [-2 * xmax - 1.5, 0.5], {
+      nx: 6, ny: 5, fx: function (v) { return Lab.fmt(v, 0); }, fy: function (v) { return Lab.fmt(v, 0); },
+      xlabel: 'log₁₀ q（分母）', ylabel: 'log₁₀ 误差'
+    });
+    ctx.setLineDash([6, 4]);
+    Lab.line(ctx, ax.X(0), ax.Y(0), ax.X(xmax), ax.Y(-2 * xmax), C.warn, 1.8);
+    ctx.setLineDash([]);
+    Lab.label(ctx, '误差 = 1/q²', ax.X(xmax * 0.62) + 6, ax.Y(-2 * xmax * 0.62) - 14, C.warn, 'left', 12.5);
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 1.4; ctx.beginPath();
+    valid.forEach(function (p, j) { if (j === 0) ctx.moveTo(ax.X(p.lq), ax.Y(p.le)); else ctx.lineTo(ax.X(p.lq), ax.Y(p.le)); });
+    ctx.stroke();
+    valid.forEach(function (p, j) {
+      Lab.dot(ctx, ax.X(p.lq), ax.Y(p.le), 4.2, C.accent, C.card);
+      if (j < 9) Lab.label(ctx, String(p.i), ax.X(p.lq) + 7, ax.Y(p.le) - 9, C.ink2, 'left', 11.5);
+    });
+
+    // 暴力搜索：分母 ≤ Dmax 的最接近分数
+    var best = null, bq = 1, bp = 0, q, p, e, x = cur.val;
+    for (q = 1; q <= Dmax; q++) {
+      p = Math.round(x * q); e = Math.abs(x - p / q);
+      if (best === null || e < best) { best = e; bq = q; bp = p; }
+    }
+    var isConv = res.c.some(function (c) { return c[1] === BigInt(bq) && c[0] === BigInt(bp); });
+    if (best > 0) {
+      var cx = ax.X(Math.log10(bq)), cy = ax.Y(Math.log10(best));
+      ctx.fillStyle = C.bad; ctx.beginPath();
+      for (i = 0; i < 10; i++) { var rr = i % 2 ? 4 : 9, an = -Math.PI / 2 + i * Math.PI / 5; ctx.lineTo(cx + rr * Math.cos(an), cy + rr * Math.sin(an)); }
+      ctx.closePath(); ctx.fill();
+    }
+    Lab.label(ctx, cur.name + ' 的渐近分数（蓝点，数字是 k）；红星 = 分母 ≤ D 的最接近分数', box.x, 12, C.ink2, 'left', 13);
+
+    var cfStr = res.a.slice(0, 14).map(function (v) { var s = v.toString(); return s.length > 7 ? s.slice(0, 6) + '…' : s; }).join(', ');
+    out.html(
+      '数：<b>' + Lab.esc(cur.name) + '</b> ≈ ' + Lab.fmt(cur.val, 12) + '\n' +
+      '连分数 [' + cfStr + (res.a.length > 14 ? ', …' : '') + ']\n' +
+      '分母 ≤ ' + Lab.big(Dmax) + ' 的最接近分数：<b>' + bp + '/' + bq + '</b>\n' +
+      (best > 0 ? '它的误差 ≈ ' + best.toExponential(2) + '\n' : '') +
+      (isConv ? '<span class="ok">它正好是一个渐近分数 ✓</span>' : '<span class="hi">它不是渐近分数，而是夹在两个渐近分数之间的"中间分数"。</span>')
+    );
+  }
+  load('pi');
+})();
+</script>

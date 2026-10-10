@@ -1,0 +1,168 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上图是一块 $N\times N$ 的"磁铁"：每个小格是一个<b>自旋</b>，只能朝上（蓝色）或朝下（与底色相同的那一种）。相邻的两格<b>喜欢</b>朝向一致；温度 $T$ 则在不断地"搅乱"它们。页面每秒做很多轮"让系统达到热平衡"的更新（用的是 Wolff 团簇算法），你看到的是平衡时的典型样子。</li>
+<li>先点"$T=1.5$"：几乎所有自旋整齐地朝上，只有零星的小岛。再点"$T=3.5$"：蓝色与底色像雪花噪点一样随机混杂，没有任何整体取向。</li>
+<li>现在慢慢拖动温度滑块，穿过 $T\approx2.27$（"$T=T_c$"那个按钮）：你会看到各种大小的磁畴同时出现——有的几格宽，有的占去半张图，任何尺度都有。勾上"画出磁畴边界"，红色的边界线弯弯曲曲、怎么放大都一样曲折。</li>
+<li>点"扫描温度"：页面用一块 $48\times48$ 的小磁铁，从 $T=1$ 到 $4$ 各算一遍平衡时的平均磁化强度 $|m|$（蓝点；绿线是 Onsager 的精确公式）和磁化率（橙点，峰值在哪里？）。再把"键强度的随机涨落"拉到 0.5，重新扫描，对比两张图；也可以拉到 0.9 试试。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>温度低时，自旋整齐，$|m|$ 接近 1；温度高时，$|m|$ 接近 0（磁铁是有限大的，总有一点涨落，所以不是严格的 0）。中间有一个很窄的"过渡带"——这就是<b>相变</b>。方格上的 Ising 模型的临界温度被精确算出来了：$T_c=2/\ln(1+\sqrt2)\approx2.269$（单位：键强度 $J$ 除以玻尔兹曼常数）。我在 $96\times96$ 的磁铁上实测：$T=1.5$ 时 $|m|\approx0.986$，$T=2.0$ 时 $\approx0.911$，都和精确公式给出的值一致；$T=T_c$ 时 $|m|$ 约 0.6（有限大小，还没有降到 0）；$T=3.5$ 时只有 0.02 左右。磁化率的峰落在 2.3–2.4 之间（有限大小让峰略微高于 $T_c$；扫描的温度间隔是 0.1，所以只能读到这个精度）。</p>
+<p>在 $T_c$ 附近，磁畴大小从 1 格到整张图都有，没有一个"典型尺寸"——这叫<b>尺度不变性</b>；红色边界线是随机的分形曲线。最后一个实验是给每条键加一点随机的强弱（$J=1\pm\delta$，平均强度不变）：$\delta=0.5$ 时，扫描出来的曲线整体形状还是那样，磁化率的峰仍在 2.3 附近，不过临界点向低温挪了一点点——比如 $T=2.27$ 处的 $|m|$ 从没有无序时的约 0.6 降到了 0.2–0.3；拉到 0.9（有些键几乎断掉，已经不是"弱"无序）时，峰明显左移到 2.1–2.2。严格地说，页面只是一个有限大小的数值实验，说明不了"极限"里的事情。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>Ising 模型给每个格点放一个 $\sigma_i=\pm1$，总能量 $H=-\sum_{i\sim j}J_{ij}\sigma_i\sigma_j$，温度 $T$ 下各种构型出现的概率正比于 $e^{-H/T}$。一维时没有相变；Onsager 在 1944 年精确解出了二维方格，得到 $T_c$ 与磁化强度 $m(T)=(1-\sinh^{-4}(2/T))^{1/8}$（$T\lt T_c$）。到了 2010 年左右，Smirnov 及其合作者证明了：临界 Ising 模型在格距趋于 0 时，磁畴的边界<b>共形不变</b>，并且收敛到一种随机曲线 $\mathrm{SLE}_3$（Smirnov 因此获 2010 年菲尔兹奖）。这些结果都依赖这个模型"精确可解"的特殊结构。</p>
+<p>物理学家相信这些大尺度性质是<b>普适</b>的：把模型稍微改一改——加四个自旋的相互作用，或者让每条键的强度有一点随机涨落——大尺度图像不会变（对随机键，Harris 判据说二维 Ising 里这种扰动是"边缘无关"的）。页面下方列出的问题 218，稿件宣称在"足够弱"的扰动和无序下，这个普适性确实成立。这是稿件的宣称，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 420), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 232), x2 = c2.ctx;
+  var TC = 2 / Math.log(1 + Math.SQRT2);
+  var N = 96, T = 2.27, delta = 0, sim = null, scan = null, mAvg = 1, eAvg = -2, clAvg = 1, walls = true, bm = null;
+
+  /* ---------- 模拟器（Wolff 团簇算法，周期边界） ---------- */
+  function Sim(n, seed) {
+    var NN = n * n, S = new Int8Array(NN), stack = new Int32Array(NN), Uh = new Float32Array(NN), Uv = new Float32Array(NN),
+        Jh = new Float32Array(NN), Jv = new Float32Array(NN), PH = new Float32Array(NN), PV = new Float32Array(NN), r = Lab.rng(seed), i, t = 2.27, dl = 0;
+    this.n = n; this.S = S;
+    for (i = 0; i < NN; i++) { S[i] = 1; Uh[i] = 2 * r() - 1; Uv[i] = 2 * r() - 1; }
+    function prob() { var k; for (k = 0; k < NN; k++) { Jh[k] = 1 + dl * Uh[k]; Jv[k] = 1 + dl * Uv[k]; PH[k] = 1 - Math.exp(-2 * Jh[k] / t); PV[k] = 1 - Math.exp(-2 * Jv[k] / t); } }
+    this.setT = function (v) { t = v; prob(); };
+    this.setDelta = function (v) { dl = v; prob(); };
+    prob();
+    function wolff() {
+      var seedI = (Math.random() * NN) | 0, s0 = S[seedI], sp = 0, cnt = 1, k, x, y, nb;
+      S[seedI] = -s0; stack[sp++] = seedI;
+      while (sp > 0) {
+        k = stack[--sp]; x = k % n; y = (k / n) | 0;
+        nb = y * n + (x + 1) % n;       if (S[nb] === s0 && Math.random() < PH[k])  { S[nb] = -s0; stack[sp++] = nb; cnt++; }
+        nb = y * n + (x + n - 1) % n;   if (S[nb] === s0 && Math.random() < PH[nb]) { S[nb] = -s0; stack[sp++] = nb; cnt++; }
+        nb = ((y + 1) % n) * n + x;     if (S[nb] === s0 && Math.random() < PV[k])  { S[nb] = -s0; stack[sp++] = nb; cnt++; }
+        nb = ((y + n - 1) % n) * n + x; if (S[nb] === s0 && Math.random() < PV[nb]) { S[nb] = -s0; stack[sp++] = nb; cnt++; }
+      }
+      return cnt;
+    }
+    this.sweep = function () {
+      var f = 0, c = 0, s = 0, k;
+      while (f < NN && c < 60000) { f += wolff(); c++; }
+      for (k = 0; k < NN; k++) s += S[k];
+      if (s < 0) for (k = 0; k < NN; k++) S[k] = -S[k];     /* 上下对称：把多数方向统一画成"朝上" */
+      return f / c;
+    };
+    this.obs = function () {
+      var x, y, k, a, s = 0, e = 0;
+      for (y = 0; y < n; y++) for (x = 0; x < n; x++) {
+        k = y * n + x; a = S[k]; s += a;
+        e -= Jh[k] * a * S[y * n + (x + 1) % n] + Jv[k] * a * S[((y + 1) % n) * n + x];
+      }
+      return [Math.abs(s) / NN, e / NN];
+    };
+  }
+  function onsager(Tv) { return Tv < TC ? Math.pow(1 - Math.pow(Math.sinh(2 / Tv), -4), 0.125) : 0; }
+
+  /* ---------- 控件 ---------- */
+  var sT = Lab.slider(panel, { label: '温度 T', min: 0.5, max: 5, step: 0.01, value: T, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { T = v; sim.setT(T); resetAvg(); } });
+  var row1 = Lab.row(panel);
+  Lab.button(row1, 'T = 1.5', function () { setT(1.5); });
+  Lab.button(row1, 'T = T_c ≈ 2.269', function () { setT(TC); });
+  Lab.button(row1, 'T = 3.5', function () { setT(3.5); });
+  var sN = Lab.select(panel, { label: '磁铁大小', value: '96', options: [['64', '64 × 64'], ['96', '96 × 96'], ['128', '128 × 128']], onChange: function (v) { N = +v; build(); } });
+  var sD = Lab.slider(panel, { label: '键强度的随机涨落 δ（每条键 J = 1 ± δ）', min: 0, max: 0.9, step: 0.05, value: 0, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { delta = v; sim.setDelta(v); resetAvg(); } });
+  var ck = Lab.check(panel, { label: '画出磁畴边界（红线）', checked: true, onChange: function (v) { walls = v; draw(); } });
+  var row2 = Lab.row(panel);
+  var bP = Lab.button(row2, '⏸ 暂停', function () { var on = loop.toggle(); bP.textContent = on ? '⏸ 暂停' : '▶ 继续'; });
+  Lab.button(row2, '全部朝上重来', function () { sim.S.fill(1); resetAvg(); draw(); });
+  Lab.button(row2, '扫描温度（48×48，约一秒）', function () { doScan(); }, 'pri');
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：为了让画面稳定，每轮更新后若朝下的自旋占多数，就把整块磁铁翻个面（模型上下对称，不影响任何统计量）。红色边界只画在朝上与朝下格子之间。');
+  Lab.onTheme(function () { draw(); });
+
+  function setT(v) { T = v; sT.set(v, true); sim.setT(T); resetAvg(); }
+  function resetAvg() { mAvg = -1; }
+  function build() { sim = new Sim(N, 12345); sim.setDelta(delta); sim.setT(T); bm = Lab.bitmap(N, N); resetAvg(); draw(); }
+
+  /* ---------- 扫描温度 ---------- */
+  function doScan() {
+    var s = new Sim(48, 777), Ts = [], ms = [], chis = [], k, t, w, o, sm, sm2, M, tv, pk = 0, kmax = 0, NN = 48 * 48;
+    s.setDelta(delta);
+    for (k = 0; k <= 30; k++) {
+      tv = 1 + 0.1 * k; s.setT(tv);
+      for (w = 0; w < 60; w++) s.sweep();
+      sm = 0; sm2 = 0; M = 150;
+      for (w = 0; w < M; w++) { s.sweep(); o = s.obs(); sm += o[0]; sm2 += o[0] * o[0]; }
+      Ts.push(tv); ms.push(sm / M); chis.push(NN * (sm2 / M - (sm / M) * (sm / M)) / tv);
+    }
+    for (k = 0; k < chis.length; k++) if (chis[k] > pk) { pk = chis[k]; kmax = k; }
+    scan = { T: Ts, m: ms, chi: chis.map(function (v) { return v / pk; }), peak: Ts[kmax], delta: delta };
+    draw();
+  }
+
+  /* ---------- 绘制 ---------- */
+  function drawChart() {
+    var C = Lab.colors(), box = { x: 58, y: 12, w: 566, h: 168 }, ax, k, tv, first = true;
+    c2.clear(C.card);
+    ax = Lab.axes(x2, box, [0.5, 4.5], [0, 1.08], { xticks: [1, 1.5, 2, 2.5, 3, 3.5, 4], yticks: [0, 0.25, 0.5, 0.75, 1], fx: function (v) { return Lab.fmt(v, 1); }, fy: function (v) { return Lab.fmt(v, 2); }, xlabel: '温度 T', ylabel: '磁化强度 |m|' });
+    x2.setLineDash([4, 4]); Lab.line(x2, ax.X(TC), box.y, ax.X(TC), box.y + box.h, C.muted, 1.2); x2.setLineDash([]);
+    Lab.label(x2, 'T_c = 2.269', ax.X(TC) + 5, box.y + 10, C.muted, 'left', 12);
+    x2.strokeStyle = C.good; x2.lineWidth = 2; x2.beginPath();
+    for (tv = 0.5; tv < TC; tv += 0.01) { if (first) { x2.moveTo(ax.X(tv), ax.Y(onsager(tv))); first = false; } else x2.lineTo(ax.X(tv), ax.Y(onsager(tv))); }
+    x2.lineTo(ax.X(TC), ax.Y(0)); x2.stroke();
+    Lab.label(x2, 'Onsager 的精确 m(T)（无随机涨落时）', box.x + 12, box.y + 50, C.good, 'left', 12);
+    /* 当前温度 */
+    Lab.line(x2, ax.X(T), box.y + box.h, ax.X(T), box.y + box.h - 14, C.bad, 2.4);
+    Lab.dot(x2, ax.X(T), box.y + box.h - 14, 4, C.bad);
+    if (scan) {
+      for (k = 0; k < scan.T.length; k++) { Lab.dot(x2, ax.X(scan.T[k]), ax.Y(scan.m[k]), 3.6, C.accent); Lab.dot(x2, ax.X(scan.T[k]), ax.Y(scan.chi[k]), 3.2, C.warn); }
+      Lab.dot(x2, box.x + 16, box.y + 70, 4, C.accent); Lab.label(x2, '实测 |m|（48×48，δ = ' + Lab.fmt(scan.delta, 2) + '）', box.x + 26, box.y + 70, C.ink, 'left', 12);
+      Lab.dot(x2, box.x + 16, box.y + 88, 4, C.warn); Lab.label(x2, '磁化率（把最高点画成 1），最高点在 T ≈ ' + Lab.fmt(scan.peak, 1), box.x + 26, box.y + 88, C.ink, 'left', 12);
+    } else {
+      Lab.label(x2, '点"扫描温度"，这里会出现实测的点', box.x + box.w / 2 + 40, box.y + box.h / 2 + 12, C.ink2, 'center', 13);
+    }
+  }
+  function draw() {
+    var C = Lab.colors(), fg = Lab.parseColor(C.accent), bgc = Lab.parseColor(C.soft), d = bm.data, S = sim.S, n = sim.n, i, x, y, s = Math.floor(384 / n), size = s * n, X0 = Math.round((640 - size) / 2), Y0 = 8, o, txt;
+    for (i = 0; i < n * n; i++) {
+      d[4 * i] = S[i] > 0 ? fg[0] : bgc[0]; d[4 * i + 1] = S[i] > 0 ? fg[1] : bgc[1]; d[4 * i + 2] = S[i] > 0 ? fg[2] : bgc[2]; d[4 * i + 3] = 255;
+    }
+    bm.flush();
+    c1.clear(C.card);
+    x1.imageSmoothingEnabled = false;
+    bm.blit(x1, X0, Y0, size, size);
+    x1.strokeStyle = C.line; x1.lineWidth = 1; x1.strokeRect(X0 + 0.5, Y0 + 0.5, size, size);
+    if (walls) {
+      x1.strokeStyle = C.bad; x1.lineWidth = s >= 4 ? 1.4 : 1; x1.beginPath();
+      for (y = 0; y < n; y++) for (x = 0; x < n; x++) {
+        i = y * n + x;
+        if (x + 1 < n && S[i] !== S[i + 1]) { x1.moveTo(X0 + (x + 1) * s, Y0 + y * s); x1.lineTo(X0 + (x + 1) * s, Y0 + (y + 1) * s); }
+        if (y + 1 < n && S[i] !== S[i + n]) { x1.moveTo(X0 + x * s, Y0 + (y + 1) * s); x1.lineTo(X0 + (x + 1) * s, Y0 + (y + 1) * s); }
+      }
+      x1.stroke();
+    }
+    Lab.label(x1, n + ' × ' + n + ' 个自旋；蓝 = 朝上，底色 = 朝下' + (walls ? '；红线 = 磁畴边界' : ''), 320, 406, C.muted, 'center', 12.5);
+    drawChart();
+    o = sim.obs();
+    if (mAvg < 0) { mAvg = o[0]; eAvg = o[1]; }
+    txt = 'T = ' + Lab.fmt(T, 2) + (Math.abs(T - TC) < 0.03 ? '（接近临界温度）' : T < TC ? '（低于 T_c）' : '（高于 T_c）') + '\n磁化强度 |m| ≈ ' + Lab.fmt(mAvg, 3) + '（最近几十轮的平均）' +
+      (T < TC && delta === 0 ? '\n无限大系统的精确值 ' + Lab.fmt(onsager(T), 3) : '') + '\n每个自旋的能量 e ≈ ' + Lab.fmt(eAvg, 3) + '\n每轮平均团簇大小 ≈ ' + Lab.fmt(clAvg, 1) + ' 格（占全部的 ' + Lab.fmt(100 * clAvg / (n * n), 1) + '%）';
+    if (scan) txt += '\n\n扫描结果：磁化率最高点在 T ≈ ' + Lab.fmt(scan.peak, 1) + '（δ = ' + Lab.fmt(scan.delta, 2) + '）';
+    out.html(txt);
+  }
+
+  var loop = Lab.loop(function () {
+    var cl = sim.sweep(), o = sim.obs();
+    clAvg = 0.9 * clAvg + 0.1 * cl;
+    if (mAvg < 0) { mAvg = o[0]; eAvg = o[1]; clAvg = cl; } else { mAvg = 0.93 * mAvg + 0.07 * o[0]; eAvg = 0.93 * eAvg + 0.07 * o[1]; }
+    draw();
+  }, 15);
+
+  build();
+  loop.start();
+})();
+</script>

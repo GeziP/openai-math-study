@@ -1,0 +1,193 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上图是一张图：点是顶点，线是边。游戏规则：给每个顶点涂<b>蓝色</b>或<b>橙色</b>，两端颜色<b>不同</b>的边就算被"切断"（图上画成粗黑线）。目标是切断尽量多的边——这就是"最大割"问题。<b>点一下顶点</b>就能换它的颜色，试着手动涂出一个好方案。</li>
+<li>点"随机分成两组"：每个顶点各抛一枚硬币。你会发现，随便涂，平均也能切断一半的边——这是最笨的办法，保证的"近似比"是 0.5。</li>
+<li>点"局部改进"：每次找一个顶点，换色后能多切断边，就换；一直换到没有顶点可换为止。再点"暴力求最优"：把所有分法逐一检查（$n\le22$），看看真正的最优是多少。</li>
+<li>点"GW 算法"：先给每个顶点分配一个<b>单位向量</b>（让相邻的点尽量"背对背"），再随机切一刀（一个随机的超平面），向量落在两侧的点分到两组。反复切 300 次，看平均能切多少、最好能切多少。下面的曲线说明，为什么这个办法保证至少拿到"理想值"的 0.878 倍。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>① 随便涂色，只能切断一半；最优方案切得多得多。</b>随机分组时，每条边被切断的机会正好是一半，所以平均切断 $m/2$ 条（上图右侧写着这个数）。可最优方案要好很多：我在 $n=14$ 的随机图（每对点以 0.3 的概率连边）上量了 150 张，最优方案平均切断约 80% 的边，随机分组平均只有最优值的约 62%。</p>
+<p><b>② "局部改进"又快又不错，但会卡住。</b>从随机涂色出发，反复把"邻居多数在同侧"的点换到另一侧，直到没人想换。同样 150 张图，平均能拿到最优值的约 93%；但只有约四分之一（26%）的图恰好到达最优，最差的一张只有 76%。原因是：每个点都"不想换了"，整体却未必最好，像爬山爬到一个小山头就停了。多点几次"随机分成两组 → 局部改进"，每次停的位置都不一样。</p>
+<p><b>③ GW 算法的随机一刀，平均就很接近最优。</b>同样 150 张 $n=14$ 的图，一刀的平均值约是最优的 96%（最差的一张也有 93%）；点一次"GW 算法"随机切 300 刀，其中最好的那一刀在这 150 张图里<b>全部</b>碰到了最优。$n=20$ 时（也是 150 张）约 99% 的图碰到最优，偶尔差 1 条。</p>
+<p><b>④ 三个数"夹心"。</b>点完"GW 算法"，页面会给出"SDP 理想值"和"GW 期望"。任何一张图上，一定有 <b>GW 期望 ≤ 最优 ≤ SDP 理想值</b>；我用 250 张随机图验证过，没有一张违反。SDP 理想值比最优平均高约 3%（$n=14$），最多高约 9%。而"GW 期望 ÷ SDP 理想值"在这 250 张图里最低是 0.90，从没低于理论保证的 0.878。</p>
+<p><b>⑤ 三张特别的图。</b>选"五边形"：5 条边最多切断 4 条；SDP 理想值 $\tfrac52(1+\cos36^\circ)\approx4.5225$；GW 期望正好 4——其实每一刀都恰好切断 4 条。"最优 ÷ 理想值"$=4/4.5225\approx0.8845$，这是它们之间躲不掉的差距。选"彼得森图"：最优 12，SDP 理想值 12.5，GW 期望约 10.98（是最优的 91.5%）；它的 15 条边夹角全都是同一个值 $\arccos(-\tfrac23)\approx131.8^\circ$，下图的绿色短线紧挨着红点（曲线最低点 133.6°），所以"期望 ÷ 理想值"$\approx0.8787$，几乎贴着理论保证 0.8786 的下限。选"完全图"：$n$ 为偶数时，SDP 理想值 $=n^2/4$，恰好等于最优（$n=10$ 时都是 25）；GW 期望约 24.1。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>最大割有多难？</b>把顶点分成两组，两端分在不同组的边就叫"被割断"；最大割问题要求割断的边最多。它是最早被证明"NP 难"的问题之一（Karp，1972）：除非 $\mathrm P=\mathrm{NP}$，不存在能对所有图求出精确最大割的高效算法。所以人们转而要"近似算法"：一个算法的<b>近似比</b>为 $\alpha$，意思是它保证割断的边数 $\ge\alpha\times$ 最优值。</p>
+<p><b>两个"笨办法"的近似比都是 0.5。</b>随机分组：每条边被割断的概率是 $\tfrac12$，期望割断 $m/2$ 条，而最优值至多是 $m$。局部改进：停下来时，每个点至少有一半邻居在对面，把"每个点对面的邻居数"加起来再除以 2，得到的割断边数 $\ge m/2$。再往上提高，一度很难：直到 1994–95 年，Goemans 与 Williamson 才做到 0.878。</p>
+<p><b>GW 算法的三步。</b>① 把"每个点涂 $+1$ 或 $-1$"放宽成"每个点选一个单位向量 $v_i$"，目标是 $\sum_{(i,j)\in E}\frac{1-v_i\cdot v_j}{2}$。若所有向量都只能指向同一条直线的两个方向，就是原问题；允许任意方向，值只会更大，所以这个"理想值"一定 $\ge$ 最优值。这个放宽后的问题叫<b>半定规划</b>（SDP），能在多项式时间内（以任意精度）解出；页面用一个简单的迭代代替求解器。② 随机取一个过原点的超平面，把向量分到两侧——夹角为 $\theta$ 的两个向量被分开的概率恰好是 $\theta/\pi$（把它们放进同一个平面，一刀落进夹角里的概率就是 $\theta$ 占半圆的比例）。③ 一条边在"理想值"里的份额是 $\frac{1-\cos\theta}{2}$，真实被割断的概率是 $\frac\theta\pi$，二者之比 $\frac{2\theta}{\pi(1-\cos\theta)}$ 在 $\theta^*\approx133.6^\circ$（约 2.331 弧度）处最小，约 0.87856——这就是页面下图曲线的最低点。每条边的比值都不低于它，加起来：期望割断的边数 $\ge0.87856\times$ 理想值 $\ge0.87856\times$ 最优值。</p>
+<p><b>0.878 还能再提高吗？</b>据我所知：Håstad（2001）证明了，除非 $\mathrm P=\mathrm{NP}$，没有高效算法能把近似比做到 $16/17\approx0.941$ 以上；Feige 与 Schechtman（2002）构造了一族图，使"最优 ÷ SDP 理想值"逼近 0.878，所以只靠这个 SDP 无法再改进；Khot、Kindler、Mossel、O'Donnell（2004/2007）证明：如果 Khot 提出的<b>唯一博弈猜想</b>（UGC，2002）成立，那么 0.878 就是所有高效算法的极限。到我所知的资料为止，UGC 仍是公开猜想。问题 102 的稿件宣称证明了 UGC，并且直接证明了最大割、顶点覆盖等问题的近似难度，这些都需要独立审查；本页只演示 GW 算法本身，不涉及任何难度结论。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 320), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 220), x2 = c2.ctx;
+  var kind = 'rand', n = 14, G = null, side = [], sdpRes = null, info = '', lastRound = null, opt = null, TH = 2.3311;
+
+  /* ---------- 图 ---------- */
+  function mkGraph() {
+    var edges = [], pts = [], i, j, nn = n, cx = 190, cy = 160, R = 128;
+    if (kind === 'c5') { nn = 5; for (i = 0; i < 5; i++) edges.push([i, (i + 1) % 5]); }
+    else if (kind === 'petersen') {
+      nn = 10;
+      for (i = 0; i < 5; i++) { edges.push([i, (i + 1) % 5]); edges.push([i, i + 5]); edges.push([5 + i, 5 + (i + 2) % 5]); }
+    } else if (kind === 'complete') { for (i = 0; i < nn; i++) for (j = i + 1; j < nn; j++) edges.push([i, j]); }
+    else { for (i = 0; i < nn; i++) for (j = i + 1; j < nn; j++) if (Math.random() < 0.3) edges.push([i, j]); }
+    for (i = 0; i < nn; i++) {
+      var rr = (kind === 'petersen' && i >= 5) ? 0.5 * R : R, ang = kind === 'petersen' ? 2 * Math.PI * (i % 5) / 5 - Math.PI / 2 : 2 * Math.PI * i / nn - Math.PI / 2;
+      pts.push([cx + rr * Math.cos(ang), cy + rr * Math.sin(ang)]);
+    }
+    var adj = []; for (i = 0; i < nn; i++) adj.push([]);
+    edges.forEach(function (e) { adj[e[0]].push(e[1]); adj[e[1]].push(e[0]); });
+    return { n: nn, edges: edges, adj: adj, pts: pts };
+  }
+  function newGraph() { do { G = mkGraph(); } while (G.edges.length === 0); side = []; var i; for (i = 0; i < G.n; i++) side.push(0); sdpRes = null; opt = null; lastRound = null; info = ''; randomSides(); }
+  function randomSides() { var i; for (i = 0; i < G.n; i++) side[i] = Math.random() < 0.5 ? 1 : 0; lastRound = null; }
+  function cutOf(s) { var c = 0; G.edges.forEach(function (e) { if (s[e[0]] !== s[e[1]]) c++; }); return c; }
+
+  /* ---------- 局部改进 / 暴力最优 ---------- */
+  function localSearch() {
+    var improved = true, v, same, diff, w, rounds = 0;
+    while (improved && rounds < 1000) {
+      improved = false; rounds++;
+      for (v = 0; v < G.n; v++) {
+        same = 0; diff = 0;
+        G.adj[v].forEach(function (u) { if (side[u] === side[v]) same++; else diff++; });
+        if (same > diff) { side[v] ^= 1; improved = true; }
+      }
+    }
+  }
+  function exactMax() {
+    var nn = G.n, s = new Uint8Array(nn), cut = 0, best = 0, bestS = s.slice(), idx, v, k, same, diff, total = Math.pow(2, nn - 1);
+    for (idx = 1; idx < total; idx++) {
+      v = 1; k = idx; while ((k & 1) === 0) { k >>= 1; v++; }
+      same = 0; diff = 0; G.adj[v].forEach(function (u) { if (s[u] === s[v]) same++; else diff++; });
+      s[v] ^= 1; cut += same - diff;
+      if (cut > best) { best = cut; bestS = s.slice(); }
+    }
+    return { value: best, side: bestS };
+  }
+
+  /* ---------- GW：向量 + 随机超平面 ---------- */
+  function randn() { var u = 1 - Math.random(), v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  function dot(a, b) { var s = 0, i; for (i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
+  function solveSDP() {
+    var nn = G.n, k = Math.min(nn, 10), best = null, trial, it, i, j, V, g, nrm, moved, nv, val, d;
+    for (trial = 0; trial < 3; trial++) {
+      V = [];
+      for (i = 0; i < nn; i++) { g = []; for (j = 0; j < k; j++) g.push(randn()); nrm = Math.sqrt(dot(g, g)); V.push(g.map(function (x) { return x / nrm; })); }
+      for (it = 0; it < 600; it++) {
+        moved = 0;
+        for (i = 0; i < nn; i++) {
+          g = new Array(k).fill(0);
+          G.adj[i].forEach(function (u) { for (j = 0; j < k; j++) g[j] += V[u][j]; });
+          nrm = Math.sqrt(dot(g, g));
+          if (nrm > 1e-12) { nv = g.map(function (x) { return -x / nrm; }); d = 0; for (j = 0; j < k; j++) d += (nv[j] - V[i][j]) * (nv[j] - V[i][j]); moved += d; V[i] = nv; }
+        }
+        if (moved < 1e-20) break;
+      }
+      val = 0; G.edges.forEach(function (e) { val += (1 - dot(V[e[0]], V[e[1]])) / 2; });
+      if (!best || val > best.val) best = { V: V, val: val };
+    }
+    best.angles = G.edges.map(function (e) { return Math.acos(Math.max(-1, Math.min(1, dot(best.V[e[0]], best.V[e[1]])))); });
+    best.expect = 0; best.angles.forEach(function (a) { best.expect += a / Math.PI; });
+    return best;
+  }
+  function hyperplane(V) {
+    var k = V[0].length, g = [], j, s = [], i;
+    for (j = 0; j < k; j++) g.push(randn());
+    for (i = 0; i < V.length; i++) s.push(dot(V[i], g) >= 0 ? 1 : 0);
+    return s;
+  }
+  function runGW() {
+    var T = 300, t, s, c, sum = 0, best = -1, bestS = null;
+    if (!sdpRes) sdpRes = solveSDP();
+    for (t = 0; t < T; t++) { s = hyperplane(sdpRes.V); c = cutOf(s); sum += c; if (c > best) { best = c; bestS = s; } }
+    side = bestS.slice();
+    lastRound = { mean: sum / T, best: best, T: T };
+  }
+
+  /* ---------- 控件 ---------- */
+  var sK = Lab.select(panel, { label: '哪张图', value: 'rand', options: [['rand', '随机图（每对点以 0.3 的概率连边）'], ['complete', '完全图（每对点都连）'], ['c5', '五边形（5 个点围成一圈）'], ['petersen', '彼得森图（10 个点，15 条边）']], onChange: function (v) { kind = v; newGraph(); draw(); } });
+  var sN = Lab.slider(panel, { label: '点数 n（随机图、完全图）', min: 6, max: 22, step: 1, value: n, fmt: function (v) { return String(v); }, onInput: function (v) { n = v; if (kind === 'rand' || kind === 'complete') { newGraph(); draw(); } } });
+  var row = Lab.row(panel);
+  Lab.button(row, '随机分成两组', function () { randomSides(); info = ''; draw(); });
+  Lab.button(row, '局部改进', function () { localSearch(); lastRound = null; info = ''; draw(); });
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '暴力求最优', function () { if (G.n > 22) return; opt = exactMax(); side = Array.prototype.slice.call(opt.side); lastRound = null; draw(); });
+  Lab.button(row2, 'GW 算法', function () { runGW(); draw(); }, 'pri');
+  Lab.button(row2, '换一个图', function () { newGraph(); draw(); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：GW 的"向量"是用一个简单的迭代（让每个点的向量朝着它邻居向量之和的反方向转）求出来的，和教科书里用半定规划求解器得到的是同一个目标。每点一次"GW 算法"，随机切 300 次。');
+  Lab.onTheme(function () { draw(); });
+
+  /* ---------- 画图 ---------- */
+  function drawGraph() {
+    var C = Lab.colors(), i, c = cutOf(side), m = G.edges.length;
+    c1.clear(C.card);
+    G.edges.forEach(function (e) {
+      var a = G.pts[e[0]], b = G.pts[e[1]], cutE = side[e[0]] !== side[e[1]];
+      x1.globalAlpha = cutE ? 0.95 : 0.22;
+      Lab.line(x1, a[0], a[1], b[0], b[1], cutE ? C.ink : C.muted, cutE ? 2.4 : 1.1);
+    });
+    x1.globalAlpha = 1;
+    for (i = 0; i < G.n; i++) Lab.dot(x1, G.pts[i][0], G.pts[i][1], 9, side[i] ? C.warn : C.accent, C.card);
+    Lab.label(x1, '边数 m = ' + m, 356, 36, C.ink2, 'left', 13.5);
+    Lab.label(x1, '现在切断：' + c + ' 条（' + (m ? Lab.fmt(100 * c / m, 0) : 0) + '%）', 356, 64, C.ink, 'left', 15);
+    Lab.label(x1, '随机分组平均能切断 ' + Lab.fmt(m / 2, 1) + ' 条', 356, 92, C.muted, 'left', 12.5);
+    if (opt) Lab.label(x1, '暴力求出的最优：' + opt.value + ' 条', 356, 118, C.good, 'left', 13.5);
+    else if (G.n <= 22) Lab.label(x1, '（点"暴力求最优"得到真正的最优值）', 356, 118, C.muted, 'left', 12);
+    else Lab.label(x1, '（点数太多，不做暴力求解）', 356, 118, C.muted, 'left', 12);
+    if (sdpRes) {
+      Lab.label(x1, 'SDP 理想值：' + Lab.fmt(sdpRes.val, 3) + '（上界）', 356, 156, C.ink, 'left', 12.5);
+      Lab.label(x1, 'GW 期望切断：' + Lab.fmt(sdpRes.expect, 3), 356, 178, C.ink, 'left', 12.5);
+      Lab.label(x1, '期望 ÷ 理想值 = ' + Lab.fmt(sdpRes.expect / sdpRes.val, 3) + '（保证 ≥ 0.878）', 356, 200, C.accent, 'left', 12);
+    }
+    if (lastRound) {
+      Lab.label(x1, '随机切 ' + lastRound.T + ' 次：平均 ' + Lab.fmt(lastRound.mean, 2) + '，最好 ' + lastRound.best, 356, 236, C.ink, 'left', 12.5);
+      Lab.label(x1, '（左图显示的是最好的一次）', 356, 256, C.muted, 'left', 12);
+    }
+  }
+  function ratio(t) { return (t / Math.PI) / ((1 - Math.cos(t)) / 2); }
+  function drawChart() {
+    var C = Lab.colors(), box = { x: 58, y: 14, w: 566, h: 156 }, ax, t, first = true, tmin = 0.8, k;
+    c2.clear(C.card);
+    ax = Lab.axes(x2, box, [tmin, Math.PI], [0.84, 1.75], { xticks: [Math.PI / 3, Math.PI / 2, 2 * Math.PI / 3, 5 * Math.PI / 6, Math.PI], yticks: [0.9, 1.0, 1.25, 1.5], fx: function (v) { return Lab.fmt(v * 180 / Math.PI, 0) + '°'; }, fy: function (v) { return Lab.fmt(v, 2); }, xlabel: '一条边两端的向量之间的夹角', ylabel: '被切断的概率 ÷ SDP 给它的份额' });
+    x2.strokeStyle = C.accent; x2.lineWidth = 2; x2.beginPath();
+    for (t = tmin; t <= Math.PI + 1e-9; t += 0.01) { if (first) { x2.moveTo(ax.X(t), ax.Y(ratio(t))); first = false; } else x2.lineTo(ax.X(t), ax.Y(ratio(Math.min(t, Math.PI)))); }
+    x2.stroke();
+    x2.setLineDash([5, 4]); Lab.line(x2, ax.X(tmin), ax.Y(0.8786), ax.X(Math.PI), ax.Y(0.8786), C.bad, 1.4); x2.setLineDash([]);
+    Lab.dot(x2, ax.X(TH), ax.Y(ratio(TH)), 5, C.bad, C.card);
+    Lab.label(x2, '红点（最低点）：夹角 ≈ ' + Lab.fmt(TH * 180 / Math.PI, 1) + '°，比值 ≈ ' + Lab.fmt(ratio(TH), 4), box.x + box.w - 10, box.y + 36, C.bad, 'right', 12);
+    if (sdpRes) {
+      sdpRes.angles.forEach(function (a) { if (a >= tmin) Lab.line(x2, ax.X(a), box.y + box.h - 12, ax.X(a), box.y + box.h, C.good, 2); });
+      Lab.label(x2, '绿色短线：当前这张图里每条边的夹角', box.x + box.w - 10, box.y + 14, C.good, 'right', 12);
+    } else Lab.label(x2, '点"GW 算法"，这里会标出当前这张图各条边的夹角', box.x + box.w - 10, box.y + 14, C.muted, 'right', 12);
+  }
+  function describe() {
+    var m = G.edges.length, s = '';
+    s += '边数 m = ' + m + '；现在切断 ' + cutOf(side) + ' 条\n';
+    if (opt) s += '暴力最优 = ' + opt.value + '\n';
+    if (sdpRes) s += 'SDP 理想值 = ' + Lab.fmt(sdpRes.val, 3) + '，GW 期望 = ' + Lab.fmt(sdpRes.expect, 3) + '\n';
+    if (opt && sdpRes) s += '最优 ÷ 理想值 = ' + Lab.fmt(opt.value / sdpRes.val, 3) + '；GW 期望 ÷ 最优 = ' + Lab.fmt(sdpRes.expect / opt.value, 3) + '\n';
+    if (lastRound) s += '随机切 ' + lastRound.T + ' 次：平均 ' + Lab.fmt(lastRound.mean, 2) + '，最好 ' + lastRound.best + '\n';
+    out.html(s.replace(/\n$/, ''));
+  }
+  function draw() { drawGraph(); drawChart(); describe(); }
+
+  c1.cv.addEventListener('click', function (e) {
+    var q = c1.pos(e), i, d, bi = -1, bd = 400;
+    for (i = 0; i < G.n; i++) { d = (q.x - G.pts[i][0]) * (q.x - G.pts[i][0]) + (q.y - G.pts[i][1]) * (q.y - G.pts[i][1]); if (d < bd) { bd = d; bi = i; } }
+    if (bi >= 0) { side[bi] ^= 1; lastRound = null; draw(); }
+  });
+
+  newGraph(); draw();
+})();
+</script>

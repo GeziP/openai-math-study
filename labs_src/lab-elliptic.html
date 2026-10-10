@@ -1,0 +1,224 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li><b>上半部分：给曲线上的点"做加法"。</b>曲线是 $y^2=x^3+Ax+B$。拖动两个点 $P$（蓝）和 $Q$（橙），它们会贴着曲线走。过 $P,Q$ 画直线，它会再与曲线交于第三点 $R$；把 $R$ 关于横轴翻转得到的点，就定义为 $P+Q$（绿）。</li>
+<li>把 $P$ 拖到和 $Q$ 重合，直线就变成切线，得到 $2P$。把两个点拖到上下对称的位置，直线是竖直的，$P+Q$ 是"无穷远点"（加法的零）。点"Q ← P+Q"可以接着往下加，一次次造出新点。</li>
+<li><b>下半部分：BSD 猜想是怎么被"看"出来的。</b>对每个素数 $p$，数一数曲线模 $p$ 有多少个点 $N_p$（含无穷远点），把 $N_p/p$ 从小到大连乘，取对数。图的横轴是 $\ln\ln p$，纵轴是这个对数。猜想说：曲线的"秩"$r$ 越大，这条线爬得越高，斜率大约就是 $r$。</li>
+<li>换预设曲线：看 $y^2=x^3-x$（秩 0）、$37a$（秩 1）、$389a$（秩 2）、$5077a$（秩 3）的线，斜率是不是依次增大？也可以选"自己填"，输入 $A,B$ 试任意曲线。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>加法的结果永远落在曲线上，而且和"先加谁后加谁"无关——这正是"点集构成一个群"。下半图里，秩越大，线向上倾斜得越明显：在 $p\le10^4$ 的范围里，四条预设曲线（秩 0、1、2、3）拟合出的斜率大致落在 0、1、2、3 附近。但曲线总带着一些抖动，所以斜率只能当作粗略的参考，而不能当作"秩"的证明；换一条随便填的曲线，拟合出来的数就可能偏得很远。BSD 的两位发起者 Birch 与 Swinnerton-Dyer 在 1960 年代正是用早期的计算机做了类似的实验，才大胆提出了猜想。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>当判别式 $4A^3+27B^2\ne0$ 时，$y^2=x^3+Ax+B$ 是<b>椭圆曲线</b>。曲线上的有理点（坐标是分数的点）在弦切法下仍是有理点，所以构成一个群，$E(\mathbb Q)\cong\mathbb Z^r\oplus(\text{有限群})$（Mordell–Weil 定理）。$r$ 就是秩：有多少个"互相独立的无限族"。</p>
+<p>数 $N_p$ 的好处是它很容易算。记 $a_p=p+1-N_p$，Hasse 证明 $|a_p|\le2\sqrt p$。Birch–Swinnerton-Dyer 猜想把"有理点的族数 $r$"和"所有 $N_p$ 拼成的 L 函数 $L(E,s)$ 在 $s=1$ 处为 0 的阶数"联系起来：它们应当相等。模性定理（Wiles 等）进一步说，这些 $a_p$ 恰好是某个模形式的傅里叶系数。至于 Goldfeld 猜想，则问：把曲线"扭一下"得到的整族曲线，秩的平均值是不是恰好 $1/2$。这些问题在本站对应的稿件宣称给出了新的结果，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var cA = Lab.canvas(stage, 640, 400), xa = cA.ctx;
+  var cB = Lab.canvas(stage, 640, 270), xb = cB.ctx;
+  var A = -1, B = 0, P = { x: 0, s: 1 }, Q = { x: 0, s: -1 }, view = null, roots = [], ell = 1, sing = false, bsd = null, XSEL = 4;
+
+  var PRESETS = [
+    ['x3x', 'y² = x³ − x（秩 0）', -1, 0],
+    ['n5', 'y² = x³ − 25x（秩 1，同余数 5）', -25, 0],
+    ['37a', '37a：y²+y = x³−x（秩 1）', -16, 16],
+    ['389a', '389a：y²+y = x³+x²−2x（秩 2）', -3024, 46224],
+    ['5077a', '5077a：y²+y = x³−7x+6（秩 3）', -112, 400],
+    ['guide', 'y² = x³ − 2x + 1（站内问题 002 里的例子）', -2, 1],
+    ['custom', '自己填 A、B', null, null]
+  ];
+
+  /* ---------- 控件 ---------- */
+  var sel = Lab.select(panel, { label: '选一条曲线', value: 'x3x', options: PRESETS.map(function (p) { return [p[0], p[1]]; }), onChange: function (v) { choose(v); } });
+  var nA = Lab.number(panel, { label: 'A（整数）', min: -9999, max: 9999, value: -1, onInput: function () { custom(); } });
+  var nB = Lab.number(panel, { label: 'B（整数）', min: -99999, max: 99999, value: 0, onInput: function () { custom(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, 'Q ← P+Q', function () { var r = add(P, Q); if (r.kind === 'pt') { Q = { x: r.S.x, s: r.S.y >= 0 ? 1 : -1 }; drawA(); } }, 'pri');
+  Lab.button(row, 'Q ← P（算 2P）', function () { Q = { x: P.x, s: P.s }; drawA(); });
+  Lab.button(row, '重置两点', function () { place(); drawA(); });
+  var out1 = Lab.out(panel);
+  Lab.h3(panel, '数点实验（下图）');
+  var sX = Lab.slider(panel, { label: '素数范围 p ≤ X', min: 2.5, max: 4.3, step: 0.05, value: 4, fmt: function (v) { return Lab.big(Math.pow(10, v)); }, onInput: function (v) { XSEL = v; drawB(); } });
+  var out2 = Lab.out(panel);
+  Lab.onTheme(function () { drawA(); drawB(); });
+
+  function f(x) { return x * x * x + A * x + B; }
+  function yOf(pt) { return pt.s * Math.sqrt(Math.max(0, f(pt.x))); }
+  function custom() { sel.set('custom'); setCurve(Math.round(nA.get()), Math.round(nB.get())); }
+  function choose(v) {
+    var p = PRESETS.filter(function (q) { return q[0] === v; })[0];
+    if (v === 'custom') { setCurve(Math.round(nA.get()), Math.round(nB.get())); return; }
+    nA.set(p[2], true); nB.set(p[3], true); setCurve(p[2], p[3]);
+  }
+
+  /* ---------- 曲线的几何设置 ---------- */
+  function setCurve(a, b) {
+    A = a; B = b;
+    sing = (4 * A * A * A + 27 * B * B) === 0;
+    if (!sing) {
+      ell = Math.max(1, Math.sqrt(Math.abs(A)), Math.cbrt(Math.abs(B)));
+      var L = 4 * ell + 2, n = 6000, px = -L, pv = f(px), i; roots = [];
+      for (i = 1; i <= n; i++) {
+        var x = -L + 2 * L * i / n, v = f(x);
+        if (v === 0) roots.push(x);
+        else if (pv * v < 0) { var lo = px, hi = x, k; for (k = 0; k < 60; k++) { var m = (lo + hi) / 2; if (f(lo) * f(m) <= 0) hi = m; else lo = m; } roots.push((lo + hi) / 2); }
+        px = x; pv = v;
+      }
+      var xmin = roots[0] - 0.4 * ell, xmax = roots[roots.length - 1] + 1.3 * ell;
+      view = { x0: xmin, x1: xmax, s: 640 / (xmax - xmin) };
+      place();
+      computeBSD();
+    }
+    drawA(); drawB();
+  }
+  function place() {
+    var rmax = roots[roots.length - 1];
+    if (roots.length === 3) { P = { x: (roots[0] + roots[1]) / 2, s: 1 }; Q = { x: rmax + 0.7 * ell, s: -1 }; }
+    else { P = { x: rmax + 0.45 * ell, s: 1 }; Q = { x: rmax + 1.0 * ell, s: -1 }; }
+  }
+  function X(x) { return (x - view.x0) * view.s; }
+  function Y(y) { return 200 - y * view.s; }
+  function nearest(px, py) {
+    var best = null, bd = 1e18, i, N = 1800;
+    for (i = 0; i <= N; i++) {
+      var x = view.x0 + (view.x1 - view.x0) * i / N, v = f(x); if (v < 0) continue;
+      var y = Math.sqrt(v), s;
+      for (s = -1; s <= 1; s += 2) { var dx = X(x) - px, dy = Y(s * y) - py, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = { x: x, s: s }; } }
+    }
+    return best;
+  }
+  function add(P1, Q1) {
+    var x1 = P1.x, y1 = yOf(P1), x2 = Q1.x, y2 = yOf(Q1), lam;
+    var sameX = Math.abs(x1 - x2) < 1e-9;
+    if (sameX && (P1.s !== Q1.s || Math.abs(y1) < 1e-9)) return { kind: 'O', vertical: x1 };   // P = −Q（竖直线）或 2 倍点的切线竖直
+    if (sameX) lam = (3 * x1 * x1 + A) / (2 * y1); else lam = (y2 - y1) / (x2 - x1);
+    var x3 = lam * lam - x1 - x2, yR = lam * (x3 - x1) + y1;
+    return { kind: 'pt', lam: lam, x1: x1, y1: y1, R: { x: x3, y: yR }, S: { x: x3, y: -yR } };
+  }
+
+  /* ---------- 上图：群的加法 ---------- */
+  function drawA() {
+    var C = Lab.colors();
+    cA.clear(C.card);
+    if (sing) { Lab.label(xa, '4A³+27B² = 0：曲线有"尖点"或"自交点"，不是椭圆曲线。', 320, 200, C.bad, 'center', 15); out1.text('请换一组 A、B。'); return; }
+    var i, N = 1500;
+    xa.save();
+    xa.strokeStyle = C.line; xa.lineWidth = 1; xa.beginPath();
+    xa.moveTo(0, Y(0) + 0.5); xa.lineTo(640, Y(0) + 0.5);
+    if (view.x0 < 0 && view.x1 > 0) { xa.moveTo(X(0) + 0.5, 0); xa.lineTo(X(0) + 0.5, 400); }
+    xa.stroke();
+    // 曲线：把 f ≥ 0 的区间切成若干段，每段画上支和下支
+    var runs = [], cur = null;
+    for (i = 0; i <= N; i++) {
+      var x = view.x0 + (view.x1 - view.x0) * i / N, v = f(x);
+      if (v >= 0) { if (!cur) cur = { a: x, b: x }; cur.b = x; }
+      else if (cur) { runs.push(cur); cur = null; }
+    }
+    if (cur) runs.push(cur);
+    xa.strokeStyle = C.ink; xa.lineWidth = 2.2; xa.lineJoin = 'round';
+    runs.forEach(function (r) {
+      var a = r.a, b = r.b, st = (view.x1 - view.x0) / N, k;
+      // 向两端扩展到根（二分）
+      if (a > view.x0 + 1e-9) { var lo = a - st, hi = a; for (k = 0; k < 50; k++) { var m = (lo + hi) / 2; if (f(m) >= 0) hi = m; else lo = m; } a = hi; }
+      if (b < view.x1 - 1e-9) { var lo2 = b, hi2 = b + st; for (k = 0; k < 50; k++) { var m2 = (lo2 + hi2) / 2; if (f(m2) >= 0) lo2 = m2; else hi2 = m2; } b = lo2; }
+      var M = 400, up = [], dn = [];
+      for (k = 0; k <= M; k++) {
+        var xx = a + (b - a) * (1 - Math.cos(Math.PI * k / M)) / 2, yy = Math.sqrt(Math.max(0, f(xx)));    // 两端加密
+        up.push([X(xx), Y(yy)]);
+      }
+      for (k = 0; k <= M; k++) {
+        var xx2 = b - (b - a) * (1 - Math.cos(Math.PI * k / M)) / 2, yy2 = Math.sqrt(Math.max(0, f(xx2)));
+        dn.push([X(xx2), Y(-yy2)]);
+      }
+      var open = r.b >= view.x1 - 1e-9;      // 伸到画面右边缘的那一支不闭合，免得在边缘多出一条竖线
+      Lab.path(xa, open ? dn.concat(up) : up.concat(dn), !open); xa.stroke();
+    });
+    // 直线与点
+    var r = add(P, Q), y1 = yOf(P), y2 = yOf(Q);
+    xa.lineWidth = 1.8; xa.strokeStyle = C.accent; xa.setLineDash([7, 5]);
+    if (r.kind === 'O') Lab.line(xa, X(r.vertical), 0, X(r.vertical), 400);
+    else Lab.line(xa, 0, Y(r.y1 + r.lam * (view.x0 - r.x1)), 640, Y(r.y1 + r.lam * (view.x1 - r.x1)));
+    xa.setLineDash([]);
+    if (r.kind === 'pt') {
+      xa.setLineDash([3, 4]); Lab.line(xa, X(r.R.x), Y(r.R.y), X(r.S.x), Y(r.S.y), C.good, 1.6); xa.setLineDash([]);
+      xa.lineWidth = 2; xa.strokeStyle = C.warn; xa.fillStyle = C.card;
+      xa.beginPath(); xa.arc(X(r.R.x), Y(r.R.y), 7, 0, Lab.TAU); xa.fill(); xa.stroke();
+      Lab.label(xa, 'R', X(r.R.x) + 12, Y(r.R.y) - 10, C.warn, 'left', 13);
+      Lab.dot(xa, X(r.S.x), Y(r.S.y), 7.5, C.good, C.card);
+      Lab.label(xa, 'P+Q', X(r.S.x) + 12, Y(r.S.y) + 12, C.good, 'left', 13);
+    }
+    Lab.dot(xa, X(P.x), Y(y1), 8, Lab.hsl(215, 85, 58), C.card); Lab.label(xa, 'P', X(P.x) - 14, Y(y1) - 12, Lab.hsl(215, 85, 58), 'center', 14);
+    Lab.dot(xa, X(Q.x), Y(y2), 8, Lab.hsl(28, 92, 55), C.card); Lab.label(xa, 'Q', X(Q.x) + 14, Y(y2) - 12, Lab.hsl(28, 92, 55), 'center', 14);
+    xa.restore();
+    Lab.label(xa, 'y² = x³ ' + (A < 0 ? '− ' + (-A) : '+ ' + A) + 'x ' + (B < 0 ? '− ' + (-B) : '+ ' + B) + '    （拖动 P、Q）', 12, 16, C.ink2, 'left', 13.5);
+    function c(v) { return Lab.fmt(v, 4); }
+    out1.html(
+      'P = (' + c(P.x) + ', ' + c(y1) + ')\nQ = (' + c(Q.x) + ', ' + c(y2) + ')\n' +
+      (r.kind === 'O' ? '<span class="hi">直线是竖直的 → P + Q = 无穷远点 O（加法的"零"）</span>'
+        : '第三个交点 R = (' + c(r.R.x) + ', ' + c(r.R.y) + ')\n<b>P + Q = (' + c(r.S.x) + ', ' + c(r.S.y) + ')</b>\n检验：y² − (x³+Ax+B) = ' + (r.S.y * r.S.y - f(r.S.x)).toExponential(1))
+    );
+  }
+  Lab.drag(cA, {
+    down: function (p) {
+      var dP = Math.hypot(X(P.x) - p.x, Y(yOf(P)) - p.y), dQ = Math.hypot(X(Q.x) - p.x, Y(yOf(Q)) - p.y);
+      if (sing || Math.min(dP, dQ) > 28) return null;
+      return dP <= dQ ? 'P' : 'Q';
+    },
+    move: function (p, st) { var n = nearest(p.x, p.y); if (!n) return; if (st === 'P') P = n; else Q = n; drawA(); }
+  });
+
+  /* ---------- 下图：数点与对数乘积 ---------- */
+  function computeBSD() {
+    var XM = 20000, sv = Lab.sieve(XM), D = Math.abs(4 * A * A * A + 27 * B * B), ps = [], ln = [], np = [], ap = [], sum = 0, p, x;
+    for (p = 5; p <= XM; p += 2) {
+      if (!sv[p] || D % p === 0) continue;
+      var sq = new Uint8Array(p), a = ((A % p) + p) % p, b = ((B % p) + p) % p, cnt = 1;
+      for (x = 1; x < p; x++) sq[x * x % p] = 1;
+      for (x = 0; x < p; x++) { var v = ((x * x % p) * x + a * x + b) % p; if (v === 0) cnt += 1; else if (sq[v]) cnt += 2; }
+      sum += Math.log(cnt / p);
+      ps.push(p); ln.push(sum); np.push(cnt); ap.push(p + 1 - cnt);
+    }
+    bsd = { p: ps, s: ln, n: np, a: ap };
+  }
+  function drawB() {
+    var C = Lab.colors();
+    cB.clear(C.card);
+    if (sing || !bsd) { Lab.label(xb, '（需要一条椭圆曲线）', 320, 135, C.muted, 'center', 14); out2.text(''); return; }
+    var Xmax = Math.pow(10, XSEL), n = 0, i;
+    while (n < bsd.p.length && bsd.p[n] <= Xmax) n++;
+    if (n < 5) return;
+    var xs = [], ys = [], lo = 1e9, hi = -1e9;
+    for (i = 0; i < n; i++) { xs.push(Math.log(Math.log(bsd.p[i]))); ys.push(bsd.s[i]); }
+    var i0 = 0; while (i0 < n && bsd.p[i0] < 50) i0++;
+    for (i = i0; i < n; i++) { lo = Math.min(lo, ys[i]); hi = Math.max(hi, ys[i]); }
+    var pad = Math.max(0.15, (hi - lo) * 0.15); lo -= pad; hi += pad;
+    var x0 = Math.log(Math.log(50)), x1 = xs[n - 1];
+    var box = { x: 64, y: 28, w: 556, h: 190 };
+    var ax = Lab.axes(xb, box, [x0, x1], [lo, hi], { nx: 5, ny: 4, fx: function (v) { return Lab.fmt(v, 2); }, fy: function (v) { return Lab.fmt(v, 2); }, xlabel: 'ln ln p（p 越大越靠右）', ylabel: 'ln ∏ N_p/p' });
+    Lab.label(xb, '把 N_p/p 连乘取对数（p ≤ ' + Lab.big(Xmax) + '）', box.x, 12, C.ink2, 'left', 13);
+    // 最小二乘直线（p ≥ 50）
+    var m = n - i0, sx = 0, sy = 0, sxx = 0, sxy = 0;
+    for (i = i0; i < n; i++) { sx += xs[i]; sy += ys[i]; sxx += xs[i] * xs[i]; sxy += xs[i] * ys[i]; }
+    var slope = (m * sxy - sx * sy) / (m * sxx - sx * sx), icpt = (sy - slope * sx) / m;
+    xb.save(); xb.beginPath(); xb.rect(box.x, box.y, box.w, box.h); xb.clip();
+    xb.strokeStyle = Lab.hsl(250, 80, 62); xb.lineWidth = 1.8; xb.beginPath();
+    for (i = i0; i < n; i++) { var px = ax.X(xs[i]), py = ax.Y(ys[i]); if (i === i0) xb.moveTo(px, py); else xb.lineTo(px, py); }
+    xb.stroke();
+    xb.setLineDash([6, 4]); Lab.line(xb, ax.X(x0), ax.Y(icpt + slope * x0), ax.X(x1), ax.Y(icpt + slope * x1), C.warn, 1.8); xb.setLineDash([]);
+    xb.restore();
+    out2.html(
+      '好约化的素数共 <b>' + n + '</b> 个（已略去整除判别式的素数）\n' +
+      '拟合直线的斜率 ≈ <b>' + Lab.fmt(slope, 2) + '</b>（粗略参考，抖动很大）\n' +
+      '头几个素数的 N_p：' + bsd.p.slice(0, 5).map(function (p, k) { return 'p=' + p + ': ' + bsd.n[k] + '(a=' + bsd.a[k] + ')'; }).join('；')
+    );
+  }
+  choose('x3x');
+})();
+</script>

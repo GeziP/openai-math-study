@@ -1,0 +1,295 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上图是一张 $n\times n$ 的方格表，每格填 $+1$ 或 $-1$，并且<b>关于对角线对称</b>（第 $i$ 行第 $j$ 列和第 $j$ 行第 $i$ 列永远相同），所以只有对角线及其上方的格子是"自由"的。<b>点一下格子</b>就能翻转它（对称的那一格会一起翻）。右边实时显示这张表的<b>行列式</b>。行列式等于 0，就叫"奇异"——对应的方程组不是"恰好有唯一解"。</li>
+<li>先点"全填 +1"：所有行都一样，当然奇异。再点"随机填一个"，多点几次，看奇异的占多大比例。右边会列出哪两行<b>完全相同或完全相反</b>——这是最容易想到的奇异原因。</li>
+<li>点"找一个奇异、但没有两行相同或相反的矩阵"：页面随机碰运气，看奇异矩阵里有没有别的"隐蔽"原因；找到之后，右边会列出一个线性关系——几行按整数系数加起来恰好得到全 0 的一行。试试 $n=3,4,5,6,7$，看看哪个 $n$ 开始才有"隐蔽"的奇异。</li>
+<li>点"计算"：页面把 $n=2,\dots,7$ 的所有 $2^{n(n+1)/2}$ 张表<b>逐一检查</b>（用了一个对称性，把工作量压小了很多），再对 $n=4,\dots,16$ 随机抽样，画出"奇异的概率"。拖动"硬币偏向 $p$"，看偏置的硬币会让奇异概率下降得更慢还是更快。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>精确穷举（不是抽样）。</b>$n=2,3,4$ 时，奇异的恰好占一半（4/8、32/64、512/1024）；$n=5$ 是 15872/32768≈0.484，$n=6$ 是 907008/2097152≈0.432，$n=7$ 是 104535552/268435456≈0.389。$n=2$ 为什么恰好一半？矩阵 $\begin{pmatrix}a&b\\b&c\end{pmatrix}$ 的行列式是 $ac-b^2=ac-1$，奇异当且仅当 $a=c$。</p>
+<p><b>抽样。</b>每个 $n$ 抽 4 万～6 万张表，$n=8$ 到 $16$ 依次约是 0.33、0.27、0.22、0.16、0.12、0.083、0.058、0.037、0.022（误差大约 ±0.002）。多一行，概率就乘上一个因子——这个因子从 0.85 左右一路降到 0.6 左右，朝着 0.5 的方向走，但在 $n\le16$ 的范围里还没有到。</p>
+<p><b>最显眼的原因，不是全部原因。</b>虚线是"某两行完全相同或完全相反"的概率逐对相加的结果。$n=3\sim6$ 时虚线在数据上方（同时出现好几对时被重复计算了）；从 $n=7$ 起，数据跑到了虚线上方，而且越拉越开：$n=16$ 时抽样值 0.022 是虚线 0.0037 的约 6 倍。点"找一个隐蔽的"：$n=2,3,4$ 时页面把全部矩阵查了一遍——奇异的 4、32、512 张<b>每一张</b>都有两行相同或相反，没有例外；从 $n=5$ 起就有了：32768 张表里 15872 张奇异，其中 1920 张没有任何两行相同或相反（占奇异的 12%）；$n=6$ 是 907008 张里的 184320 张（约 20%）；抽样估计，$n=8,9,10$ 时这类"隐蔽"的占奇异矩阵的约 44%、54%、62%。页面给出的线性关系常常是四行加起来为零，比如"行 1 − 行 2 + 行 3 − 行 5 = 0"。</p>
+<p><b>偏置的硬币。</b>把 $p$ 拖到 0.7、0.8、0.9 再点"计算"：硬币越偏，奇异越常见。$n=16$ 时抽样值依次约是 0.022（$p=0.5$）、0.061（0.7）、0.33（0.8）、0.94（0.9）——$p=0.9$ 时几乎所有格子都是 $+1$，奇异已经是常态了。$p=0.8$ 时，$n=14,16$ 的抽样值（约 0.44、0.33）与虚线（0.46、0.28）已经相当接近，和 $p=0.5$ 时两者差 6 倍很不一样。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>奇异 = 有一组系数，把各行加起来得到全 0。</b>两行相同（系数 $1,-1$）、两行相反（系数 $1,1$）只是最简单的情形。符号矩阵还有一个好用的对称性：把第 $j$ 行和第 $j$ 列<b>同时</b>乘 $-1$（相当于左右各乘一个对角线上全是 $\pm1$ 的矩阵 $D$，得到 $DAD$），行列式只会乘上 $(\det D)^2=1$，奇异与否不变。所以只需要检查"第一行除第一格外全是 $+1$"的代表，每个代表对应 $2^{n-1}$ 张表。页面的穷举就是这样，把 $n=7$ 的 $2^{28}\approx2.7$ 亿张压成了 $2^{22}\approx420$ 万张。</p>
+<p><b>虚线是怎么算的。</b>固定第 $i,j$ 两行。除去 $(i,i),(i,j),(j,j)$ 这三格，其余 $n-2$ 列各给出一个独立的条件"两个格子相同"，概率 $p^2+(1-p)^2$；这三格要满足 $a_{ii}=a_{ij}=a_{jj}$，概率 $p^3+(1-p)^3$。所以两行相同的概率是 $(p^2+(1-p)^2)^{n-2}(p^3+(1-p)^3)$；两行相反同理，只是每列的概率换成 $2p(1-p)$，三格的概率换成 $p(1-p)$。公平硬币时，一对行相同或相反的概率是 $2\cdot2^{-n}$，再乘上 $\binom n2$ 对，就是 $n(n-1)2^{-n}$（$n=16$ 时是 0.0037，与页面的虚线一致）。所以公平硬币时"最显眼的原因"的指数速率是 $(1/2)^n$，偏置时是 $(p^2+(1-p)^2)^n$。</p>
+<p>页面下方列出的问题 239，稿件宣称：公平硬币时 $\Pr(\det A_n=0)=(1/2+o(1))^n$；偏置时是 $(p^2+(1-p)^2+o(1))^n$，并且"有两行相同"恰好达到这个速率。这是稿件的宣称，需要独立审查。注意它说的是 $n\to\infty$ 时的<b>指数速率</b>：页面里 $n\le16$ 的数据——相邻两项之比从 0.85 降到 0.6——既不能证实也不能否定它，也看不出常数因子（$n=16$ 时真实概率是虚线的 6 倍，说明这个范围里"隐蔽"的奇异占了大头；稿件的结论是说，$n$ 很大时它们在指数上不会比"两行相同"更多）。背景方面，据我所知：对元素全部独立的 $\pm1$ 矩阵，Kahn–Komlós–Szemerédi（1995）首先证明奇异概率指数小，Tikhomirov（2020）证得最佳底数 $1/2$；对称矩阵的各个元素不再互相独立，更难，Costello–Tao–Vu（2006）最早证明它的奇异概率趋于 0，"指数小"则是 2021 年前后才被证明的。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 300), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 270), x2 = c2.ctx;
+  var n = 4, p = 0.5, M = [], exact = null, mc = {}, busy = false, geom = null;
+
+  function newM() { var i; M = []; for (i = 0; i < n; i++) M.push(new Array(n).fill(1)); }
+  function randomM() { var i, j, s; for (i = 0; i < n; i++) for (j = i; j < n; j++) { s = Math.random() < p ? 1 : -1; M[i][j] = s; M[j][i] = s; } }
+
+  /* ---------- 行列式与秩 ---------- */
+  function detExact(Mx) {                       /* 无分数的 Bareiss 消元，n ≤ 8 时全部是精确整数 */
+    var k = Mx.length, A = Mx.map(function (r) { return r.slice(); }), sign = 1, prev = 1, i, j, c, pv, t;
+    for (c = 0; c < k - 1; c++) {
+      if (A[c][c] === 0) {
+        pv = -1; for (i = c + 1; i < k; i++) if (A[i][c] !== 0) { pv = i; break; }
+        if (pv < 0) return 0;
+        t = A[c]; A[c] = A[pv]; A[pv] = t; sign = -sign;
+      }
+      for (i = c + 1; i < k; i++) for (j = c + 1; j < k; j++) A[i][j] = (A[i][j] * A[c][c] - A[i][c] * A[c][j]) / prev;
+      prev = A[c][c];
+    }
+    return sign * A[k - 1][k - 1];
+  }
+  function rankOf(Mx) {                         /* 浮点高斯消元（部分选主元）数秩 */
+    var k = Mx.length, A = Mx.map(function (r) { return r.slice(); }), r = 0, c, i, j, pv, mx, t, f;
+    for (c = 0; c < k && r < k; c++) {
+      pv = r; mx = Math.abs(A[r][c]);
+      for (i = r + 1; i < k; i++) if (Math.abs(A[i][c]) > mx) { mx = Math.abs(A[i][c]); pv = i; }
+      if (mx < 1e-9) continue;
+      t = A[r]; A[r] = A[pv]; A[pv] = t;
+      for (i = r + 1; i < k; i++) { f = A[i][c] / A[r][c]; for (j = c; j < k; j++) A[i][j] -= f * A[r][j]; }
+      r++;
+    }
+    return r;
+  }
+  /* 大批量判断是否奇异：在预先分配的数组上做部分选主元消元 */
+  function singularFast(B, k) {
+    var i, j, c, pv, mx, t, f, d;
+    for (c = 0; c < k; c++) {
+      pv = c; mx = Math.abs(B[c * k + c]);
+      for (i = c + 1; i < k; i++) { t = Math.abs(B[i * k + c]); if (t > mx) { mx = t; pv = i; } }
+      if (mx < 1e-9) return true;
+      if (pv !== c) for (j = 0; j < k; j++) { t = B[c * k + j]; B[c * k + j] = B[pv * k + j]; B[pv * k + j] = t; }
+      d = B[c * k + c];
+      for (i = c + 1; i < k; i++) { f = B[i * k + c] / d; if (f !== 0) for (j = c + 1; j < k; j++) B[i * k + j] -= f * B[c * k + j]; }
+    }
+    return false;
+  }
+  function pairsSame(Mx) {
+    var k = Mx.length, res = [], i, j, q, eq, op;
+    for (i = 0; i < k; i++) for (j = i + 1; j < k; j++) {
+      eq = true; op = true;
+      for (q = 0; q < k; q++) { if (Mx[i][q] !== Mx[j][q]) eq = false; if (Mx[i][q] !== -Mx[j][q]) op = false; }
+      if (eq) res.push([i, j, 1]); else if (op) res.push([i, j, -1]);
+    }
+    return res;
+  }
+  /* 找一个"几行按整数系数相加得到全 0"的关系：先找参与的行数最少的，系数只试 ±1、±2。返回文字，找不到返回 '' */
+  function relation(Mx) {
+    var k = Mx.length, s, idx = [], co = [], found = null, CV = [-2, -1, 1, 2];
+    function test() {
+      var j, t, sum;
+      for (j = 0; j < k; j++) { sum = 0; for (t = 0; t < idx.length; t++) sum += co[t] * Mx[idx[t]][j]; if (sum !== 0) return false; }
+      return true;
+    }
+    function coef(t) {
+      var c;
+      if (t === idx.length) return test();
+      for (c = 0; c < 4; c++) { if (t === 0 && CV[c] < 0) continue; co[t] = CV[c]; if (coef(t + 1)) return true; }
+      return false;
+    }
+    function pick(start) {
+      var r;
+      if (idx.length === s) { if (coef(0)) { found = idx.map(function (v, t) { return [v, co[t]]; }); return true; } return false; }
+      for (r = start; r < k; r++) { idx.push(r); if (pick(r + 1)) return true; idx.pop(); }
+      return false;
+    }
+    for (s = 2; s <= k && !found; s++) { idx = []; pick(0); }
+    if (!found) return '';
+    return found.map(function (f, t) {
+      var c = f[1], a = Math.abs(c), body = (a === 1 ? '' : a + '·') + '行 ' + (f[0] + 1);
+      return t === 0 ? (c < 0 ? '−' : '') + body : (c < 0 ? ' − ' : ' + ') + body;
+    }).join('') + ' = 0（逐列相加）';
+  }
+  /* 把 k 阶对称矩阵全部枚举一遍（k ≤ 5），数奇异的、"隐蔽"的各有多少张 */
+  function enumAll(k) {
+    var pos = [], i, j, b, m, s, tot, Mx, A = new Float64Array(k * k), sing = 0, hid = 0;
+    for (i = 0; i < k; i++) for (j = i; j < k; j++) pos.push([i, j]);
+    Mx = []; for (i = 0; i < k; i++) Mx.push(new Array(k).fill(0));
+    tot = Math.pow(2, pos.length);
+    for (m = 0; m < tot; m++) {
+      for (b = 0; b < pos.length; b++) { s = ((m >> b) & 1) ? 1 : -1; Mx[pos[b][0]][pos[b][1]] = s; Mx[pos[b][1]][pos[b][0]] = s; A[pos[b][0] * k + pos[b][1]] = s; A[pos[b][1] * k + pos[b][0]] = s; }
+      if (singularFast(A, k)) { sing++; if (pairsSame(Mx).length === 0) hid++; }
+    }
+    return { total: tot, singular: sing, hidden: hid };
+  }
+
+  /* ---------- 精确穷举 n = 2..7（利用 D·A·D 的对称性，只查"第一行除首项外全为 +1"的代表） ---------- */
+  function exactCount(k, from, to) {
+    var bits = 1 + (k * (k - 1)) / 2, pos = [], i, j, A = new Float64Array(k * k), B = new Float64Array(k * k), mask, b, s, cnt = 0, sg;
+    pos.push([0, 0]);
+    for (i = 1; i < k; i++) for (j = i; j < k; j++) pos.push([i, j]);
+    for (j = 1; j < k; j++) { A[j] = 1; A[j * k] = 1; }
+    for (mask = from; mask < to; mask++) {
+      for (b = 0; b < bits; b++) { s = ((mask >> b) & 1) ? 1 : -1; A[pos[b][0] * k + pos[b][1]] = s; A[pos[b][1] * k + pos[b][0]] = s; }
+      B.set(A);
+      if (singularFast(B, k)) cnt++;
+    }
+    return cnt;
+  }
+  function runExact(done) {
+    var res = [], k = 2, mask = 0, bits, total, cnt = 0, chunk = 1 << 17;
+    function step() {
+      var t0 = performance.now(), bt;
+      bits = 1 + (k * (k - 1)) / 2; total = Math.pow(2, bits);
+      while (k <= 7 && performance.now() - t0 < 40) {
+        bt = Math.min(total, mask + chunk);
+        cnt += exactCount(k, mask, bt); mask = bt;
+        if (mask >= total) {
+          res.push({ n: k, singular: cnt * Math.pow(2, k - 1), total: Math.pow(2, k * (k + 1) / 2), frac: cnt / total });
+          k++; mask = 0; cnt = 0;
+          if (k <= 7) { bits = 1 + (k * (k - 1)) / 2; total = Math.pow(2, bits); }
+        }
+      }
+      exact = { res: res, progress: (k > 7) ? 1 : (k - 2 + mask / total) / 6 };
+      if (k > 7) { done(); } else { drawChart(); setTimeout(step, 0); }
+    }
+    step();
+  }
+
+  /* ---------- 抽样估计 n = 4..16 ---------- */
+  function runMC(pv, done) {
+    var out = [], k = 4, A = new Float64Array(256), S, cnt, t, i, j, s, t0 = performance.now();
+    function step() {
+      var tEnd = performance.now() + 40;
+      while (k <= 16 && performance.now() < tEnd) {
+        S = k <= 12 ? 40000 : 60000; cnt = 0;
+        for (t = 0; t < S; t++) {
+          for (i = 0; i < k; i++) for (j = i; j < k; j++) { s = Math.random() < pv ? 1 : -1; A[i * k + j] = s; A[j * k + i] = s; }
+          if (singularFast(A, k)) cnt++;
+        }
+        out.push({ n: k, frac: cnt / S, hits: cnt, S: S }); k++;
+      }
+      mc[pv] = { res: out, progress: (k - 4) / 13 };
+      if (k > 16) { mc[pv].ms = Math.round(performance.now() - t0); done(); } else { drawChart(); setTimeout(step, 0); }
+    }
+    step();
+  }
+
+  /* ---------- 控件 ---------- */
+  var sN = Lab.slider(panel, { label: '方阵的大小 n', min: 2, max: 8, step: 1, value: n, fmt: function (v) { return String(v); }, onInput: function (v) { n = v; newM(); randomM(); drawMat(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '随机填一个', function () { randomM(); drawMat(); }, 'pri');
+  Lab.button(row, '全填 +1', function () { newM(); drawMat(); });
+  var row1b = Lab.row(panel);
+  Lab.button(row1b, '找一个奇异、但没有两行相同或相反的矩阵', function () { findHidden(); });
+  var sP = Lab.slider(panel, { label: '硬币偏向 p（填 +1 的概率）', min: 0.5, max: 0.9, step: 0.05, value: p, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { p = v; drawChart(); } });
+  var row2 = Lab.row(panel);
+  var bCalc = Lab.button(row2, '计算（精确穷举 + 抽样，约几秒）', function () { calc(); }, 'pri');
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示："随机填"和抽样用的都是同一枚硬币：每个自由的格子独立地以概率 p 填 +1。精确穷举只做 p = 1/2。');
+  Lab.onTheme(function () { drawMat(); });
+
+  function calc() {
+    if (busy) return;
+    busy = true; bCalc.disabled = true;
+    var finish = function () {
+      if (!mc[p] || mc[p].progress < 1) runMC(p, function () { busy = false; bCalc.disabled = false; drawChart(); report(); });
+      else { busy = false; bCalc.disabled = false; drawChart(); report(); }
+    };
+    if (!exact || exact.progress < 1) runExact(finish); else finish();
+  }
+  function findHidden() {
+    var tries = 0, found = false, i, j, s, tm = performance.now(), e;
+    if (n <= 4) {                               /* 小的 n：直接把全部矩阵检查一遍 */
+      e = enumAll(n);
+      drawMat('n = ' + n + '：一共 ' + e.total + ' 张表，奇异的有 ' + e.singular + ' 张，' + (e.hidden === 0 ? '其中每一张都有两行相同或相反。所以这里找不到"隐蔽"的——把 n 调到 5 或更大再试。' : '其中 ' + e.hidden + ' 张没有任何两行相同或相反。'), true);
+      return;
+    }
+    while (tries < 400000 && performance.now() - tm < 800) {
+      tries++;
+      for (i = 0; i < n; i++) for (j = i; j < n; j++) { s = Math.random() < p ? 1 : -1; M[i][j] = s; M[j][i] = s; }
+      if (detExact(M) === 0 && pairsSame(M).length === 0) { found = true; break; }
+    }
+    drawMat(found ? '试了 ' + tries + ' 张，找到一个：它奇异，却没有任何两行相同或相反。' : '试了 ' + tries + ' 张，没找到（也许这个大小里根本没有，或者概率太小）。');
+  }
+  c1.cv.addEventListener('click', function (e) {
+    var q = c1.pos(e), i, j;
+    if (!geom) return;
+    j = Math.floor((q.x - geom.x0) / geom.cs); i = Math.floor((q.y - geom.y0) / geom.cs);
+    if (i < 0 || j < 0 || i >= n || j >= n) return;
+    M[i][j] = -M[i][j]; M[j][i] = M[i][j]; drawMat();
+  });
+
+  /* ---------- 画矩阵 ---------- */
+  function drawMat(note, norel) {
+    var C = Lab.colors(), cs = Math.min(52, Math.floor(250 / n)), x0 = 20, y0 = 16, i, j, D, r, pr, tx, ty, txt, rkn, rel;
+    geom = { x0: x0, y0: y0, cs: cs };
+    c1.clear(C.card);
+    for (i = 0; i < n; i++) for (j = 0; j < n; j++) {
+      x1.fillStyle = M[i][j] > 0 ? C.accent : C.warn; x1.globalAlpha = j >= i ? 1 : 0.55;
+      x1.fillRect(x0 + j * cs + 1.5, y0 + i * cs + 1.5, cs - 3, cs - 3); x1.globalAlpha = 1;
+      Lab.label(x1, M[i][j] > 0 ? '+' : '−', x0 + j * cs + cs / 2, y0 + i * cs + cs / 2, '#ffffff', 'center', cs > 30 ? 17 : 14);
+    }
+    x1.strokeStyle = C.ink2; x1.lineWidth = 1.2; x1.setLineDash([4, 3]); x1.beginPath(); x1.moveTo(x0, y0); x1.lineTo(x0 + n * cs, y0 + n * cs); x1.stroke(); x1.setLineDash([]);
+    Lab.label(x1, '点格子翻转；虚线是对角线（半透明的格子是它的镜像）', x0, y0 + n * cs + 18, C.muted, 'left', 11.5);
+    D = detExact(M); rkn = rankOf(M); pr = pairsSame(M);
+    tx = x0 + n * cs + 30; ty = 36;
+    Lab.label(x1, '行列式', tx, ty, C.ink2, 'left', 13);
+    Lab.label(x1, String(D), tx + 62, ty, D === 0 ? C.bad : C.good, 'left', 20);
+    Lab.label(x1, D === 0 ? '奇异（秩 ' + rkn + ' < ' + n + '）' : '不奇异', tx, ty + 30, D === 0 ? C.bad : C.good, 'left', 14);
+    Lab.label(x1, '两行完全相同或相反的有：', tx, ty + 62, C.ink2, 'left', 12.5);
+    if (pr.length === 0) Lab.label(x1, '（没有）', tx, ty + 84, C.muted, 'left', 12.5);
+    for (r = 0; r < Math.min(pr.length, 6); r++) Lab.label(x1, '第 ' + (pr[r][0] + 1) + ' 行 ' + (pr[r][2] > 0 ? '＝' : '＝ −') + ' 第 ' + (pr[r][1] + 1) + ' 行', tx, ty + 84 + 20 * r, C.ink, 'left', 12.5);
+    if (pr.length > 6) Lab.label(x1, '……共 ' + pr.length + ' 对', tx, ty + 84 + 20 * 6, C.muted, 'left', 12);
+    if (D === 0 && pr.length === 0) Lab.label(x1, '这是"隐蔽"的奇异：线性相关藏得更深', tx, ty + 84 + 20 * Math.min(pr.length, 6) + 26, C.warn, 'left', 12.5);
+    if (note) txt = note; else txt = 'n = ' + n + '：这张表' + (D === 0 ? '奇异' : '不奇异') + '，行列式 = ' + D + (pr.length ? '；有 ' + pr.length + ' 对行相同或相反' : '');
+    if (D === 0 && !norel) { rel = relation(M); txt += '\n线性关系：' + (rel || '（系数较大，这里不列出）'); }
+    report(txt);
+  }
+  function fracStr(num, den) { return Lab.big(num) + ' / ' + Lab.big(den); }
+  function report(note) {
+    var s = note || '', i;
+    if (exact && exact.progress >= 1) {
+      s += (s ? '\n\n' : '') + '精确穷举（p = 1/2）：\n';
+      exact.res.forEach(function (r) { s += '  n = ' + r.n + '：奇异 ' + fracStr(r.singular, r.total) + ' ≈ ' + Lab.fmt(r.frac, 4) + '\n'; });
+    }
+    out.html(s.replace(/\n$/, ''));
+  }
+
+  /* ---------- 画概率图 ---------- */
+  function unionBound(k, pp) {
+    var q = pp * pp + (1 - pp) * (1 - pp);
+    return Math.min(1, (k * (k - 1) / 2) * (Math.pow(q, k - 2) * (Math.pow(pp, 3) + Math.pow(1 - pp, 3)) + Math.pow(2 * pp * (1 - pp), k - 2) * pp * (1 - pp)));
+  }
+  function drawChart() {
+    var C = Lab.colors(), box = { x: 66, y: 14, w: 552, h: 200 }, ax, k, t, lg = function (v) { return Math.log(v) / Math.LN2; }, ticks = [0, -3.3219, -6.6439, -9.9658, -13.2877], labs = ['1', '0.1', '0.01', '0.001', '0.0001'];
+    c2.clear(C.card);
+    ax = Lab.axes(x2, box, [1.5, 16.5], [-14, 0.4], { xticks: [2, 4, 6, 8, 10, 12, 14, 16], yticks: ticks, fx: function (v) { return String(Math.round(v)); }, fy: function (v) { var m, best = 1e9, bi = 0; for (m = 0; m < ticks.length; m++) if (Math.abs(ticks[m] - v) < best) { best = Math.abs(ticks[m] - v); bi = m; } return labs[bi]; }, xlabel: '方阵大小 n', ylabel: '奇异的概率（对数刻度）' });
+    /* 参考线：两行相同或相反的概率上界 */
+    x2.setLineDash([5, 4]); x2.strokeStyle = C.muted; x2.lineWidth = 1.6; x2.beginPath();
+    for (k = 2; k <= 16; k++) { var yy = lg(Math.max(1e-6, unionBound(k, p))); if (k === 2) x2.moveTo(ax.X(k), ax.Y(yy)); else x2.lineTo(ax.X(k), ax.Y(yy)); }
+    x2.stroke(); x2.setLineDash([]);
+    var lx = box.x + 24, ly = box.y + box.h - 50;
+    Lab.line(x2, lx - 8, ly - 4, lx + 6, ly - 4, C.muted, 1.6); Lab.label(x2, '两行相同或相反的概率（逐对相加，p = ' + Lab.fmt(p, 2) + '）', lx + 12, ly, C.ink2, 'left', 11.5);
+    if (exact && exact.res.length) {
+      x2.strokeStyle = C.good; x2.lineWidth = 2; x2.beginPath();
+      exact.res.forEach(function (r, idx) { if (idx === 0) x2.moveTo(ax.X(r.n), ax.Y(lg(r.frac))); else x2.lineTo(ax.X(r.n), ax.Y(lg(r.frac))); });
+      x2.stroke();
+      exact.res.forEach(function (r) { Lab.dot(x2, ax.X(r.n), ax.Y(lg(r.frac)), 4.6, C.good, C.card); });
+      Lab.dot(x2, lx - 1, ly + 18 - 4, 4.6, C.good); Lab.label(x2, '精确穷举（p = 1/2）', lx + 12, ly + 18, C.ink, 'left', 12);
+    }
+    if (mc[p] && mc[p].res.length) {
+      var arr = mc[p].res.filter(function (r) { return r.hits > 0; });
+      x2.strokeStyle = C.accent; x2.lineWidth = 2; x2.beginPath();
+      arr.forEach(function (r, idx) { if (idx === 0) x2.moveTo(ax.X(r.n), ax.Y(lg(r.frac))); else x2.lineTo(ax.X(r.n), ax.Y(lg(r.frac))); });
+      x2.stroke();
+      arr.forEach(function (r) { Lab.dot(x2, ax.X(r.n), ax.Y(lg(r.frac)), 3.6, C.accent, C.card); });
+      Lab.dot(x2, lx - 1, ly + 36 - 4, 4, C.accent); Lab.label(x2, '随机抽样（p = ' + Lab.fmt(p, 2) + '）', lx + 12, ly + 36, C.ink, 'left', 12);
+    }
+    if (!(exact && exact.res.length) && !(mc[p] && mc[p].res.length)) Lab.label(x2, '点右边的"计算"，这里会出现奇异概率的点', box.x + box.w / 2 - 40, box.y + box.h / 2 + 20, C.ink2, 'center', 13.5);
+    if (busy) {
+      var pg = ((exact ? exact.progress : 0) + (mc[p] ? mc[p].progress : 0)) / 2;
+      Lab.label(x2, '计算中…… ' + Math.round(100 * pg) + '%', box.x + box.w - 12, box.y + box.h - 10, C.accent, 'right', 12.5);
+    }
+  }
+
+  newM(); randomM(); drawMat(); drawChart();
+})();
+</script>

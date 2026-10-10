@@ -1,0 +1,169 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>电脑随机出一道题：给你 $n$ 个正整数（上图的小方块，每个方块是一个数），再给一个目标数 $T$，问：<b>能不能挑出其中一些数，让它们加起来恰好等于 $T$？</b>这就是"子集和问题"。点"重新出题"换一道；"目标"可以选"凑得出来的"（电脑先随机挑一些数加起来当作目标）或"随便一个数"（可能凑得出来，也可能凑不出来）。</li>
+<li>先把 $n$ 设成 20 左右，点"暴力枚举"：把所有 $2^n$ 种挑法一个一个试，读数里会告诉你一共试了多少种、用了多少毫秒。把 $n$ 加大几个，再点一次——时间是不是<b>几乎每加 1 个数就翻倍</b>？（页面最多让暴力枚举跑到 $n=26$。）</li>
+<li>点"折半相遇"：把数分成左右两半，分别列出每一半<b>所有</b>子集的和，各自排好序，再用"两头往中间夹"的办法找一个左边的和加一个右边的和恰好等于 $T$。注意：这时只需要列 $2^{n/2}$ 个和，而不是 $2^n$ 个。对比一下读数里的时间；把 $n$ 一直加大到 40 也能跑得动。</li>
+<li>点"动态规划"：它不关心有多少种挑法，只关心 $T$ 有多大——用一张 $T+1$ 格的表，记下"凑得出哪些和"。把"每个数的位数 $b$"拖到 12 左右，它几毫秒就算完；拖到 20 左右，$T$ 一下子大到超过页面设的 300 万的上限，页面就拒绝运行了。为什么？</li>
+<li>看图：横轴是"步数的以 2 为底的对数"（每多 1 格，步数翻一倍）。前三条是三种办法在这道题上需要的步数（动态规划那条如果是虚线框，说明 $T$ 太大，页面不会真的去跑它，图里只是告诉你"要是去跑，得这么多步"）；最下面两条是<b>不计常数的理论值</b>：折半相遇的 $2^{n/2}$，和稿件宣称的 $2^{0.49n}$。页面<b>没有实现</b>稿件的算法，只是画出来让你看看它和折半相遇差多少。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>暴力：每多一个数，时间翻一倍。</b>"目标"选"随便一个数"、位数 $b=40$（几乎一定凑不出来，于是必须把 $2^n$ 种挑法全试完）时，我这台电脑上 $n=20,22,24,26$ 的用时是 1.3、5.1、20.2、83.3 毫秒——每多 2 个数大约乘 4，也就是每多 1 个数乘 2。（你的数字会不同，规律一样；刚打开页面的头几次常常偏慢，那是浏览器还在"热身"。）到 $n=27$ 页面就拒绝运行了。按每秒 10 亿步估算，$n=40$ 的暴力要 18 分钟，$n=60$ 要 36.6 年，$n=100$ 要 $4.02\times10^{13}$ 年，比宇宙的年龄（约 138 亿年）还长近三千倍。</p>
+<p><b>折半相遇：每多 2 个数才翻一倍。</b>$n=20,24,28,32,36,40$ 时它做的步数约是 5,667、21,637、97,349、392,394、1,572,849、5,890,573，用时从 0.3 毫秒到 48.5 毫秒。$n=40$ 时只要 589 万步、不到 0.05 秒；同一道题暴力要 $2^{40}\approx1.1\times10^{12}$ 步。代价是内存：左右两张表各有 1,048,576 个数。</p>
+<p><b>三种办法的结论一直一致。</b>我随机出了 60 道题（$n$ 从 8 到 26，位数 $b$ 从 8 到 16，一半选"凑得出来的"、一半选"随便一个数"），暴力、折半、动态规划每次给出的"找到了／没有解"都一样；折半相遇找到的子集，每次都核对出"恰好等于 $T$ ✓"。这 60 题里有 10 题是没有解的。</p>
+<p><b>动态规划看的是 $T$ 的大小，不是 $n$。</b>固定 $n=30$，位数 $b=10,12,14,16,18$ 时它要做约 35 万、94 万、456 万、1,623 万、6,224 万步，用时 2.8、4.4、28、23、82 毫秒（中间有起伏，步数是准的）：$b$ 每加 1，数值翻一倍，$T$ 也翻一倍，步数跟着翻一倍。$b=20$ 时 $T\approx700$ 万，超出了页面的上限，拒绝运行。而折半相遇对数的大小完全不敏感：只要 $n$ 不变，$b=10$ 还是 $b=40$，它做的步数都差不多。</p>
+<p><b>图里最后两条几乎一样长。</b>把 $n$ 拖到 40：折半相遇的理论值是 $2^{20}$，稿件宣称的是 $2^{19.6}$，只差约 1.3 倍。这两条都是<b>不计常数</b>的理论值，页面没有实现稿件的算法，所以这里不是实测对比；它只想让你感觉一下：稿件宣称的是指数上的一小步（从 $\frac12$ 到 $0.49$），要 $n$ 很大时才会拉开距离。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>折半相遇</b>（Horowitz–Sahni，1974）：把 $n$ 个数分成两半 $A$、$B$，各自列出所有 $2^{n/2}$ 个子集和，并从小到大排好；只要左表里有 $x$、右表里有 $y$ 满足 $x+y=T$，就找到了解。因为两张表都已排序，让一个指针从左表的小端往大端走、另一个从右表的大端往小端走，每一步根据"和比 $T$ 小还是大"挪动其中一个指针，一共不超过 $2\cdot2^{n/2}$ 步就能查完。页面里造表的办法是：每加进一个数 $a$，就把当前已排好序的表 $L$ 和"$L$ 里每个元素都加上 $a$"得到的表<b>归并</b>成新表，所以不需要额外排序。</p>
+<p>子集和是最经典的 NP 完全问题之一（Karp 1972 年那份 21 个问题的名单里就有它的近亲"背包问题"）。"动态规划"的 $O(nT)$ 不和 NP 完全矛盾：它的步数跟 $T$ 的<b>数值</b>成正比，而输入里只写了 $T$ 的<b>位数</b> $b$（$T\approx2^b$），所以对"输入长度"来说它依然是指数的，数学上叫"伪多项式时间"。两种办法各有地盘：数字小、个数多时动态规划好；数字很大、个数不太多时折半相遇好。</p>
+<p>据我所知，对"随机出的题"，人们早就找到了比 $2^{n/2}$ 更快的办法（Howgrave-Graham–Joux、Becker–Coron–Joux 等人的工作，指数大约在 $0.3n$，要用到"输入是随机的"这类假设）；但对<b>最坏情形</b>的指数 $\frac12$，自折半相遇（1974 年）以来没有人降低过。稿件 138 宣称给出了一个随机算法，最坏情形下时间 $O(2^{0.49n})$（字长 RAM 模型，成功概率至少 $2/3$）。这个宣称如果成立，是很大的进展；本页面<b>没有实现、也无法检验它</b>，<b>需要独立审查</b>。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 400), x1 = c1.ctx;
+  var n = 24, bits = 30, tmode = 'yes', a = [], T = 0, S = 0, rnd = Lab.rng(), used = null, report = {}, DPCAP = 3000000;
+
+  /* ---------- 出题 ---------- */
+  function randBits(b) { return b <= 30 ? Math.floor(rnd() * Math.pow(2, b)) + 1 : (Math.floor(rnd() * Math.pow(2, b - 20)) * 1048576 + Math.floor(rnd() * 1048576)) + 1; }
+  function newProblem() {
+    var i, s = 0;
+    a = []; S = 0;
+    for (i = 0; i < n; i++) { a.push(randBits(bits)); S += a[i]; }
+    if (tmode === 'yes') { T = 0; for (i = 0; i < n; i++) if (rnd() < 0.5) T += a[i]; if (T === 0) T = a[0]; }
+    else T = Math.floor(S * (0.25 + 0.5 * rnd())) + 1;
+    used = null; report = {};
+  }
+
+  /* ---------- 三种算法 ---------- */
+  function brute() {
+    var t0 = performance.now(), total = Math.pow(2, n), i, bit, mask = 0, s = 0, cnt = 1, found = -1;
+    if (n > 26) return { skip: '不运行：n = ' + n + ' 时要试 2^' + n + ' = ' + Lab.big(total) + ' 种挑法，页面最多只让它跑到 n = 26。' };
+    for (i = 1; i < total; i++) {
+      bit = 31 - Math.clz32(i & -i);
+      mask ^= (1 << bit);
+      if (mask & (1 << bit)) s += a[bit]; else s -= a[bit];
+      cnt++;
+      if (s === T) { found = mask; break; }
+    }
+    return { found: found >= 0, mask: found, steps: cnt, ms: performance.now() - t0 };
+  }
+  function sortedSums(arr) {
+    var s = new Float64Array(1), m = new Int32Array(1), k, len, ns, nm, i, j, o, x, steps = 0;
+    for (k = 0; k < arr.length; k++) {
+      len = s.length; ns = new Float64Array(len * 2); nm = new Int32Array(len * 2); i = 0; j = 0; o = 0; x = arr[k];
+      while (i < len && j < len) {
+        if (s[i] <= s[j] + x) { ns[o] = s[i]; nm[o++] = m[i++]; } else { ns[o] = s[j] + x; nm[o++] = m[j++] | (1 << k); }
+      }
+      while (i < len) { ns[o] = s[i]; nm[o++] = m[i++]; }
+      while (j < len) { ns[o] = s[j] + x; nm[o++] = m[j++] | (1 << k); }
+      steps += len * 2; s = ns; m = nm;
+    }
+    return { s: s, m: m, steps: steps };
+  }
+  function mitm() {
+    var t0 = performance.now(), h = Math.floor(n / 2), A = sortedSums(a.slice(0, h)), B = sortedSums(a.slice(h)), i = 0, j = B.s.length - 1, v, steps = A.steps + B.steps, walk = 0, mask = -1, hi = 0;
+    while (i < A.s.length && j >= 0) {
+      v = A.s[i] + B.s[j]; walk++;
+      if (v === T) { mask = A.m[i]; hi = B.m[j]; break; }
+      if (v < T) i++; else j--;
+    }
+    return { found: mask >= 0, mask: mask >= 0 ? mask : 0, maskHi: hi, h: h, nA: A.s.length, nB: B.s.length, steps: steps + walk, walk: walk, ms: performance.now() - t0 };
+  }
+  function dp() {
+    var t0 = performance.now(), reach, i, s, ai;
+    if (T > DPCAP) return { skip: '不运行：T = ' + Lab.big(T) + '，动态规划要一张有 T + 1 格的表（上限设为 ' + Lab.big(DPCAP) + '）。把每个数的位数 b 调小再试。' };
+    reach = new Uint8Array(T + 1); reach[0] = 1;
+    for (i = 0; i < n; i++) { ai = a[i]; for (s = T; s >= ai; s--) if (reach[s - ai]) reach[s] = 1; }
+    return { found: reach[T] === 1, steps: n * T, ms: performance.now() - t0 };
+  }
+
+  /* ---------- 控件 ---------- */
+  var sN = Lab.slider(panel, { label: '数的个数 n', min: 8, max: 40, step: 1, value: n, onInput: function (v) { n = v; newProblem(); draw(); } });
+  var sB = Lab.slider(panel, { label: '每个数的位数 b（数在 1 到 2^b 之间）', min: 8, max: 40, step: 1, value: bits, onInput: function (v) { bits = v; newProblem(); draw(); } });
+  var sT = Lab.select(panel, { label: '目标 T', value: tmode, options: [['yes', '凑得出来的（先随机挑一些数加起来）'], ['any', '随便一个数（可能凑不出来）']], onChange: function (v) { tmode = v; newProblem(); draw(); } });
+  var row1 = Lab.row(panel);
+  Lab.button(row1, '重新出题', function () { newProblem(); draw(); }, 'pri');
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '暴力枚举', function () { report.brute = brute(); remember(report.brute); draw(); });
+  Lab.button(row2, '折半相遇', function () { report.mitm = mitm(); remember(report.mitm); draw(); });
+  Lab.button(row2, '动态规划', function () { report.dp = dp(); draw(); });
+  Lab.button(row2, '三种都跑', function () { report.brute = brute(); report.mitm = mitm(); report.dp = dp(); remember(report.mitm.found ? report.mitm : report.brute); draw(); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：所有数和中间结果都小于 2^53，所以浮点数里存的是精确的整数。找到的子集会在上图用实心方块标出。');
+  Lab.onTheme(function () { draw(); });
+  function remember(r) {
+    used = null;
+    if (!r || !r.found) return;
+    if (r.h != null) { used = []; for (var i = 0; i < n; i++) used.push(i < r.h ? !!((r.mask >> i) & 1) : !!((r.maskHi >> (i - r.h)) & 1)); }
+    else { used = []; for (var k = 0; k < n; k++) used.push(!!((r.mask >> k) & 1)); }
+  }
+  function lg(x) { return Math.log(x) / Math.LN2; }
+  /* 折半相遇最多要做的步数：两半各列 2^h 个和（每个和约花 2 步），再加上最后“两头往中间夹”的一趟（最多 2^h + 2^(n−h) 步） */
+  function mitmMax(nn) { var hh = Math.floor(nn / 2); return 3 * (Math.pow(2, hh) + Math.pow(2, nn - hh)) - 4; }
+  function dur(sec) {
+    if (sec < 1e-3) return '不到 1 毫秒'; if (sec < 1) return Lab.fmt(sec * 1000, 3) + ' 毫秒'; if (sec < 60) return Lab.fmt(sec, 3) + ' 秒';
+    if (sec < 3600) return Lab.fmt(sec / 60, 3) + ' 分钟'; if (sec < 86400) return Lab.fmt(sec / 3600, 3) + ' 小时'; if (sec < 3.15e7) return Lab.fmt(sec / 86400, 3) + ' 天';
+    var yr = sec / 3.15e7, e;
+    if (yr < 1e6) return Lab.fmt(yr, 3) + ' 年';
+    e = Math.floor(Math.log(yr) / Math.LN10);
+    return Lab.fmt(yr / Math.pow(10, e), 3) + '×10^' + e + ' 年';
+  }
+
+  /* ---------- 画图 ---------- */
+  function draw() {
+    var C = Lab.colors(), i, h = Math.floor(n / 2), cw = 14, gap = 2, tot = n * (cw + gap) - gap, x0 = 320 - tot / 2, y0 = 42, ch = 24, s, rows, bx = 40, bw = 560, by, mx, bars, lo = 0, hi;
+    c1.clear(C.card);
+    Lab.label(x1, '这 ' + n + ' 个数（左半 ' + h + ' 个，右半 ' + (n - h) + ' 个；实心＝选中）', 320, 16, C.ink2, 'center', 13);
+    for (i = 0; i < n; i++) {
+      x1.lineWidth = 2; x1.strokeStyle = i < h ? C.accent : C.warn; x1.fillStyle = i < h ? C.accent : C.warn;
+      if (used && used[i]) x1.fillRect(x0 + i * (cw + gap), y0, cw, ch); else x1.strokeRect(x0 + i * (cw + gap) + 1, y0 + 1, cw - 2, ch - 2);
+    }
+    Lab.label(x1, '左半', x0 + (h * (cw + gap) - gap) / 2, y0 + ch + 14, C.accent, 'center', 12);
+    Lab.label(x1, '右半', x0 + h * (cw + gap) + ((n - h) * (cw + gap) - gap) / 2, y0 + ch + 14, C.warn, 'center', 12);
+    /* 步数的对数图 */
+    bars = [
+      ['暴力枚举：2^n', n, C.bad, false],
+      ['折半相遇：本页最多要做的步数', lg(mitmMax(n)), C.accent, false],
+      ['动态规划：n·T' + (T > DPCAP ? '（T 太大，页面不运行）' : ''), lg(n * T), C.good, T > DPCAP],
+      ['折半相遇的理论值 2^(n/2)（不计常数）', n / 2, C.accent, true],
+      ['稿件宣称 2^(0.49n)（不计常数；页面未实现）', 0.49 * n, C.muted, true]
+    ];
+    hi = Math.max(10, Math.ceil(Math.max(n, lg(n * T)) + 2));
+    Lab.label(x1, '各种办法需要的步数（横轴：以 2 为底的对数，每多 1 格步数翻一倍）', 320, 112, C.ink2, 'center', 13);
+    for (i = 0; i < bars.length; i++) {
+      by = 128 + i * 50;
+      Lab.label(x1, bars[i][0], bx + 6, by + 6, C.ink2, 'left', 12.5);
+      Lab.label(x1, '≈ 2^' + Lab.fmt(bars[i][1], 3) + '（' + Lab.big(Math.pow(2, bars[i][1])) + '）', bx + bw, by + 6, C.ink2, 'right', 12.5);
+      x1.globalAlpha = bars[i][3] ? 0.45 : 0.9; x1.fillStyle = bars[i][2];
+      x1.fillRect(bx, by + 16, Math.max(2, (bars[i][1] / hi) * bw), 20);
+      x1.globalAlpha = 1;
+      if (bars[i][3]) { x1.setLineDash([4, 3]); x1.strokeStyle = bars[i][2]; x1.lineWidth = 1.5; x1.strokeRect(bx + 0.5, by + 16.5, Math.max(2, (bars[i][1] / hi) * bw), 20); x1.setLineDash([]); }
+    }
+    Lab.line(x1, bx + 0.5, 136, bx + 0.5, 128 + 4 * 50 + 40, C.muted, 1);
+    var ticks = Lab.ticks(0, hi, 8);
+    for (i = 0; i < ticks.length; i++) Lab.label(x1, String(ticks[i]), bx + ticks[i] / hi * bw, 128 + 4 * 50 + 52, C.muted, 'center', 11.5);
+    /* 读数 */
+    s = 'n = ' + n + '，数的大小在 1 到 2^' + bits + ' 之间；目标 T = ' + Lab.big(T) + '（所有数之和 ' + Lab.big(S) + '）\n';
+    if (report.brute) s += '暴力枚举：' + (report.brute.skip || ((report.brute.found ? '找到了' : '没有解') + '；试了 ' + Lab.big(report.brute.steps) + ' 种挑法；用时 ' + Lab.fmt(report.brute.ms, 3) + ' 毫秒')) + '\n';
+    if (report.mitm) s += '折半相遇：' + (report.mitm.found ? '找到了' : '没有解') + '；左半列出 ' + Lab.big(report.mitm.nA) + ' 个和、右半 ' + Lab.big(report.mitm.nB) + ' 个；总共约 ' + Lab.big(report.mitm.steps) + ' 步；用时 ' + Lab.fmt(report.mitm.ms, 3) + ' 毫秒\n';
+    if (report.mitm && report.mitm.found) { var chk = 0; for (i = 0; i < n; i++) if (used && used[i]) chk += a[i]; s += '核对：选中的数加起来 = ' + Lab.big(chk) + (chk === T ? '，恰好等于 T ✓' : '，和 T 不一样 ✗') + '\n'; }
+    if (report.dp) s += '动态规划：' + (report.dp.skip || ((report.dp.found ? '凑得出来' : '凑不出来') + '；约 ' + Lab.big(report.dp.steps) + ' 步；用时 ' + Lab.fmt(report.dp.ms, 3) + ' 毫秒')) + '\n';
+    if (report.brute && report.mitm && !report.brute.skip && report.brute.found !== report.mitm.found) s += '⚠ 暴力枚举和折半相遇的结论不一致！\n';
+    if (report.dp && !report.dp.skip && report.mitm && report.dp.found !== report.mitm.found) s += '⚠ 动态规划和折半相遇的结论不一致！\n';
+    s += '\n按每秒 10 亿步估算：\n';
+    s += '  现在这道题：暴力 ' + dur(Math.pow(2, n) / 1e9) + '，折半 ' + dur(mitmMax(n) / 1e9) + '（最多）\n';
+    s += '  如果 n = 60：暴力 ' + dur(Math.pow(2, 60) / 1e9) + '，折半 ' + dur(mitmMax(60) / 1e9) + '（最多）\n';
+    s += '  如果 n = 100：暴力 ' + dur(Math.pow(2, 100) / 1e9) + '，折半 ' + dur(mitmMax(100) / 1e9) + '（最多）';
+    out.html(s);
+  }
+
+  newProblem(); draw();
+})();
+</script>

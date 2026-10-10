@@ -1,0 +1,215 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>先选图：$K_n$（$n$ 个点两两相连），或 $K_{m,n}$（红点 $m$ 个、蓝点 $n$ 个，红蓝之间两两相连，同色之间不连）。点是<b>可以用鼠标拖动的</b>；红色小圆点标出每一个交叉处，右边实时数着交叉总数。</li>
+<li>选 $K_{3,3}$ 看"三栋房子、三口井"的老谜题：每栋房子都要修一条路通到每口井，而且路不许交叉。默认的两列摆法有 9 个交叉，拖一拖，你能降到几？</li>
+<li>对 $K_{m,n}$ 点"Zarankiewicz 画法"：红点分在横轴两侧，蓝点分在竖轴两侧——这就是公式背后的那个画法。把它的交叉数和公式比一比，再试着拖动点，看能不能比它更少。</li>
+<li>选 $K_n$，点"圆周"，再点"自动减少交叉"（随机搜索，每次约 2 秒，多点几次会继续改进）。把 $n$ 从 5 一路试到 10，对照右边的公式与已知最优值。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>围成一圈的 $K_n$，交叉数恰好是 $\binom n4$：每选 4 个点，就恰好有一对"对角线"交叉一次。$n=5,6,7,8$ 时是 $5,\ 15,\ 35,\ 70$——比最优值（$1,\ 3,\ 9,\ 18$）大得多，所以"摆成圆"是很糟糕的画法。</p>
+<p>用自动搜索，在 $K_5,K_6,K_7$ 上总能得到 $1,3,9$，在 $K_9$ 上得到 36，都和公式吻合。但 $K_8$ 上它每次都停在 19，而不是公式的 18。这不是程序不够聪明：<b>直线边的 $K_8$ 最少就是 19</b>（据我所知这是已知结果），公式里的 18 要让边<b>弯曲</b>才能做到。$K_{10}$ 更明显：公式是 60，直线画法的最优是 62，而这个简单的随机搜索通常只能到 64 左右——图越大，搜索越吃力。</p>
+<p>再看 $K_{m,n}$：Zarankiewicz 画法的交叉数<b>恰好等于</b>公式，用的还是直线边；自动搜索在 $K_{3,3}$、$K_{5,5}$ 上能追平它（1 和 16），但没有一次比它更低——这与 Kleitman 的定理一致。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>交叉数 $\mathrm{cr}(G)$ 是把图 $G$ 画在平面上（边可以弯曲，不许穿过别的顶点）时，边与边交叉次数的最小值。两个简单事实：$K_5$ 与 $K_{3,3}$ 不能无交叉地画出（Kuratowski），所以它们的交叉数都是 1；$K_n$ 里任选 5 个点就含一个 $K_5$，至少有一个交叉，而一个交叉只涉及 4 个点、被 $n-4$ 个 5 点组数到，因此 $\mathrm{cr}(K_n)\ge \binom n4/5$（$n=6$ 时恰好给出正确的 3）。</p>
+<p>Harary–Hill 猜想（1963）：$\mathrm{cr}(K_n)=\frac14\lfloor\frac n2\rfloor\lfloor\frac{n-1}2\rfloor\lfloor\frac{n-2}2\rfloor\lfloor\frac{n-3}2\rfloor$。据我所知，它只被证明到 $n\le 12$。Zarankiewicz 猜想（1954）：$\mathrm{cr}(K_{m,n})=\lfloor\frac m2\rfloor\lfloor\frac{m-1}2\rfloor\lfloor\frac n2\rfloor\lfloor\frac{n-1}2\rfloor$，Kleitman（1970）证明了 $\min(m,n)\le6$ 的情形。后者源于 Turán 在二战期间的砖厂：从 $m$ 个窑到 $n$ 个仓库的轨道，交叉处最容易翻车。页面下方列出的问题 165，稿件宣称：这两个公式对所有 $m,n$ 都成立。这是稿件的宣称，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var W = 640, H = 420, cv = Lab.canvas(stage, W, H), ctx = cv.ctx;
+  var type = 'K', nK = 5, mA = 3, nB = 3;
+  var X = new Float64Array(0), Y = new Float64Array(0), grp = [], EA = [], EB = [], adj = [], note = '';
+  var RECT = { 4: 0, 5: 1, 6: 3, 7: 9, 8: 19, 9: 36, 10: 62 };    // 直线画法（边为线段）的最优交叉数
+  function HH(n) { return Math.floor(n / 2) * Math.floor((n - 1) / 2) * Math.floor((n - 2) / 2) * Math.floor((n - 3) / 2) / 4; }
+  function ZZ(m, n) { return Math.floor(m / 2) * Math.floor((m - 1) / 2) * Math.floor(n / 2) * Math.floor((n - 1) / 2); }
+
+  var sType = Lab.select(panel, { label: '要画的图', value: 'K', options: [['K', '完全图 Kₙ'], ['B', '完全二部图 K(m,n)']], onChange: function (v) { type = v; sync(); build('default'); } });
+  var sK = Lab.slider(panel, { label: '点数 n', min: 4, max: 10, step: 1, value: 5, onInput: function (v) { nK = v; build('default'); } });
+  var sA = Lab.slider(panel, { label: '红点个数 m', min: 2, max: 8, step: 1, value: 3, onInput: function (v) { mA = v; build('default'); } });
+  var sB = Lab.slider(panel, { label: '蓝点个数 n', min: 2, max: 8, step: 1, value: 3, onInput: function (v) { nB = v; build('default'); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '圆周 / 两列', function () { build('default'); });
+  Lab.button(row, '🎲 随机摆', function () { build('random'); });
+  Lab.button(row, '自动减少交叉', function () { anneal(2000); }, 'pri');
+  var row2 = Lab.row(panel);
+  var bZar = Lab.button(row2, 'Zarankiewicz 画法（K(m,n)）', function () { build('zar'); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：交叉数只在"没有点重叠、没有点压在别的边上"时才算数；自动搜索会尽量避开这些情形。拖动时请自己留意。');
+  function sync() {
+    sK.el.parentNode.style.display = type === 'K' ? '' : 'none';
+    sA.el.parentNode.style.display = type === 'B' ? '' : 'none';
+    sB.el.parentNode.style.display = type === 'B' ? '' : 'none';
+    bZar.style.display = type === 'B' ? '' : 'none';
+  }
+  Lab.onTheme(draw);
+
+  /* ---------- 图的构造与摆放 ---------- */
+  function build(kind) {
+    var i, j, V;
+    EA = []; EB = []; grp = []; note = '';
+    if (type === 'K') {
+      for (i = 0; i < nK; i++) { grp.push(0); for (j = i + 1; j < nK; j++) { EA.push(i); EB.push(j); } }
+    } else {
+      for (i = 0; i < mA; i++) grp.push(0);
+      for (j = 0; j < nB; j++) grp.push(1);
+      for (i = 0; i < mA; i++) for (j = 0; j < nB; j++) { EA.push(i); EB.push(mA + j); }
+    }
+    V = grp.length;
+    adj = []; for (i = 0; i < V; i++) adj.push([]);
+    for (i = 0; i < EA.length; i++) { adj[EA[i]].push(EB[i]); adj[EB[i]].push(EA[i]); }
+    X = new Float64Array(V); Y = new Float64Array(V);
+    place(kind);
+    draw();
+  }
+  function place(kind) {
+    var V = grp.length, i, cx = W / 2, cy = H / 2;
+    if (kind === 'random') {
+      for (i = 0; i < V; i++) { X[i] = 40 + Math.random() * (W - 80); Y[i] = 40 + Math.random() * (H - 80); }
+    } else if (kind === 'zar' && type === 'B') {
+      var ra = Math.ceil(mA / 2), la = mA - ra, tb = Math.ceil(nB / 2), bb = nB - tb, ux = 270 / Math.max(ra, la, 1), uy = 170 / Math.max(tb, bb, 1), k, right;
+      for (i = 0; i < mA; i++) { right = i < ra; k = right ? i : i - ra; X[i] = cx + (right ? 1 : -1) * (k + 1) * ux; Y[i] = cy; }
+      for (i = 0; i < nB; i++) { right = i < tb; k = right ? i : i - tb; X[mA + i] = cx; Y[mA + i] = cy + (right ? 1 : -1) * (k + 1) * uy; }
+    } else if (type === 'K') {
+      for (i = 0; i < V; i++) { var a = 2 * Math.PI * i / V - Math.PI / 2; X[i] = cx + 170 * Math.cos(a); Y[i] = cy + 170 * Math.sin(a); }
+    } else {
+      for (i = 0; i < mA; i++) { X[i] = 180; Y[i] = 50 + (H - 100) * (mA === 1 ? 0.5 : i / (mA - 1)); }
+      for (i = 0; i < nB; i++) { X[mA + i] = 460; Y[mA + i] = 50 + (H - 100) * (nB === 1 ? 0.5 : i / (nB - 1)); }
+    }
+  }
+
+  /* ---------- 几何：交叉的判定与计数 ---------- */
+  function ori(ax, ay, bx, by, cx, cy) { return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax); }
+  function inter(a, b, c, d) {
+    var ax = X[a], ay = Y[a], bx = X[b], by = Y[b], cx = X[c], cy = Y[c], dx = X[d], dy = Y[d];
+    if (ori(cx, cy, dx, dy, ax, ay) * ori(cx, cy, dx, dy, bx, by) >= 0) return false;
+    return ori(ax, ay, bx, by, cx, cy) * ori(ax, ay, bx, by, dx, dy) < 0;
+  }
+  function total() {
+    var e, f, c = 0, a, b;
+    for (e = 0; e < EA.length; e++) for (f = e + 1; f < EA.length; f++) {
+      a = EA[f]; b = EB[f];
+      if (a === EA[e] || a === EB[e] || b === EA[e] || b === EB[e]) continue;
+      if (inter(EA[e], EB[e], a, b)) c++;
+    }
+    return c;
+  }
+  function crossAt(v) {                       // 涉及 v 的各条边的交叉数
+    var cnt = 0, k, w, f, a, b, nb = adj[v];
+    for (k = 0; k < nb.length; k++) {
+      w = nb[k];
+      for (f = 0; f < EA.length; f++) {
+        a = EA[f]; b = EB[f];
+        if (a === v || b === v || a === w || b === w) continue;
+        if (inter(v, w, a, b)) cnt++;
+      }
+    }
+    return cnt;
+  }
+  function distSeg(px, py, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy, t = L > 0 ? ((px - ax) * dx + (py - ay) * dy) / L : 0;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  }
+  function clearOK(v, minD) {                 // v 既不压在别的边上，也没有别的点压在 v 的边上
+    var u, k, f, a, b, V = grp.length, w;
+    for (u = 0; u < V; u++) if (u !== v && Math.hypot(X[u] - X[v], Y[u] - Y[v]) < minD * 1.6) return false;
+    for (k = 0; k < adj[v].length; k++) {
+      w = adj[v][k];
+      for (u = 0; u < V; u++) if (u !== v && u !== w && distSeg(X[u], Y[u], X[v], Y[v], X[w], Y[w]) < minD) return false;
+    }
+    for (f = 0; f < EA.length; f++) {
+      a = EA[f]; b = EB[f];
+      if (a === v || b === v) continue;
+      if (distSeg(X[v], Y[v], X[a], Y[a], X[b], Y[b]) < minD) return false;
+    }
+    return true;
+  }
+  function valid() { for (var v = 0; v < grp.length; v++) if (!clearOK(v, 4)) return false; return true; }
+
+  /* ---------- 随机搜索（模拟退火） ---------- */
+  function anneal(ms) {
+    var V = grp.length, t0 = performance.now(), cur = total(), bestC = cur, bX = X.slice(), bY = Y.slice(), iters = 0, f = 0, el, T, sg, v, ox, oy, before, after, d, gauss, i;
+    function g() { return Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random()); }
+    if (!valid()) { for (i = 0; i < V; i++) { X[i] = 40 + Math.random() * (W - 80); Y[i] = 40 + Math.random() * (H - 80); } cur = total(); bestC = cur; bX = X.slice(); bY = Y.slice(); }
+    while (true) {
+      el = performance.now() - t0; if (el > ms) break;
+      f = el / ms; T = 1.6 * Math.pow(0.08 / 1.6, f); sg = 90 * Math.pow(7 / 90, f);
+      for (i = 0; i < 64; i++) {
+        iters++;
+        v = Math.floor(Math.random() * V); ox = X[v]; oy = Y[v];
+        before = crossAt(v);
+        if (Math.random() < 0.08) { X[v] = 20 + Math.random() * (W - 40); Y[v] = 20 + Math.random() * (H - 40); }
+        else { X[v] = Math.max(20, Math.min(W - 20, ox + sg * g())); Y[v] = Math.max(20, Math.min(H - 20, oy + sg * g())); }
+        after = crossAt(v); d = after - before;
+        if ((d <= 0 || Math.random() < Math.exp(-d / T)) && clearOK(v, 8)) {
+          cur += d;
+          if (cur < bestC) { bestC = cur; bX = X.slice(); bY = Y.slice(); }
+        } else { X[v] = ox; Y[v] = oy; }
+      }
+    }
+    X = bX; Y = bY;
+    note = '自动搜索 ' + Lab.big(iters) + ' 步，得到 ' + bestC + ' 个交叉。';
+    draw();
+  }
+
+  /* ---------- 绘制 ---------- */
+  function draw() {
+    var C = Lab.colors(), V = grp.length, e, f, i, a, b, c, d, cnt = 0, d1, d2, t, px, py, cols = ['#e5484d', '#3b82f6'];
+    cv.clear(C.card);
+    ctx.lineWidth = 1.5; ctx.strokeStyle = C.ink2; ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    for (e = 0; e < EA.length; e++) { ctx.moveTo(X[EA[e]], Y[EA[e]]); ctx.lineTo(X[EB[e]], Y[EB[e]]); }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    for (e = 0; e < EA.length; e++) for (f = e + 1; f < EA.length; f++) {
+      a = EA[e]; b = EB[e]; c = EA[f]; d = EB[f];
+      if (a === c || a === d || b === c || b === d) continue;
+      if (inter(a, b, c, d)) {
+        cnt++;
+        d1 = ori(X[c], Y[c], X[d], Y[d], X[a], Y[a]); d2 = ori(X[c], Y[c], X[d], Y[d], X[b], Y[b]); t = d1 / (d1 - d2);
+        px = X[a] + (X[b] - X[a]) * t; py = Y[a] + (Y[b] - Y[a]) * t;
+        Lab.dot(ctx, px, py, V * EA.length > 700 ? 2.6 : 3.6, '#f59e0b', C.card);
+      }
+    }
+    ctx.lineWidth = 2;
+    for (i = 0; i < V; i++) Lab.dot(ctx, X[i], Y[i], 9, type === 'K' ? C.accent : cols[grp[i]], C.card);
+    Lab.label(ctx, '拖动顶点；黄色小点 = 一个交叉', 14, 16, C.muted, 'left', 12.5);
+
+    var s, ok = valid();
+    if (type === 'K') {
+      s = 'K<sub>' + nK + '</sub>：' + EA.length + ' 条边\n当前交叉数：<b>' + cnt + '</b>\n' +
+        'Harary–Hill 公式的值：<b>' + HH(nK) + '</b>\n' +
+        '把顶点摆成圆周的交叉数：C(' + nK + ',4) = ' + (nK * (nK - 1) * (nK - 2) * (nK - 3) / 24) + '\n' +
+        '直线边的最优值（已知）：<b>' + RECT[nK] + '</b>' + (RECT[nK] !== HH(nK) ? '（比公式大：公式的画法需要弯曲的边）' : '（和公式一致）');
+      if (ok && cnt < HH(nK)) s += '\n<span class="hi">低于公式？请检查是否有点几乎重叠或几乎压在边上。</span>';
+    } else {
+      var sq = mA > 1 && nB > 1 ? ZZ(mA, nB) : 0;
+      s = 'K<sub>' + mA + ',' + nB + '</sub>：' + EA.length + ' 条边\n当前交叉数：<b>' + cnt + '</b>\n' +
+        'Zarankiewicz 公式的值：<b>' + sq + '</b>\n' +
+        '两列摆法的交叉数：C(' + mA + ',2)·C(' + nB + ',2) = ' + (mA * (mA - 1) / 2 * nB * (nB - 1) / 2) +
+        (Math.min(mA, nB) <= 6 ? '\n已被证明（Kleitman，1970）：交叉数就是公式的值' : '\nmin(m,n) ≥ 7 时只有零星几个情形被验证过（据我所知是 Woodall 用计算机做的），一般情形是猜想；稿件宣称已证明');
+      if (ok && cnt < sq) s += '\n<span class="hi">低于公式？请检查是否有点几乎重叠或几乎压在边上。</span>';
+    }
+    if (!ok) s += '\n<span class="no">⚠ 有点重叠或压在边上，这时数出来的交叉数不算数。</span>';
+    if (note) s += '\n' + note;
+    out.html(s);
+  }
+
+  Lab.drag(cv, {
+    down: function (p) {
+      var i, best = -1, bd = 18;
+      for (i = 0; i < grp.length; i++) { var dd = Math.hypot(X[i] - p.x, Y[i] - p.y); if (dd < bd) { bd = dd; best = i; } }
+      return best >= 0 ? { i: best } : null;
+    },
+    move: function (p, s) { X[s.i] = Math.max(14, Math.min(W - 14, p.x)); Y[s.i] = Math.max(14, Math.min(H - 14, p.y)); note = ''; draw(); }
+  });
+
+  sync(); build('default');
+})();
+</script>

@@ -1,0 +1,169 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li><b>编辑距离</b>：把一个字符串改成另一个，每一步只能"改一个字母（替换）、加一个字母（插入）、删一个字母（删除）"，最少要几步？右边两个框里是两个字符串，默认是 kitten 和 sitting。你可以自己改成任意的两个词（比如两个单词、两个人名），看看页面算出来的距离是不是和你想的一样。</li>
+<li>字符串比较短的时候，上图画出完整的<b>动态规划表格</b>：第 $i$ 行第 $j$ 列的数字，是"把第一个串的前 $i$ 个字母，改成第二个串的前 $j$ 个字母"的最少步数；每个格子只需要看左边、上边、左上角三个邻居。蓝色的格子连成的路线，是其中一种最省的改法，右边还列出了每一步做了什么。</li>
+<li>点"随机生成一对 DNA"：先随机造一条由 A、C、G、T 组成的长度为 $L$ 的序列，再让每个位置以"变异率"的概率发生一次突变（替换、插入或删除，三种机会均等），得到第二条。这时上图变成一张<b>热力图</b>：颜色越亮，改动越多；折线是最省的改法，两条白线圈出来的是"对角线附近的带子"。</li>
+<li>页面还演示了一个经典的省力办法：<b>只算带子里的格子</b>。从带宽 1 试起，每次加倍，一旦带子里算出的距离不超过带宽，结果就是精确的（原因见"背后的数学"）。右边会告诉你，这样一共少算了多少个格子。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>① 默认的 kitten → sitting 需要 3 步。</b>k→s（替换）、e→i（替换）、末尾插入 g。表格右下角的数字 3 就是答案；蓝色的路线是一种最省的走法：<b>斜着走</b>表示这一对字母保持不变（数字不变）或替换一次（数字加 1），<b>横着走</b>表示插入第二个串里的一个字母，<b>竖着走</b>表示删除第一个串里的一个字母。最省的走法往往不止一条，页面只画出其中一条。换成别的词试试：intention → execution 是 5，flaw → lawn 是 2，sunday → saturday 是 3（我都对照过标准答案）。</p>
+<p><b>② 距离有一个很容易记住的范围。</b>它至少是两个串的长度之差（多出来的字母总得删掉或补上），至多是较长那个串的长度（全部替换，再补齐）。比如 abc 和空串的距离是 3；同一个词和自己的距离是 0。</p>
+<p><b>③ 随机造出的 DNA 对，距离大约是"变异率 × 长度"的九成左右。</b>$L=300$ 时，我各试了 30 次取平均：变异率 5% 的距离约 13.6，10% 约 26.9，30% 约 72.7。为什么不是整整 $300\times5\%=15$？因为每次"替换"有四分之一的机会碰巧换成了原来那个字母，不算改动；而变异率很高（30%）时，最省的改法还可能比"原来的变异过程"更短。按"每个位置期望 $11/12\cdot$变异率 次改动"估算，5% 时是 13.75，和实测很接近。</p>
+<p><b>④ "只算带子"能省多少，取决于两个串有多像。</b>下面都是 30 次平均：$L=100$、变异率 2%，只算了完整表格的约 9%；$L=300$、5%：约 27%；10%：约 51%；30%：约 139%——<b>比直接算整张表还多</b>，因为距离已经很大，每次翻倍带宽都要重算一遍，最后几乎覆盖了整张表。kitten 和 sitting 这么短的串也一样：页面会告诉你，试带宽 1、2、4 一共算了 98 格，比整张表的 56 格还多。</p>
+<p><b>⑤ 热力图里的"山谷"。</b>上图的颜色，对角线附近最暗（改动少），越往左下角和右上角越亮。两个串像的话，最省的改法（白线）几乎沿着对角线走，大部分格子都和最终答案没有关系——"只算带子"正是抓住了这一点。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>动态规划的规则。</b>设 $D(i,j)$ 是"第一个串的前 $i$ 个字母，变成第二个串的前 $j$ 个字母"的最少步数。最后一步只有三种可能：替换（或保持）、插入、删除，于是 $D(i,j)=\min\{\,D(i-1,j-1)+[a_i\ne b_j],\ D(i,j-1)+1,\ D(i-1,j)+1\,\}$，其中 $[a_i\ne b_j]$ 在两个字母不同时是 1，相同时是 0；边界是 $D(i,0)=i$，$D(0,j)=j$。每个格子只看三个邻居，用时 $O(1)$，所以整张 $n\times m$ 的表要 $O(nm)$ 时间——这就是 Wagner 与 Fischer（1974）的算法。生物信息学里比对基因序列的 Needleman–Wunsch 算法，思想相同。</p>
+<p><b>为什么"只算带子"是精确的？</b>路线上每横着走或竖着走一步，就偏离主对角线一格，同时花掉 1 步。所以如果最少只要 $d$ 步，最省的路线绝不会离对角线超过 $d$ 格——否则光是"偏出去"就已经花了不止 $d$ 步。于是：猜一个带宽 $w$，只算 $|i-j|\le w$ 的格子，用时约 $(2w+1)\,n$；如果算出来的距离 $\le w$，它就是真正的距离（任何走出带子的路线至少要花 $w+1$ 步，不可能更好）；否则把 $w$ 加倍再试。总用时约 $O(n\cdot d)$。据我所知，这是 Ukkonen（1985）的思想；后来 Landau–Vishkin（1989）等人把它进一步做到 $O(n+d^2)$。页面里每一次"距离一致"，都是在拿"带子算法"和"整张表"核对；我另外拿 1500 对随机的短字符串，把表格算法与一个最朴素的递归算法逐对核对过，带子算法与整张表也逐对核对过，没有一对不一致。</p>
+<p><b>为什么没法"精确地快很多"？</b>据我所知：Masek 与 Paterson（1980）把整张表的时间降到 $O(n^2/\log n)$，仅比平方快一点点；而 Backurs 与 Indyk（2015）证明了，如果存在 $O(n^{2-\delta})$ 的精确算法（$\delta>0$），那么计算机科学里一个被广泛相信的猜想——"强指数时间假设"（SETH，大意是：判断一个 $k$-SAT 公式是否可满足，不可能比逐个尝试所有取值快指数倍）——就会被推翻。所以人们转向"近似"：允许 $1+\varepsilon$ 倍的误差。</p>
+<p><b>稿件宣称了什么？</b>问题 121 的稿件宣称：对任意固定的 $\varepsilon$，存在随机算法，用近线性时间（$N^{1+o(1)}$）给出 $(1+\varepsilon)$ 近似；据稿件介绍，此前在近线性时间内只能做到"常数倍"近似，$1+\varepsilon$ 的精度是一个障碍。问题 099 的稿件则宣称：要把"字符串"变成 $\ell_1$ 空间（曼哈顿距离）里的点、使距离大致保持，失真的最优阶是 $\exp\big(\Theta(\sqrt{\log d\,\log\log d})\big)$（$d$ 是字符串长度）。这两个结论都不是本页能演示的：页面实现的只是精确的 $O(nm)$ 动态规划和"带子算法"，没有近似算法，也没有嵌入。稿件的结论是否正确，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 420), x1 = c1.ctx;
+  var A = 'kitten', B = 'sitting', L = 120, mu = 0.05, INF = 1000000;
+
+  /* ---------- 动态规划 ---------- */
+  function lev(a, b) {
+    var la = a.length, lb = b.length, W = lb + 1, D = new Int32Array((la + 1) * W), i, j, c;
+    for (i = 0; i <= la; i++) D[i * W] = i;
+    for (j = 0; j <= lb; j++) D[j] = j;
+    for (i = 1; i <= la; i++) for (j = 1; j <= lb; j++) {
+      c = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      D[i * W + j] = Math.min(D[(i - 1) * W + j - 1] + c, D[(i - 1) * W + j] + 1, D[i * W + j - 1] + 1);
+    }
+    return D;
+  }
+  function backtrace(a, b, D) {
+    var i = a.length, j = b.length, W = b.length + 1, path = [[i, j]], ops = [], c;
+    while (i > 0 || j > 0) {
+      c = (i > 0 && j > 0 && a.charCodeAt(i - 1) !== b.charCodeAt(j - 1)) ? 1 : 0;
+      if (i > 0 && j > 0 && D[i * W + j] === D[(i - 1) * W + j - 1] + c) { ops.push(c ? ['sub', a[i - 1], b[j - 1]] : ['match', a[i - 1], b[j - 1]]); i--; j--; }
+      else if (i > 0 && D[i * W + j] === D[(i - 1) * W + j] + 1) { ops.push(['del', a[i - 1], '']); i--; }
+      else { ops.push(['ins', '', b[j - 1]]); j--; }
+      path.push([i, j]);
+    }
+    return { path: path.reverse(), ops: ops.reverse() };
+  }
+  /* 只算 |i-j| <= w 的"带子"：返回带子里算出的距离（带外当作无穷大）和算了多少格 */
+  function band(a, b, w) {
+    var la = a.length, lb = b.length, W = lb + 1, D = new Int32Array((la + 1) * W).fill(INF), i, j, lo, hi, c, cells = 0, v;
+    for (j = 0; j <= Math.min(lb, w); j++) { D[j] = j; cells++; }
+    for (i = 1; i <= la; i++) {
+      lo = Math.max(0, i - w); hi = Math.min(lb, i + w);
+      for (j = lo; j <= hi; j++) {
+        cells++;
+        if (j === 0) { D[i * W] = i; continue; }
+        c = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+        v = D[(i - 1) * W + j - 1] + c;
+        if (D[(i - 1) * W + j] + 1 < v) v = D[(i - 1) * W + j] + 1;
+        if (D[i * W + j - 1] + 1 < v) v = D[i * W + j - 1] + 1;
+        D[i * W + j] = v;
+      }
+    }
+    return { dist: D[la * W + lb], cells: cells };
+  }
+  function ukkonen(a, b) {
+    var w = 1, tries = [], total = 0, r, mx = Math.max(a.length, b.length);
+    for (;;) {
+      r = band(a, b, w); total += r.cells; tries.push(w);
+      if (r.dist <= w) return { dist: r.dist, w: w, cells: total, tries: tries };
+      if (w >= mx) return { dist: r.dist, w: w, cells: total, tries: tries };
+      w *= 2; if (w > mx) w = mx;
+    }
+  }
+
+  /* ---------- 随机 DNA ---------- */
+  function randDNA(len) { var s = '', i; for (i = 0; i < len; i++) s += 'ACGT'[(Math.random() * 4) | 0]; return s; }
+  function mutate(s, rate) {
+    var out = '', i, r;
+    for (i = 0; i < s.length; i++) {
+      if (Math.random() < rate) {
+        r = Math.random() * 3;
+        if (r < 1) out += 'ACGT'[(Math.random() * 4) | 0];
+        else if (r < 2) out += s[i] + 'ACGT'[(Math.random() * 4) | 0];
+        /* 否则删除这个字母 */
+      } else out += s[i];
+    }
+    return out;
+  }
+
+  /* ---------- 控件 ---------- */
+  var tA = Lab.text(panel, { label: '第一个字符串', value: A, onInput: function (v) { A = v.slice(0, 400); draw(); } });
+  var tB = Lab.text(panel, { label: '第二个字符串', value: B, onInput: function (v) { B = v.slice(0, 400); draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, 'kitten → sitting', function () { setAB('kitten', 'sitting'); });
+  Lab.button(row, 'intention → execution', function () { setAB('intention', 'execution'); });
+  var sL = Lab.slider(panel, { label: 'DNA 长度 L', min: 20, max: 300, step: 10, value: L, fmt: function (v) { return String(v); }, onInput: function (v) { L = v; } });
+  var sM = Lab.slider(panel, { label: '变异率（每个位置发生突变的概率）', min: 0, max: 0.3, step: 0.01, value: mu, fmt: function (v) { return Lab.fmt(100 * v, 0) + '%'; }, onInput: function (v) { mu = v; } });
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '随机生成一对 DNA', function () { var s = randDNA(L); setAB(s, mutate(s, mu)); }, 'pri');
+  var out = Lab.out(panel);
+  Lab.onTheme(function () { draw(); });
+  function setAB(a, b) { A = a; B = b; tA.set(a, true); tB.set(b, true); draw(); }
+
+  /* ---------- 画图 ---------- */
+  function drawTable(D, bt) {
+    var C = Lab.colors(), la = A.length, lb = B.length, W = lb + 1, cs = Math.min(40, Math.floor(540 / (lb + 2)), Math.floor(350 / (la + 2))), x0 = 40, y0 = 40, i, j, onPath = {};
+    bt.path.forEach(function (p) { onPath[p[0] * W + p[1]] = true; });
+    for (j = 0; j < lb; j++) Lab.label(x1, B[j], x0 + (j + 1.5) * cs, y0 - 14, C.ink, 'center', 15);
+    for (i = 0; i < la; i++) Lab.label(x1, A[i], x0 - 14, y0 + (i + 1.5) * cs, C.ink, 'center', 15);
+    for (i = 0; i <= la; i++) for (j = 0; j <= lb; j++) {
+      x1.fillStyle = onPath[i * W + j] ? C.accent : C.soft;
+      x1.globalAlpha = onPath[i * W + j] ? 0.9 : 0.6;
+      x1.fillRect(x0 + j * cs + 1, y0 + i * cs + 1, cs - 2, cs - 2);
+      x1.globalAlpha = 1;
+      Lab.label(x1, String(D[i * W + j]), x0 + (j + 0.5) * cs, y0 + (i + 0.5) * cs, onPath[i * W + j] ? C.accentInk : C.ink, 'center', cs > 28 ? 14 : 12);
+    }
+  }
+  function drawHeat(D, bt, res) {
+    var C = Lab.colors(), la = A.length, lb = B.length, W = lb + 1, bm = Lab.bitmap(lb + 1, la + 1), i, j, t, rgb, vmax = Math.max(la, lb, 1), S = Math.min(370 / (la + 1), 370 / (lb + 1)), x0 = Math.round((640 - (lb + 1) * S) / 2), y0 = 24, w = res.w;
+    for (i = 0; i <= la; i++) for (j = 0; j <= lb; j++) {
+      t = Math.min(1, D[i * W + j] / vmax);
+      rgb = Lab.rgb(220 - 190 * t, 60, 22 + 40 * t);
+      bm.data[(i * (lb + 1) + j) * 4] = rgb[0]; bm.data[(i * (lb + 1) + j) * 4 + 1] = rgb[1]; bm.data[(i * (lb + 1) + j) * 4 + 2] = rgb[2]; bm.data[(i * (lb + 1) + j) * 4 + 3] = 255;
+    }
+    bm.flush(); bm.blit(x1, x0, y0, (lb + 1) * S, (la + 1) * S);
+    x1.strokeStyle = '#ffffff'; x1.globalAlpha = 0.85; x1.lineWidth = 1.2; x1.beginPath();
+    bt.path.forEach(function (p, k) { var px = x0 + (p[1] + 0.5) * S, py = y0 + (p[0] + 0.5) * S; if (k === 0) x1.moveTo(px, py); else x1.lineTo(px, py); });
+    x1.stroke(); x1.globalAlpha = 1;
+    if (w < Math.min(la, lb)) {
+      x1.setLineDash([4, 3]);
+      Lab.line(x1, x0 + w * S, y0, x0 + Math.min(lb, la + w) * S, y0 + Math.min(la, lb - w) * S, C.good, 1.6);
+      Lab.line(x1, x0, y0 + w * S, x0 + Math.min(lb, la - w) * S, y0 + Math.min(la, lb + w) * S, C.good, 1.6);
+      x1.setLineDash([]);
+    }
+    Lab.label(x1, '第二个字符串 →（列）；第一个字符串 ↓（行）', x0 + (lb + 1) * S / 2, y0 - 10, C.muted, 'center', 11.5);
+    Lab.label(x1, '白线：一种最省的改法；绿色虚线：带宽 ' + w + ' 的带子的边界' + (w < Math.min(la, lb) ? '' : '（已覆盖整张表）'), 320, y0 + (la + 1) * S + 16, C.muted, 'center', 11.5);
+  }
+  function summarize(bt, dist) {
+    var tally = { match: 0, sub: 0, ins: 0, del: 0 }, s = '';
+    bt.ops.forEach(function (o) { tally[o[0]]++; });
+    s += '最省的一种改法：保持 ' + tally.match + ' 个，替换 ' + tally.sub + ' 个，插入 ' + tally.ins + ' 个，删除 ' + tally.del + ' 个（共 ' + (tally.sub + tally.ins + tally.del) + ' 步）\n';
+    return s;
+  }
+  function draw() {
+    var C = Lab.colors(), la = A.length, lb = B.length, D, bt, res, small = la <= 12 && lb <= 12, full, s, dist;
+    c1.clear(C.card);
+    D = lev(A, B); dist = D[la * (lb + 1) + lb]; bt = backtrace(A, B, D); res = ukkonen(A, B);
+    if (small) drawTable(D, bt); else drawHeat(D, bt, res);
+    full = (la + 1) * (lb + 1);
+    s = '|A| = ' + la + '，|B| = ' + lb + '；编辑距离 = ' + dist + '\n';
+    if (small) { s += '改法：'; s += bt.ops.map(function (o) { return o[0] === 'match' ? '保持 ' + o[1] : o[0] === 'sub' ? o[1] + '→' + o[2] : o[0] === 'ins' ? '插入 ' + o[2] : '删除 ' + o[1]; }).join('，') + '\n'; }
+    else s += summarize(bt, dist);
+    s += '完整表格要算 ' + Lab.big(full) + ' 格\n';
+    s += '带子算法：试带宽 ' + res.tries.join('、') + '，共算 ' + Lab.big(res.cells) + ' 格（完整表格的 ' + Lab.fmt(100 * res.cells / full, 1) + '%）' + (res.dist === dist ? '，距离一致' : '，距离不一致！') + (res.cells > full ? '\n（反复翻倍带宽，反而比直接算整张表还多。）' : '');
+    out.html(s);
+    if (small) Lab.label(x1, '行：第一个串的前 i 个字母；列：第二个串的前 j 个字母；蓝色格子是一条最省的路线', 20, 400, C.muted, 'left', 11.5);
+  }
+
+  draw();
+})();
+</script>

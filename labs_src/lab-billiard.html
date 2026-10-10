@@ -1,0 +1,202 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>先选桌面形状。<b>在上方的桌面上按住并拖动</b>：按下的位置是球的出发点，拖出去的方向是球的发射方向，松手后球就开始弹，路径被画出来（弹跳次数用滑块调整）。</li>
+<li>下方是"相图"：横轴是球碰到桌边的位置（沿边界走一圈，归一化到 0~1），纵轴 $p\in[-1,1]$ 是出射方向沿桌边的分量（$p=0$ 是垂直弹出，$p$ 接近 $\pm1$ 是"擦边球"）。每一种颜色是同一个起点连续弹 300 次留下的点。<b>点相图任意位置</b>，就用这个状态出发，并把对应的路径画到桌面上。</li>
+<li>试"圆"和"椭圆"：相图里的点排成一条条整齐的曲线，球的路径总与某条固定的曲线（焦散线）相切——圆里是个小圆，椭圆里是共焦的椭圆或双曲线。</li>
+<li>试"体育场"：相图里一大片点混在一起，路径毫无规律，只有少数轨道（比如在两条平行边之间来回弹的）还保持规律。再试"微扰的圆"，把凹凸幅度 $\varepsilon$ 从 0 慢慢拉大，看<b>靠近上、下边缘（擦边球）的那些整齐曲线能活多久</b>。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>圆和椭圆是"可积"的：相图被整齐的曲线一层层分开，没有混沌。体育场是典型的混沌桌面。而微扰的圆介于两者之间：靠近边缘（$|p|$ 接近 1）的地方，整齐的曲线仍然顽强地存在（这是 Lazutkin 的结果：光滑、严格凸、曲率为正的桌面，靠近边界总有很多焦散线）；但中间部分，整齐曲线和混沌岛交织在一起——并不是所有地方都被整齐地分层。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>Birkhoff 猜想：只有椭圆（含圆）台球桌是可积的。"近边界版本"说：只要靠近边缘的一整圈（擦边球区域）被不变曲线<b>整齐地分层</b>，桌子就必须是椭圆。注意"整齐分层"是个很强的要求：一般桌面靠近边缘虽然有很多不变曲线，但它们之间留有缝隙（里面是小岛和混沌），并没有填满一整圈。页面下方列出的问题 147，稿件宣称证明了这个近边界版本，并说只要有一圈连续排列的光滑闭凸焦散线构成的"领子"就足够了。这是稿件的宣称，需要独立审查。</p>
+<p>另一个相关问题是三角形台球：如果三角形的三个角都是 $\pi$ 的有理倍数，可以把反射"展开"成直线运动，转化成平移曲面上的流；问题 150 的稿件宣称对至少有一个无理角的三角形，台球流（相对面积测度）是弱混合的。本页没有画三角形，因为"角是不是 $\pi$ 的无理倍数"用屏幕上的有限小数是区分不出来的。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 300), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 290), x2 = c2.ctx;
+  var shape = 'ellipse', par = 0.6, nb = 120, R = null, Rp = null, Rmax = 1, sc = 100, cx0 = 320, cy0 = 150, Ltot = 1, sTab = null, MM = 3000;
+  var seeds = [], seedPts = [], init = null, path = [], phaseTrk = [], preview = null, TAU = 2 * Math.PI;
+
+  var sSh = Lab.select(panel, {
+    label: '桌面形状', value: 'ellipse',
+    options: [['circle', '圆'], ['ellipse', '椭圆'], ['stadium', '体育场（两个半圆夹一个长方形）'], ['bumpy', '微扰的圆 r = 1 + ε·cos 3θ']],
+    onChange: function (v) { shape = v; setPar(); rebuild(); }
+  });
+  var sP = Lab.slider(panel, { label: '椭圆扁度 b/a', min: 0.3, max: 0.98, step: 0.01, value: 0.6, fmt: function (v) { return Lab.fmt(v, 2); }, onInput: function (v) { par = v; rebuild(); } });
+  var sNb = Lab.slider(panel, { label: '桌面上画几次反弹', min: 5, max: 600, step: 5, value: 120, onInput: function (v) { nb = v; simulate(); draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '🎲 随机发射一颗', function () { launchRandom(); }, 'pri');
+  Lab.button(row, '换一批相图起点', function () { genSeeds(); computeSeeds(); draw(); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：相图的横轴是边界上的弧长位置，所以相图和桌面的形状一一对应；反射是严格的"入射角等于反射角"，数值上用二分法求落点，长时间之后会有极小的误差累积。');
+  Lab.onTheme(draw);
+
+  function setPar() {
+    var lab = sP.el.parentNode.firstChild, el = sP.el;
+    sP.el.parentNode.style.display = shape === 'circle' ? 'none' : '';
+    el.step = 0.01;
+    if (shape === 'ellipse') { lab.innerHTML = '椭圆扁度 b/a'; el.min = 0.3; el.max = 0.98; par = 0.6; }
+    else if (shape === 'stadium') { lab.innerHTML = '直线段的半长 L'; el.min = 0.2; el.max = 2.4; par = 1; }
+    else if (shape === 'bumpy') { lab.innerHTML = '凹凸幅度 ε'; el.min = 0; el.max = 0.09; el.step = 0.005; par = 0.04; }
+    sP.set(par, true);
+  }
+
+  /* ---------- 形状 ---------- */
+  function buildShape() {
+    var a = 1, b, L, e, i, t, x, y, xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9, rr;
+    if (shape === 'circle') R = function () { return 1; };
+    else if (shape === 'ellipse') { b = par; R = function (t) { var c = Math.cos(t), s = Math.sin(t); return a * b / Math.sqrt(b * b * c * c + a * a * s * s); }; }
+    else if (shape === 'stadium') {
+      L = par;
+      R = function (t) {
+        var c = Math.cos(t), s = Math.sin(t), as = Math.abs(s), cc, uc;
+        if (as > 1e-12 && Math.abs(c) / as <= L) return 1 / as;
+        cc = c >= 0 ? L : -L; uc = c * cc;
+        return uc + Math.sqrt(Math.max(0, uc * uc - L * L + 1));
+      };
+    } else { e = par; R = function (t) { return 1 + e * Math.cos(3 * t); }; }
+    Rp = function (t) { var h = 1e-5; return (R(t + h) - R(t - h)) / (2 * h); };
+    sTab = new Float64Array(MM + 1); Rmax = 0; var px = R(0), py = 0;
+    for (i = 1; i <= MM; i++) {
+      t = TAU * i / MM; rr = R(t); x = rr * Math.cos(t); y = rr * Math.sin(t);
+      sTab[i] = sTab[i - 1] + Math.hypot(x - px, y - py); px = x; py = y;
+      if (rr > Rmax) Rmax = rr; xmin = Math.min(xmin, x); xmax = Math.max(xmax, x); ymin = Math.min(ymin, y); ymax = Math.max(ymax, y);
+    }
+    Ltot = sTab[MM];
+    sc = Math.min(580 / (xmax - xmin), 236 / (ymax - ymin));
+    cx0 = 320 - sc * (xmax + xmin) / 2; cy0 = 160 + sc * (ymax + ymin) / 2;
+  }
+  function sOf(th) { th = th - TAU * Math.floor(th / TAU); var u = th / TAU * MM, i = Math.floor(u), f = u - i; if (i >= MM) return 0; return (sTab[i] + (sTab[i + 1] - sTab[i]) * f) / Ltot; }
+  function thOf(s) {                       // s ∈ [0,1) → 极角
+    var target = (s - Math.floor(s)) * Ltot, lo = 0, hi = MM, mid;
+    while (hi - lo > 1) { mid = (lo + hi) >> 1; if (sTab[mid] <= target) lo = mid; else hi = mid; }
+    return TAU * (lo + (target - sTab[lo]) / Math.max(1e-12, sTab[lo + 1] - sTab[lo])) / MM;
+  }
+  function bpoint(th) { var r = R(th); return [r * Math.cos(th), r * Math.sin(th)]; }
+  function normalAt(th) {
+    var r = R(th), rp = Rp(th), c = Math.cos(th), s = Math.sin(th), nx = c + (rp / r) * s, ny = s - (rp / r) * c, L = Math.hypot(nx, ny);
+    return [nx / L, ny / L];
+  }
+  function hit(px, py, dx, dy) {
+    var lo = 1e-9, hi = 2 * Rmax * 1.01 + 1e-3, k, mid;
+    function f(t) { var x = px + t * dx, y = py + t * dy; return Math.hypot(x, y) - R(Math.atan2(y, x)); }
+    if (f(lo) >= 0) { lo = 1e-7; if (f(lo) >= 0) return 0; }
+    for (k = 0; k < 60; k++) { mid = (lo + hi) / 2; if (f(mid) < 0) lo = mid; else hi = mid; }
+    return (lo + hi) / 2;
+  }
+  /* 从 (px,py) 出发，方向 (dx,dy)，弹 n 次；返回 {pts:[[x,y]...], ph:[[s,p]...]} */
+  function run(px, py, dx, dy, n) {
+    var pts = [[px, py]], ph = [], i, t, qx, qy, th, nn, dn, tx, ty, q;
+    for (i = 0; i < n; i++) {
+      t = hit(px, py, dx, dy); if (t <= 0) break;
+      qx = px + t * dx; qy = py + t * dy; th = Math.atan2(qy, qx);
+      q = bpoint(th); qx = q[0]; qy = q[1];
+      nn = normalAt(th); dn = dx * nn[0] + dy * nn[1];
+      dx -= 2 * dn * nn[0]; dy -= 2 * dn * nn[1];
+      tx = -nn[1]; ty = nn[0];
+      ph.push([sOf(th), Math.max(-1, Math.min(1, dx * tx + dy * ty))]);
+      pts.push([qx, qy]); px = qx; py = qy;
+    }
+    return { pts: pts, ph: ph };
+  }
+  function fromPhase(s, p) {
+    var th = thOf(s), q = bpoint(th), nn = normalAt(th), tx = -nn[1], ty = nn[0], c = Math.sqrt(Math.max(0, 1 - p * p));
+    return { px: q[0], py: q[1], dx: p * tx - c * nn[0], dy: p * ty - c * nn[1] };
+  }
+
+  /* ---------- 相图的种子 ---------- */
+  function genSeeds() {
+    var r = Lab.rng(Math.floor(Math.random() * 1e9)), i;
+    seeds = [];
+    for (i = 0; i < 28; i++) seeds.push([r(), r() * 2 - 1]);
+    for (i = 0; i < 8; i++) { seeds.push([r(), 0.9 + 0.09 * i / 7]); seeds.push([r(), -0.9 - 0.09 * i / 7]); }
+  }
+  function computeSeeds() {
+    seedPts = seeds.map(function (sd) { var o = fromPhase(sd[0], sd[1]), res = run(o.px, o.py, o.dx, o.dy, 300); return res.ph; });
+  }
+  function rebuild() {
+    buildShape(); computeSeeds();
+    init = null; path = []; phaseTrk = [];
+    launchRandom();
+  }
+  function launchRandom() {
+    var o = fromPhase(Math.random(), (Math.random() * 2 - 1) * 0.8);
+    init = o; simulate(); draw();
+  }
+  function simulate() {
+    if (!init) return;
+    var res = run(init.px, init.py, init.dx, init.dy, nb);
+    path = res.pts; phaseTrk = res.ph;
+  }
+
+  /* ---------- 绘制 ---------- */
+  function X(x) { return cx0 + sc * x; }
+  function Y(y) { return cy0 - sc * y; }
+  function inside(x, y) { return Math.hypot(x, y) < R(Math.atan2(y, x)); }
+  function draw() {
+    var C = Lab.colors(), i, k, th, q, dark = Lab.isDark(), box = { x: 56, y: 16, w: 560, h: 236 }, ax, rgb, pts;
+    c1.clear(C.card);
+    x1.beginPath();
+    for (i = 0; i <= 720; i++) { th = TAU * i / 720; q = bpoint(th); if (i === 0) x1.moveTo(X(q[0]), Y(q[1])); else x1.lineTo(X(q[0]), Y(q[1])); }
+    x1.closePath(); x1.fillStyle = C.bg; x1.fill(); x1.strokeStyle = C.ink2; x1.lineWidth = 2.4; x1.stroke();
+    if (path.length > 1) {
+      x1.lineWidth = 1; x1.strokeStyle = C.accent; x1.globalAlpha = path.length > 150 ? 0.5 : 0.85; x1.beginPath();
+      for (i = 0; i < path.length; i++) { if (i === 0) x1.moveTo(X(path[i][0]), Y(path[i][1])); else x1.lineTo(X(path[i][0]), Y(path[i][1])); }
+      x1.stroke(); x1.globalAlpha = 1;
+      Lab.dot(x1, X(path[0][0]), Y(path[0][1]), 4.5, C.bad, C.card);
+    }
+    if (preview) { Lab.arrow(x1, preview.sx, preview.sy, preview.ex, preview.ey, C.warn, 2); Lab.dot(x1, preview.sx, preview.sy, 4.5, C.bad, C.card); }
+    Lab.label(x1, '在桌面上按住拖动 = 发射一颗球（按下处是起点，拖出的方向是方向）', 10, 14, C.muted, 'left', 12);
+
+    c2.clear(C.card);
+    ax = Lab.axes(x2, box, [0, 1], [-1, 1], { nx: 5, ny: 4, xlabel: '落点在边界上的位置 s（走一圈 = 0~1）', ylabel: '出射方向分量 p', fx: function (v) { return Lab.fmt(v, 1); }, fy: function (v) { return Lab.fmt(v, 1); } });
+    for (i = 0; i < seedPts.length; i++) {
+      rgb = Lab.rgb((i * 47) % 360, 78, dark ? 64 : 44);
+      x2.fillStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+      pts = seedPts[i];
+      for (k = 0; k < pts.length; k++) x2.fillRect(ax.X(pts[k][0]) - 0.7, ax.Y(pts[k][1]) - 0.7, 1.5, 1.5);
+    }
+    x2.fillStyle = '#e5484d';
+    for (k = 0; k < phaseTrk.length; k++) x2.fillRect(ax.X(phaseTrk[k][0]) - 1.6, ax.Y(phaseTrk[k][1]) - 1.6, 3.2, 3.2);
+    Lab.label(x2, '红点：桌面上那颗球的状态；点这里 = 以这个状态出发', box.x + 8, box.y + 10, C.ink2, 'left', 12);
+    c2.cv.style.cursor = 'crosshair';
+    out.html('形状：' + (shape === 'circle' ? '圆' : shape === 'ellipse' ? '椭圆 b/a = ' + Lab.fmt(par, 2) : shape === 'stadium' ? '体育场 L = ' + Lab.fmt(par, 2) : '微扰的圆 ε = ' + Lab.fmt(par, 3)) +
+      '\n桌面上这颗球已弹 ' + Math.max(0, path.length - 1) + ' 次\n相图里的灰彩点：共 ' + seedPts.length + ' 个起点，各弹 300 次');
+  }
+
+  /* ---------- 交互 ---------- */
+  Lab.drag(c1, {
+    down: function (p) {
+      var mx = (p.x - cx0) / sc, my = -(p.y - cy0) / sc;
+      if (!inside(mx, my)) return null;
+      preview = { sx: p.x, sy: p.y, ex: p.x + 30, ey: p.y };
+      return { mx: mx, my: my };
+    },
+    move: function (p, st) { preview.ex = p.x; preview.ey = p.y; draw(); },
+    up: function (p, st) {
+      var ddx = p.x - preview.sx, ddy = -(p.y - preview.sy), L = Math.hypot(ddx, ddy);
+      if (L < 6) { var a = Math.random() * TAU; ddx = Math.cos(a); ddy = Math.sin(a); L = 1; }
+      init = { px: st.mx, py: st.my, dx: ddx / L, dy: ddy / L }; preview = null;
+      simulate(); draw();
+    }
+  });
+  c2.cv.addEventListener('click', function (e) {
+    var p = c2.pos(e), box = { x: 56, y: 16, w: 560, h: 236 };
+    if (p.x < box.x || p.x > box.x + box.w || p.y < box.y || p.y > box.y + box.h) return;
+    var s = (p.x - box.x) / box.w, pp = 1 - 2 * (p.y - box.y) / box.h;
+    pp = Math.max(-0.999, Math.min(0.999, pp));
+    init = fromPhase(s, pp); simulate(); draw();
+  });
+
+  setPar(); genSeeds(); rebuild();
+})();
+</script>

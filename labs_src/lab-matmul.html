@@ -1,0 +1,160 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>上图左边是两个 $2\times2$ 的数表 $A$ 和 $B$，右边是它们的乘积 $C=AB$。<b>点一下数表里的数</b>，它就加 1（到 3 之后回到 $-3$）；也可以点"随机 $A$、$B$"。右边的文字把乘积的算法列出来：普通的算法，$C$ 的每个数都是"一行乘一列再相加"，一共要做 <b>8 次乘法</b>；1969 年 Strassen 发现了另一套算法，只用 <b>7 次乘法</b>（代价是多做一些加减法）。页面会逐项算出来，并检查两种算法的结果完全一致。</li>
+<li>省一次乘法有什么用？因为大数表可以<b>切块</b>：把 $n\times n$ 的数表切成四个 $\frac n2\times\frac n2$ 的小块，每个小块当成一个"数"，就套用同一套公式。普通算法要做 8 次"小块乘法"，Strassen 只要 7 次；每个小块乘法再继续切……切 $k$ 层，乘法次数是 $8^k$ 与 $7^k$ 的差别。选一个 $n$，点"真的跑一遍"，页面会随机造两个 $n\times n$ 的数表，用 Strassen 的办法算一遍，数出实际做了多少次乘法、多少次加减法，并和普通算法的结果逐项核对。</li>
+<li>中间的图画的是"Strassen 的运算量 ÷ 普通算法的运算量"，横轴是 $n=2^k$。绿线只数乘法，橙线把加减法也算上。下面的数轴标出了人们对"最优的指数 $\omega$"所知道的纪录。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p><b>① 两套算法的结果永远一致。</b>默认的 $A=\begin{pmatrix}1&2\\3&-1\end{pmatrix}$、$B=\begin{pmatrix}2&-1\\0&3\end{pmatrix}$，乘积是 $\begin{pmatrix}2&5\\6&-6\end{pmatrix}$；Strassen 的 7 个乘积依次是 0、4、−4、2、9、2、9，拼出来的四个数和普通算法完全相同。点"随机 $A$、$B$"换很多组，页面末尾永远是"完全一致 ✓"——这不是巧合，而是下面会验证的代数恒等式。</p>
+<p><b>② 乘法次数一层一层地少。</b>点"真的跑一遍"，从 $n=4$ 试到 $n=64$：Strassen 的乘法次数恰好是 $7^k$（$n=2^k$）——49、343、2,401、16,807、117,649，对比普通算法的 $n^3$（64、512、4,096、32,768、262,144），占比依次是 76.6%、67.0%、58.6%、51.3%、44.9%，每多切一层就乘以 $7/8$。</p>
+<p><b>③ 但加减法暴涨，总账不一定划算。</b>$n=64$ 时，Strassen 做了 681,318 次加减法——比它的乘法（117,649 次）多出 5 倍还多，也比普通算法的全部加法（258,048 次）多得多。把乘法和加减法一起算：普通算法 520,192 次，Strassen 798,967 次，Strassen 反而多做了约 54%。看中间的图：<b>橙线要到 $k$ 约 9.4 处（$n$ 约 650）才降到 1 以下</b>；$n=512$ 时 Strassen 还多做 4.7%，$n=1024$ 时才少做 8.2%，$n=16384$ 时是普通算法的 54%。绿线（只数乘法）虽然一直在 1 以下，但它省下的东西，被一堆加减法吃掉了。</p>
+<p><b>④ 数轴上的纪录。</b>最底下的数轴标出了人们对"指数 $\omega$"（大意：$n\times n$ 矩阵相乘，需要大约 $n^{\omega}$ 次运算）的认识：下限是 2（光是写出 $n^2$ 个结果就要这么多步），普通算法是 3，Strassen 把它压到 $\log_27\approx2.807$；据我所知，今天最好的纪录约 2.371。稿件宣称 $\omega\le 9/4=2.25$，那是比目前公认纪录还要大得多的一步，需要独立审查。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p><b>为什么 7 个乘积就够了？</b>设 $A=\begin{pmatrix}a&b\\c&d\end{pmatrix}$、$B=\begin{pmatrix}e&f\\g&h\end{pmatrix}$，普通算法算 $C_{12}=af+bh$ 要 2 次乘法。Strassen 的办法：先算 $M_3=a(f-h)$ 和 $M_5=(a+b)h$，则 $M_3+M_5=af-ah+ah+bh=af+bh$，神奇地和 $C_{12}$ 一样。同样，$M_2=(c+d)e$、$M_4=d(g-e)$ 加起来是 $ce+de+dg-de=ce+dg=C_{21}$。另外两个 $C_{11}$、$C_{22}$ 要把 $M_1,M_6,M_7$ 也用上，需要多展开几行，逐项验证都是成立的（页面里每次都会检查）。关键是：<b>7 个乘积同时凑出 4 个结果，中间"互相抵消"的项靠加减法处理掉</b>，而加减法比乘法"便宜"。</p>
+<p><b>为什么能递归？</b>上面的公式只用到加、减、乘，从来没有用到"乘法交换"（$ab=ba$），所以 $a,b,\dots$ 可以不是数，而是<b>小块的数表</b>（数表乘法不满足交换律，但这些恒等式仍然成立）。把 $n\times n$ 的数表切成四块，用 7 次"$\frac n2\times\frac n2$ 的乘法"加上若干次块的加减，每层加减法的工作量只是 $n^2$ 的量级。于是运算次数满足 $T(n)=7\,T(n/2)+O(n^2)$，解得 $T(n)=O(n^{\log_27})$，$\log_27\approx2.807$；普通算法对应 $T(n)=8\,T(n/2)+O(n^2)$，得到 $n^3$。加减法的工作量按 $n^2$ 增长，比乘法的 $n^{2.8}$ 小，所以 $n$ 足够大时，最终是乘法的次数决定指数——这就是页面中橙线最终会下降的原因。精确地数一数：本页的递归一共做了 $7^k$ 次乘法和 $6(7^k-4^k)$ 次加减法（每层 18 次块加减法），合计 $7\cdot7^k-6\cdot4^k$；而普通算法是 $2n^3-n^2$ 次——这两个公式和页面数出来的结果在 $n=4$ 到 $64$ 全部吻合。</p>
+<p><b>2×2 还能更少吗？</b>据我所知，Winograd（1971）证明了：两个 $2\times2$ 数表相乘，7 次乘法已经是最少的了。真正的突破来自把"块"取得更大：如果能用 $r$ 次乘法算出两个 $k\times k$ 数表的乘积，就能得到 $\omega\le\log_k r$（Strassen 就是 $k=2,\ r=7$）。后来的人们用越来越精巧的"张量"工具把 $\omega$ 一点点降低：据我所知，Coppersmith 与 Winograd（1990）得到约 2.376，近年的改进（Alman、Vassilevska Williams 等人）把它推到约 2.371。到目前为止（据我所知），没有人能证明 $\omega>2$，也没有人能证明 $\omega=2$。</p>
+<p><b>实际用起来呢？</b>据我所知，Strassen 一类的算法在实践中常常只在 $n$ 很大时才用来做最外面几层，里面还是用普通算法，因为小数表的加减法开销、内存访问和数值稳定性都不占优势；而更低指数的那些算法，常数大到只有理论意义（"银河算法"）。这也是页面里"只数运算次数，不比较耗时"的原因。</p>
+<p><b>稿件宣称了什么？</b>问题 107 的稿件宣称 $\omega\le 9/4$。本页只演示 Strassen 的 7 次乘法这个最简单的例子，不涉及稿件的任何构造；稿件的结论是否正确，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 190), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 250), x2 = c2.ctx;
+  var c3 = Lab.canvas(stage, 640, 120), x3 = c3.ctx;
+  var MA = [[1, 2], [3, -1]], MB = [[2, -1], [0, 3]], runInfo = '', geom = [];
+
+  /* ---------- 2×2：普通算法与 Strassen ---------- */
+  function mul2(A, B) { return [[A[0][0] * B[0][0] + A[0][1] * B[1][0], A[0][0] * B[0][1] + A[0][1] * B[1][1]], [A[1][0] * B[0][0] + A[1][1] * B[1][0], A[1][0] * B[0][1] + A[1][1] * B[1][1]]]; }
+  function strassen2(A, B) {
+    var a = A[0][0], b = A[0][1], c = A[1][0], d = A[1][1], e = B[0][0], f = B[0][1], g = B[1][0], h = B[1][1];
+    var M1 = (a + d) * (e + h), M2 = (c + d) * e, M3 = a * (f - h), M4 = d * (g - e), M5 = (a + b) * h, M6 = (c - a) * (e + f), M7 = (b - d) * (g + h);
+    return { M: [M1, M2, M3, M4, M5, M6, M7], C: [[M1 + M4 - M5 + M7, M3 + M5], [M2 + M4, M1 - M2 + M3 + M6]] };
+  }
+
+  /* ---------- n×n：递归的 Strassen，数乘法和加减法 ---------- */
+  function quad(X, n, r, c) { var h = n / 2, Y = new Float64Array(h * h), i, j; for (i = 0; i < h; i++) for (j = 0; j < h; j++) Y[i * h + j] = X[(r * h + i) * n + c * h + j]; return Y; }
+  function addm(X, Y, s, cnt) { var Z = new Float64Array(X.length), i; for (i = 0; i < X.length; i++) Z[i] = X[i] + s * Y[i]; cnt.add += X.length; return Z; }
+  function strassen(A, B, n, cnt) {
+    if (n === 1) { cnt.mul++; return new Float64Array([A[0] * B[0]]); }
+    var h = n / 2, a11 = quad(A, n, 0, 0), a12 = quad(A, n, 0, 1), a21 = quad(A, n, 1, 0), a22 = quad(A, n, 1, 1),
+        b11 = quad(B, n, 0, 0), b12 = quad(B, n, 0, 1), b21 = quad(B, n, 1, 0), b22 = quad(B, n, 1, 1), C = new Float64Array(n * n), i, j,
+        M1 = strassen(addm(a11, a22, 1, cnt), addm(b11, b22, 1, cnt), h, cnt),
+        M2 = strassen(addm(a21, a22, 1, cnt), b11, h, cnt),
+        M3 = strassen(a11, addm(b12, b22, -1, cnt), h, cnt),
+        M4 = strassen(a22, addm(b21, b11, -1, cnt), h, cnt),
+        M5 = strassen(addm(a11, a12, 1, cnt), b22, h, cnt),
+        M6 = strassen(addm(a21, a11, -1, cnt), addm(b11, b12, 1, cnt), h, cnt),
+        M7 = strassen(addm(a12, a22, -1, cnt), addm(b21, b22, 1, cnt), h, cnt),
+        C11 = addm(addm(addm(M1, M4, 1, cnt), M5, -1, cnt), M7, 1, cnt), C12 = addm(M3, M5, 1, cnt), C21 = addm(M2, M4, 1, cnt), C22 = addm(addm(addm(M1, M2, -1, cnt), M3, 1, cnt), M6, 1, cnt);
+    for (i = 0; i < h; i++) for (j = 0; j < h; j++) { C[i * n + j] = C11[i * h + j]; C[i * n + h + j] = C12[i * h + j]; C[(h + i) * n + j] = C21[i * h + j]; C[(h + i) * n + h + j] = C22[i * h + j]; }
+    return C;
+  }
+  function naive(A, B, n) { var C = new Float64Array(n * n), i, j, k, s; for (i = 0; i < n; i++) for (j = 0; j < n; j++) { s = 0; for (k = 0; k < n; k++) s += A[i * n + k] * B[k * n + j]; C[i * n + j] = s; } return C; }
+  function runBig(n) {
+    var A = new Float64Array(n * n), B = new Float64Array(n * n), i, cnt = { mul: 0, add: 0 }, Cs, Cn, bad = 0, t0, t1, tN, tS;
+    for (i = 0; i < n * n; i++) { A[i] = Math.floor(Math.random() * 7) - 3; B[i] = Math.floor(Math.random() * 7) - 3; }
+    t0 = performance.now(); Cn = naive(A, B, n); tN = performance.now() - t0;
+    t0 = performance.now(); Cs = strassen(A, B, n, cnt); tS = performance.now() - t0;
+    for (i = 0; i < n * n; i++) if (Cs[i] !== Cn[i]) bad++;
+    return { n: n, mul: cnt.mul, add: cnt.add, mulN: n * n * n, addN: n * n * (n - 1), bad: bad, tN: tN, tS: tS };
+  }
+
+  /* ---------- 控件 ---------- */
+  var row = Lab.row(panel);
+  Lab.button(row, '随机 A、B', function () { var i, j; for (i = 0; i < 2; i++) for (j = 0; j < 2; j++) { MA[i][j] = Math.floor(Math.random() * 7) - 3; MB[i][j] = Math.floor(Math.random() * 7) - 3; } draw(); });
+  Lab.button(row, '回到默认', function () { MA = [[1, 2], [3, -1]]; MB = [[2, -1], [0, 3]]; draw(); });
+  var sK = Lab.select(panel, { label: '数表大小 n（用来"真的跑一遍"）', value: '32', options: [['4', '4 × 4'], ['8', '8 × 8'], ['16', '16 × 16'], ['32', '32 × 32'], ['64', '64 × 64']] });
+  var row2 = Lab.row(panel);
+  Lab.button(row2, '真的跑一遍 Strassen', function () {
+    var n = +sK.get(), r = runBig(n);
+    runInfo = 'n = ' + n + '（随机整数 −3…3）：\n  普通算法：乘法 ' + Lab.big(r.mulN) + ' 次，加法 ' + Lab.big(r.addN) + ' 次\n  Strassen：乘法 ' + Lab.big(r.mul) + ' 次（' + Lab.fmt(100 * r.mul / r.mulN, 1) + '%），加减法 ' + Lab.big(r.add) + ' 次\n  总运算量：普通 ' + Lab.big(r.mulN + r.addN) + '，Strassen ' + Lab.big(r.mul + r.add) + '（比值 ' + Lab.fmt((r.mul + r.add) / (r.mulN + r.addN), 3) + '）\n  ' + n * n + ' 个结果中不一致的有 ' + r.bad + ' 个' + (r.bad === 0 ? ' ✓' : '  ✗') + '\n';
+    describe();
+  }, 'pri');
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：这里的"真的跑一遍"只用来数乘法、加减法的次数并核对结果，不比较耗时——浏览器里的小数表，运算时间主要花在复制数据和调用函数上，和理论上的运算次数没有可比性。');
+  Lab.onTheme(function () { draw(); });
+
+  function describe() {
+    var P = mul2(MA, MB), S = strassen2(MA, MB), ok = true, s = '', i, j, nm = ['a11', 'a12', 'a21', 'a22'];
+    function f(v) { return v < 0 ? '(' + v + ')' : String(v); }
+    var a = MA[0][0], b = MA[0][1], c = MA[1][0], d = MA[1][1], e = MB[0][0], ff = MB[0][1], g = MB[1][0], h = MB[1][1];
+    for (i = 0; i < 2; i++) for (j = 0; j < 2; j++) if (P[i][j] !== S.C[i][j]) ok = false;
+    s += '普通算法（8 次乘法）：\n';
+    s += '  C11 = a11·b11 + a12·b21 = ' + f(a) + '·' + f(e) + ' + ' + f(b) + '·' + f(g) + ' = ' + P[0][0] + '\n';
+    s += '  C12 = a11·b12 + a12·b22 = ' + f(a) + '·' + f(ff) + ' + ' + f(b) + '·' + f(h) + ' = ' + P[0][1] + '\n';
+    s += '  C21 = a21·b11 + a22·b21 = ' + f(c) + '·' + f(e) + ' + ' + f(d) + '·' + f(g) + ' = ' + P[1][0] + '\n';
+    s += '  C22 = a21·b12 + a22·b22 = ' + f(c) + '·' + f(ff) + ' + ' + f(d) + '·' + f(h) + ' = ' + P[1][1] + '\n\n';
+    s += 'Strassen（7 次乘法）：\n';
+    s += '  M1 = (a11+a22)(b11+b22) = ' + S.M[0] + '\n  M2 = (a21+a22)·b11 = ' + S.M[1] + '\n  M3 = a11·(b12−b22) = ' + S.M[2] + '\n  M4 = a22·(b21−b11) = ' + S.M[3] + '\n  M5 = (a11+a12)·b22 = ' + S.M[4] + '\n  M6 = (a21−a11)(b11+b12) = ' + S.M[5] + '\n  M7 = (a12−a22)(b21+b22) = ' + S.M[6] + '\n';
+    s += '  C11 = M1+M4−M5+M7 = ' + S.C[0][0] + '\n  C12 = M3+M5 = ' + S.C[0][1] + '\n  C21 = M2+M4 = ' + S.C[1][0] + '\n  C22 = M1−M2+M3+M6 = ' + S.C[1][1] + '\n';
+    s += ok ? '两种算法的 4 个结果完全一致 ✓' : '不一致 ✗';
+    if (runInfo) s += '\n\n' + runInfo.replace(/\n$/, '');
+    out.html(s);
+  }
+
+  /* ---------- 画图 ---------- */
+  function drawMats() {
+    var C = Lab.colors(), P = mul2(MA, MB), cw = 54, ch = 40, y0 = 50, xs = [24, 224, 436], mats = [MA, MB, P], names = ['A', 'B', 'C = A × B'], m, i, j, x, y;
+    c1.clear(C.card); geom = [];
+    for (m = 0; m < 3; m++) {
+      Lab.label(x1, names[m], xs[m] + cw, 24, C.ink2, 'center', 14);
+      for (i = 0; i < 2; i++) for (j = 0; j < 2; j++) {
+        x = xs[m] + j * (cw + 4); y = y0 + i * (ch + 4);
+        x1.fillStyle = m === 2 ? C.soft : C.accent; x1.globalAlpha = m === 2 ? 1 : 0.85; x1.fillRect(x, y, cw, ch); x1.globalAlpha = 1;
+        Lab.label(x1, String(mats[m][i][j]), x + cw / 2, y + ch / 2, m === 2 ? C.ink : C.accentInk, 'center', 17);
+        if (m < 2) geom.push({ x: x, y: y, w: cw, h: ch, m: m, i: i, j: j });
+      }
+    }
+    Lab.label(x1, '×', 196, y0 + ch + 2, C.ink2, 'center', 22);
+    Lab.label(x1, '=', 398, y0 + ch + 2, C.ink2, 'center', 22);
+    Lab.label(x1, '点一下 A 或 B 里的数字，它就加 1', 24, 168, C.muted, 'left', 12);
+  }
+  function drawRatio() {
+    var C = Lab.colors(), box = { x: 56, y: 14, w: 564, h: 184 }, ax, k, K = 14, rM, rT, nn, S, N;
+    c2.clear(C.card);
+    ax = Lab.axes(x2, box, [1, K], [0, 2.35], { xticks: [1, 2, 4, 6, 8, 10, 12, 14], yticks: [0, 0.5, 1, 1.5, 2], fx: function (v) { return String(Math.round(v)); }, fy: function (v) { return Lab.fmt(v, 1); }, xlabel: '层数 k（数表大小 n = 2^k）', ylabel: 'Strassen ÷ 普通算法' });
+    x2.setLineDash([5, 4]); Lab.line(x2, ax.X(1), ax.Y(1), ax.X(K), ax.Y(1), C.muted, 1.3); x2.setLineDash([]);
+    Lab.label(x2, '1：两种算法一样多', box.x + 8, ax.Y(1) - 8, C.muted, 'left', 11.5);
+    x2.strokeStyle = C.good; x2.lineWidth = 2.2; x2.beginPath();
+    for (k = 1; k <= K; k++) { rM = Math.pow(7 / 8, k); if (k === 1) x2.moveTo(ax.X(k), ax.Y(rM)); else x2.lineTo(ax.X(k), ax.Y(rM)); }
+    x2.stroke();
+    x2.strokeStyle = C.warn; x2.lineWidth = 2.2; x2.beginPath();
+    for (k = 1; k <= K; k++) { nn = Math.pow(2, k); S = 7 * Math.pow(7, k) - 6 * Math.pow(4, k); N = 2 * nn * nn * nn - nn * nn; rT = S / N; if (k === 1) x2.moveTo(ax.X(k), ax.Y(rT)); else x2.lineTo(ax.X(k), ax.Y(rT)); }
+    x2.stroke();
+    for (k = 1; k <= K; k++) { nn = Math.pow(2, k); Lab.dot(x2, ax.X(k), ax.Y(Math.pow(7 / 8, k)), 3.4, C.good, C.card); Lab.dot(x2, ax.X(k), ax.Y((7 * Math.pow(7, k) - 6 * Math.pow(4, k)) / (2 * nn * nn * nn - nn * nn)), 3.4, C.warn, C.card); }
+    Lab.line(x2, box.x + 330, box.y + 14, box.x + 348, box.y + 14, C.good, 2.2); Lab.label(x2, '只数乘法：(7/8)^k', box.x + 354, box.y + 14, C.ink, 'left', 12);
+    Lab.line(x2, box.x + 330, box.y + 34, box.x + 348, box.y + 34, C.warn, 2.2); Lab.label(x2, '乘法 + 加减法一起算', box.x + 354, box.y + 34, C.ink, 'left', 12);
+  }
+  function drawOmega() {
+    var C = Lab.colors(), x0 = 40, x1p = 600, y = 56, X = function (w) { return x0 + (w - 2) * (x1p - x0); }, pts = [
+      [2, '2：读一遍', C.ink2, 1, 'left'], [2.25, '2.25：稿件宣称（待审查）', C.warn, 0, 'center'], [2.371, '约 2.371：目前公认的最好纪录（据我所知）', C.good, 1, 'center'], [2.807, '2.807：Strassen，1969', C.accent, 0, 'center'], [3, '3：普通算法', C.ink2, 1, 'right']
+    ];
+    c3.clear(C.card);
+    Lab.line(x3, x0, y, x1p, y, C.line, 3);
+    pts.forEach(function (p) {
+      Lab.dot(x3, X(p[0]), y, 6, p[2], C.card);
+      Lab.label(x3, p[1], X(p[0]) + (p[4] === 'left' ? -4 : p[4] === 'right' ? 4 : 0), y + (p[3] ? 24 : -20), p[2], p[4], 11.5);
+    });
+    Lab.label(x3, '最优的指数 ω（运算次数 ≈ n^ω）：越靠左越好', 320, 106, C.muted, 'center', 11.5);
+  }
+  function draw() { drawMats(); drawRatio(); drawOmega(); describe(); }
+
+  c1.cv.addEventListener('click', function (e) {
+    var q = c1.pos(e), k, g;
+    for (k = 0; k < geom.length; k++) {
+      g = geom[k];
+      if (q.x >= g.x && q.x <= g.x + g.w && q.y >= g.y && q.y <= g.y + g.h) { var M = g.m === 0 ? MA : MB; M[g.i][g.j] = M[g.i][g.j] >= 3 ? -3 : M[g.i][g.j] + 1; draw(); return; }
+    }
+  });
+
+  draw();
+})();
+</script>

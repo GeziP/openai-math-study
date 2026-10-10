@@ -1,0 +1,157 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>画面是复平面：横轴是实部 $a$，纵轴是虚部 $b$，每个格点是一个高斯整数 $a+bi$。灰色小点是<b>高斯素数</b>（不能再分解的高斯整数），中心的十字是原点。</li>
+<li>你站在原点，规则是：每一步只能跳到<b>距离不超过 $D$</b> 的另一个高斯素数上。滑块调的是 $D=\sqrt k$（格点之间的距离恰好是某个整数的平方根）。彩色的点是你<b>能走到</b>的所有素数，颜色越偏暖说明需要的步数越多，细线是走过来的路。</li>
+<li>从小到大拖动 $k$：一开始你被困在原点附近一小块"岛"上；随着步长增大，岛越来越大，直到冲出窗口（读数里会提示"岛已碰到窗口边缘"）。</li>
+<li>把窗口 $R$ 拉大再看一遍：被"冲出"的岛，到更远处也许又被围住了。这道"护城河"到底会不会无限地后撤？这就是高斯护城河问题。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>步长很小时，岛小得可怜；步长稍微增大，岛的规模会<b>急剧</b>变大，护城河被推到很远的地方。你可以自己核对：$D=1$ 时一步也迈不出去（原点周围距离 1 以内没有高斯素数）；$D=\sqrt2$ 时岛上只有 100 个素数，最远不到 12；$D=2$ 时有 720 个，最远约 45；$D=\sqrt8$ 时有 2996 个，最远约 93；到了 $D=\sqrt{10}$，把窗口开到 $R=200$ 都还围不住。要在有限的窗口里看到"围住"，必须把窗口开得比岛大得多。这也说明了为什么这个问题难：没法靠"拉一次大窗口、看一眼"来下结论。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>在高斯整数 $\mathbb Z[i]$ 里，素数长这样：$a+bi$（$a,b$ 都不为 0）是素数，当且仅当范数 $a^2+b^2$ 是普通素数；落在坐标轴上的，则要求 $|a|$（或 $|b|$）是普通素数且 $\equiv3\pmod 4$。例如 $3$ 和 $7$ 是高斯素数，而 $5=(2+i)(2-i)$ 不是。</p>
+<p>1962 年 Gordon 提出的问题是：给定任意一个固定的步长上限 $D$，能否从原点出发，只踩高斯素数，一路走到任意远的地方？计算机早就证明，对小的 $D$ 答案是否定的（据我所知，已验证到 $D=\sqrt{36}$ 左右），但对一般的 $D$ 一直没有结论。页面下方列出的问题 028，稿件宣称对每个 $D$ 都给出了否定的回答，这需要独立审查；本页只是让你亲眼看一看小步长下的岛，无法代替证明。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var cv = Lab.canvas(stage, 600, 600), ctx = cv.ctx;
+  var RMAX = 300, sieve = Lab.sieve(2 * RMAX * RMAX + 10);
+  var R = 60, K = 2, cur = null;
+
+  function isGP(a, b) {
+    a = Math.abs(a); b = Math.abs(b);
+    if (a === 0 || b === 0) { var m = a + b; return m % 4 === 3 && sieve[m] === 1; }
+    return sieve[a * a + b * b] === 1;
+  }
+  var gpCache = null;
+  function buildGP(r) {
+    if (gpCache && gpCache.R === r) return gpCache;
+    var N = 2 * r + 1, gp = new Uint8Array(N * N), cnt = 0, x, y;
+    for (x = -r; x <= r; x++) for (y = -r; y <= r; y++) if (isGP(x, y)) { gp[(x + r) * N + (y + r)] = 1; cnt++; }
+    gpCache = { R: r, N: N, gp: gp, count: cnt };
+    return gpCache;
+  }
+  /* 从原点出发的广度优先搜索：每步跳到距离² ≤ k 的高斯素数 */
+  function explore(r, k) {
+    var G = buildGP(r), N = G.N, gp = G.gp, off = [], s = Math.floor(Math.sqrt(k)), dx, dy;
+    for (dx = -s; dx <= s; dx++) for (dy = -s; dy <= s; dy++) if ((dx || dy) && dx * dx + dy * dy <= k) off.push([dx, dy]);
+    var hop = new Int16Array(N * N).fill(-1), par = new Int32Array(N * N).fill(-1), q = [r * N + r], head = 0;
+    hop[r * N + r] = 0;
+    var rmax2 = 0, maxAbs = 0, maxHop = 0;
+    while (head < q.length) {
+      var c = q[head++], cx = Math.floor(c / N) - r, cy = c % N - r, i;
+      var d2 = cx * cx + cy * cy; if (d2 > rmax2) rmax2 = d2;
+      var ab = Math.max(Math.abs(cx), Math.abs(cy)); if (ab > maxAbs) maxAbs = ab;
+      if (hop[c] > maxHop) maxHop = hop[c];
+      for (i = 0; i < off.length; i++) {
+        var nx = cx + off[i][0], ny = cy + off[i][1];
+        if (nx < -r || nx > r || ny < -r || ny > r) continue;
+        var id = (nx + r) * N + (ny + r);
+        if (gp[id] && hop[id] < 0) { hop[id] = hop[c] + 1; par[id] = c; q.push(id); }
+      }
+    }
+    var enclosed = maxAbs + s <= r;
+    // 护城河宽度：岛上的点到"岛外最近高斯素数"的最小距离²（只在被围住时计算，搜索半径 10）
+    var moat2 = null;
+    if (enclosed) {
+      var W = 10, off2 = [], best = 1e9;
+      for (dx = -W; dx <= W; dx++) for (dy = -W; dy <= W; dy++) if ((dx || dy) && dx * dx + dy * dy <= W * W) off2.push([dx, dy, dx * dx + dy * dy]);
+      for (var j = 1; j < q.length; j++) {
+        var cx2 = Math.floor(q[j] / N) - r, cy2 = q[j] % N - r;
+        for (i = 0; i < off2.length; i++) {
+          if (off2[i][2] >= best) continue;
+          var mx = cx2 + off2[i][0], my = cy2 + off2[i][1];
+          if (mx < -r || mx > r || my < -r || my > r) continue;
+          var id2 = (mx + r) * N + (my + r);
+          if (gp[id2] && hop[id2] < 0) best = off2[i][2];
+        }
+      }
+      moat2 = best < 1e9 ? best : null;
+    }
+    return { R: r, K: k, N: N, gp: gp, count: G.count, hop: hop, par: par, q: q, rmax: Math.sqrt(rmax2), maxAbs: maxAbs, maxHop: maxHop, enclosed: enclosed, moat2: moat2 };
+  }
+
+  var sR = Lab.slider(panel, {
+    label: '窗口半径 R（只看 |a|, |b| ≤ R 的范围）', min: 10, max: 300, step: 10, value: 60,
+    onInput: function (v) { R = v; update(); }
+  });
+  var sK = Lab.slider(panel, {
+    label: '步长上限 D = √k', min: 1, max: 40, step: 1, value: 2,
+    fmt: function (v) { return '√' + v + ' ≈ ' + Lab.fmt(Math.sqrt(v), 2); },
+    onInput: function (v) { K = v; update(); }
+  });
+  var row = Lab.row(panel);
+  Lab.button(row, '找出让岛冲出窗口的最小 k', function () {
+    for (var k = 1; k <= 40; k++) {
+      var e = explore(R, k);
+      if (!e.enclosed) { sK.set(k); return; }
+    }
+    out.text('k 到 40 为止，岛都还被围在窗口里。');
+  }, 'pri');
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：高斯素数在坐标轴上是 ±3, ±7, ±11 …（≡ 3 mod 4 的素数）；其余是范数 a²+b² 为素数的点。窗口越大算得越慢（R=300 时约有 36 万个格点，需要几秒）。');
+  Lab.onTheme(draw);
+
+  function update() { cur = explore(R, K); draw(); }
+  function draw() {
+    if (!cur) return;
+    var C = Lab.colors(), r = cur.R, N = cur.N, gp = cur.gp, hop = cur.hop, par = cur.par, q = cur.q;
+    var s = 600 / (2 * r + 2), x, y, i;
+    function px(a) { return 300 + a * s; }
+    function py(b) { return 300 - b * s; }
+    cv.clear(C.card);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, 300.5); ctx.lineTo(600, 300.5); ctx.moveTo(300.5, 0); ctx.lineTo(300.5, 600); ctx.stroke();
+    var dr = Math.max(0.9, Math.min(3, s * 0.34));
+    ctx.fillStyle = C.muted; ctx.globalAlpha = 0.65;
+    ctx.beginPath();
+    for (x = -r; x <= r; x++) for (y = -r; y <= r; y++) {
+      var id = (x + r) * N + (y + r);
+      if (gp[id] && hop[id] < 0) { ctx.moveTo(px(x) + dr, py(y)); ctx.arc(px(x), py(y), dr, 0, Lab.TAU); }
+    }
+    ctx.fill(); ctx.globalAlpha = 1;
+    // 岛：走过的路（广度优先树）
+    ctx.strokeStyle = C.accent; ctx.lineWidth = Math.max(0.6, Math.min(1.6, s * 0.2)); ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    for (i = 1; i < q.length; i++) {
+      var a = q[i], p = par[a];
+      ctx.moveTo(px(Math.floor(p / N) - r), py(p % N - r)); ctx.lineTo(px(Math.floor(a / N) - r), py(a % N - r));
+    }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    var maxH = Math.max(1, cur.maxHop);
+    for (i = 1; i < q.length; i++) {
+      var id2 = q[i];
+      ctx.fillStyle = Lab.hsl(250 - 230 * hop[id2] / maxH, 80, 58);
+      ctx.beginPath(); ctx.arc(px(Math.floor(id2 / N) - r), py(id2 % N - r), dr * 1.35, 0, Lab.TAU); ctx.fill();
+    }
+    // 原点与"最远半径"圆
+    Lab.dot(ctx, 300, 300, 5, C.ink, C.card);
+    if (q.length > 1) {
+      ctx.setLineDash([6, 4]); ctx.strokeStyle = C.warn; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(300, 300, cur.rmax * s, 0, Lab.TAU); ctx.stroke(); ctx.setLineDash([]);
+    }
+    Lab.label(ctx, 'R = ' + r + '，D = √' + cur.K, 10, 14, C.ink2, 'left', 13);
+
+    var members = q.length - 1;
+    var lines = [];
+    lines.push('窗口内的高斯素数：<b>' + Lab.big(cur.count) + '</b> 个');
+    lines.push('步长上限 D = √' + cur.K + ' ≈ ' + Lab.fmt(Math.sqrt(cur.K), 3));
+    lines.push('从原点能走到的素数：<b>' + Lab.big(members) + '</b> 个');
+    if (members > 0) lines.push('离原点最远：' + Lab.fmt(cur.rmax, 2) + '；最多要走 ' + cur.maxHop + ' 步');
+    if (members === 0) lines.push('<span class="no">原点周围 D 以内一个高斯素数都没有，一步也迈不出去。</span>');
+    else if (cur.enclosed) {
+      lines.push('<span class="ok">岛被围住了 ✓</span>（岛上的素数全在窗口里）');
+      lines.push(cur.moat2 ? '护城河宽度：岛外最近的素数离岛 ' + Lab.fmt(Math.sqrt(cur.moat2), 3) + '（大于 D）' : '护城河宽度：超过 10');
+    } else lines.push('<span class="hi">岛已碰到窗口边缘</span>：窗口里看不出它是否会被围住，加大 R 试试。');
+    out.html(lines.join('\n'));
+  }
+  update();
+})();
+</script>

@@ -1,0 +1,72 @@
+<!doctype html>
+<!--
+  分享图（Open Graph / 社交预览）的设计稿：1200 × 630。
+  不含会过期的数字，所以站点数据变了也不用重做；想改文案/配图才需要重新导出：
+    1. python tools/build.py --out _site          （生成学科配图 _site/art/*.svg）
+    2. 把本文件复制到 _site/ 根目录，用浏览器打开（python tools/preview.py 之后访问 /openai-math-study/og-card.html）
+    3. 把视口设成 1200×630、缩放 1，截图保存为 assets/og.png
+    4. 再构建一次即可（build.py 会把 assets/og.png 一起带上）
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>og-card</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #0b1030; }
+  .card {
+    position: relative; width: 1200px; height: 630px; overflow: hidden; color: #fff;
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", system-ui, sans-serif;
+    background:
+      radial-gradient(760px 480px at 88% 8%, rgba(139, 92, 246, .50), transparent 70%),
+      radial-gradient(640px 480px at 0% 100%, rgba(59, 130, 246, .30), transparent 70%),
+      linear-gradient(135deg, #0b1030, #1a1450 62%, #25176f);
+  }
+  .grid { position: absolute; inset: 0; opacity: .5;
+    background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+    background-size: 42px 42px; }
+  .left { position: absolute; left: 70px; top: 58px; width: 600px; }
+  .badge { display: inline-flex; align-items: center; gap: 10px; padding: 9px 20px; border-radius: 99px; font-size: 22px; color: #d9defc;
+    background: rgba(255, 255, 255, .09); border: 1px solid rgba(255, 255, 255, .22); }
+  .badge i { width: 11px; height: 11px; border-radius: 50%; background: #34d399; box-shadow: 0 0 12px #34d399; }
+  h1 { margin: 30px 0 14px; font-size: 90px; line-height: 1.12; letter-spacing: .02em; font-weight: 800;
+    background: linear-gradient(90deg, #ffffff 0%, #c7ceff 55%, #e5b6ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  h2 { margin: 0 0 30px; font-size: 38px; line-height: 1.5; font-weight: 600; color: #e4e8ff; }
+  h2 em { font-style: normal; color: #ffb3dc; }
+  .chips { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .chips li { padding: 8px 18px; border-radius: 12px; font-size: 24px; color: #cdd3ff; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .16); }
+  .foot { position: absolute; left: 70px; bottom: 44px; display: flex; align-items: center; gap: 16px; font-size: 27px; color: #b9c0f2; }
+  .logo { width: 50px; height: 50px; border-radius: 14px; display: grid; place-items: center; font-size: 32px; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, #6d7bff, #a35dff); box-shadow: 0 8px 22px rgba(110, 100, 255, .5); }
+  .foot b { color: #fff; font-weight: 700; letter-spacing: .01em; }
+  .tiles { position: absolute; right: 56px; top: 56px; width: 470px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .tiles figure { margin: 0; border-radius: 20px; overflow: hidden; border: 1px solid rgba(255, 255, 255, .25); box-shadow: 0 22px 50px rgba(0, 0, 0, .45); background: #10153a; }
+  .tiles figure:nth-child(even) { transform: translateY(46px); }
+  .tiles figure:nth-child(1) { transform: rotate(-2.2deg); }
+  .tiles figure:nth-child(4) { transform: translateY(46px) rotate(2.2deg); }
+  .tiles img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
+  .tiles figcaption { padding: 8px 14px 10px; font-size: 20px; color: #dfe3ff; background: rgba(12, 16, 48, .85); }
+  .foot .dim { color: #8f98d6; font-size: 24px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="grid"></div>
+  <div class="left">
+    <div class="badge"><i></i>非官方 · 免费开源 · 全中文 · 不用注册</div>
+    <h1>数学小白导览</h1>
+    <h2>把 OpenAI 公开的数学前沿问题，<br>讲给<em>“数学小白”</em>听</h2>
+    <ul class="chips"><li>一句话版本</li><li>大白话提问</li><li>生活类比</li><li>先备积木</li><li>学习阶梯</li><li>互动实验</li></ul>
+  </div>
+
+  <div class="tiles">
+    <figure><img src="art/s10.svg" alt=""><figcaption>分析 · 复函数的颜色</figcaption></figure>
+    <figure><img src="art/s4.svg" alt=""><figcaption>拓扑 · 纽结</figcaption></figure>
+    <figure><img src="art/s3.svg" alt=""><figcaption>代数几何 · 椭圆曲线</figcaption></figure>
+    <figure><img src="art/s13.svg" alt=""><figcaption>组合学 · 拉姆齐染色</figcaption></figure>
+  </div>
+
+  <div class="foot"><span class="logo">∑</span><span><b>gezip.github.io/openai-math-study</b></span><span class="dim">· GitHub 开源</span></div>
+</div>
+</body>
+</html>

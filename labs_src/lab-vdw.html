@@ -1,0 +1,145 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>画面上是一排数字 $1,2,\dots,N$，每个数涂上 $r$ 种颜色之一。<b>点击</b>数字可以换颜色。目标：不要出现<b>同色的 $k$ 项等差数列</b>（$a,\ a+d,\ a+2d,\ \dots$ 一共 $k$ 个数，颜色全一样）。出现的话，它们会被加黑框，并画上弧线。</li>
+<li>默认是 $k=3,\ r=2,\ N=8$：红红蓝蓝红红蓝蓝，没有同色三项等差数列。把 $N$ 拉到 9，再怎么涂都避免不了——所以 $W_2(3)=9$。</li>
+<li>点"自动找一个"，让页面用回溯搜索找一个满足条件的涂法；如果搜遍所有可能都没有，它会告诉你"不存在"。点"测出最长长度"，页面会从 $N=k$ 开始一路试下去，直到再也涂不出来。</li>
+<li>换成 $k=4$ 或 $r=3$ 试试：要避免的同色等差数列更长，或者颜色更多，"能安全涂完的长度"会急剧变长。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>两种颜色、$k=3$ 时，最长只能安全地涂到 8；$k=4$ 时能涂到 34；三种颜色、$k=3$ 时能涂到 26。这些边界 $W-1$ 看上去毫无规律。把两种颜色、$k=3,4,5,6$ 的 $W$ 值排在一起：$9,\ 35,\ 178,\ 1132$，相邻两项的倍数依次是 $3.9,\ 5.1,\ 6.4$——每一步放大的倍数还在变大，看上去像是在加速。只有四个数据当然什么都证明不了，但它和数学家怀疑的"增长比任何指数都快"是同一个方向。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>van der Waerden 定理（1927）：对任意的颜色数 $r$ 和长度 $k$，存在一个数 $W_r(k)$，使得把 $1,\dots,W_r(k)$ 任意染成 $r$ 种颜色，必有同色的 $k$ 项等差数列。已知的精确值很少：$W_2(3)=9$，$W_2(4)=35$，$W_2(5)=178$，$W_2(6)=1132$，$W_3(3)=27$，$W_3(4)=293$，$W_4(3)=76$（据我所知，都是计算机穷举得到的）。</p>
+<p>$W_r(k)$ 到底长到多快，是 Ramsey 理论的核心谜题：上界来自 Shelah 与 Gowers 的深刻工作，是多层指数；下界则小得多——Berlekamp（1968）的构造给出 $W_2(p+1)>p\cdot2^p$（$p$ 为素数）。Erdős 问：$W_2(k)^{1/k}$ 会不会趋于无穷（即是不是比任何指数都快）？页面下方列出的问题 160，稿件宣称证明了肯定的回答，并给出对所有颜色数 $r\ge2$ 一致成立的下界 $W_r(k)>k^{ck\lfloor\log_2 r\rfloor}$。这些都是稿件的宣称，需要独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var cv = Lab.canvas(stage, 640, 250), ctx = cv.ctx;
+  var N = 8, k = 3, r = 2, col = [], i, msg = '';
+  var PAL = [Lab.hsl(356, 82, 58), Lab.hsl(216, 88, 62), Lab.hsl(145, 60, 46)];
+  for (i = 0; i <= 120; i++) col.push(0);
+  col[3] = 1; col[4] = 1; col[7] = 1; col[8] = 1;               // 1..8：红红蓝蓝红红蓝蓝
+
+  var sK = Lab.select(panel, { label: '等差数列的长度 k', value: '3', options: [['3', 'k = 3'], ['4', 'k = 4'], ['5', 'k = 5']], onChange: function (v) { k = +v; msg = ''; draw(); } });
+  var sR = Lab.select(panel, { label: '颜色数 r', value: '2', options: [['2', 'r = 2（红、蓝）'], ['3', 'r = 3（红、蓝、绿）']], onChange: function (v) { r = +v; for (var x = 1; x <= 120; x++) col[x] = col[x] % r; msg = ''; draw(); } });
+  var sN = Lab.slider(panel, { label: '数字个数 N', min: 3, max: 60, step: 1, value: 8, onInput: function (v) { N = v; msg = ''; draw(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '🎲 随机涂', function () { for (var x = 1; x <= 120; x++) col[x] = Math.floor(Math.random() * r); msg = ''; draw(); });
+  Lab.button(row, '自动找一个', find, 'pri');
+  Lab.button(row, '测出最长长度', longest);
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：回溯搜索会固定颜色的出场顺序（红先、蓝后……）来去掉"互换颜色"产生的重复情形。每次搜索限时 3 秒：超时只说明"没搜完"，既不说明存在，也不说明不存在。');
+  Lab.onTheme(draw);
+
+  /* ---------- 回溯搜索 ---------- */
+  function solve(Nn, kk, rr, tmax) {
+    var c = new Int8Array(Nn + 2), t0 = performance.now(), nodes = 0, timedOut = false;
+    function ok(p) {
+      var cc = c[p], d, j, bad;
+      for (d = 1; p - (kk - 1) * d >= 1; d++) {
+        bad = true;
+        for (j = 1; j < kk; j++) if (c[p - j * d] !== cc) { bad = false; break; }
+        if (bad) return false;
+      }
+      return true;
+    }
+    function rec(p, used) {
+      if (p > Nn) return true;
+      if ((++nodes & 2047) === 0 && performance.now() - t0 > tmax) { timedOut = true; return false; }
+      var lim = Math.min(used, rr - 1), cc;
+      for (cc = 0; cc <= lim; cc++) {
+        c[p] = cc;
+        if (ok(p)) { if (rec(p + 1, Math.max(used, cc + 1))) return true; if (timedOut) return false; }
+      }
+      return false;
+    }
+    var found = rec(1, 0);
+    return { status: found ? 'found' : timedOut ? 'timeout' : 'none', c: c, nodes: nodes };
+  }
+  function find() {
+    var res = solve(N, k, r, 3000), x;
+    if (res.status === 'found') { for (x = 1; x <= N; x++) col[x] = res.c[x]; msg = '<span class="ok">找到了一个没有同色 ' + k + ' 项等差数列的涂法</span>（搜索了 ' + Lab.big(res.nodes) + ' 个节点）'; }
+    else if (res.status === 'none') msg = '<span class="no">穷举完毕：N = ' + N + '、' + r + ' 种颜色时，不可能避免同色 ' + k + ' 项等差数列</span>（搜索了 ' + Lab.big(res.nodes) + ' 个节点）';
+    else msg = '<span class="hi">3 秒内没有搜完（搜了 ' + Lab.big(res.nodes) + ' 个节点），无法下结论。</span>';
+    draw();
+  }
+  function longest() {
+    var best = 0, n, res, t0 = performance.now(), x;
+    msg = '';
+    for (n = k; n <= 120; n++) {
+      if (performance.now() - t0 > 9000) { msg = '<span class="hi">总时限 9 秒用完：N 到 ' + best + ' 都能涂，更长的没有继续试。</span>'; break; }
+      res = solve(n, k, r, 3000);
+      if (res.status === 'found') { best = n; continue; }
+      msg = (res.status === 'none')
+        ? '穷举结果：最长能涂到 N = <b>' + best + '</b>；N = ' + n + ' 时不可能 → W<sub>' + r + '</sub>(' + k + ') = <b>' + n + '</b>'
+        : '<span class="hi">N 到 ' + best + ' 都能涂；N = ' + n + ' 时 3 秒内没搜完，无法确定。</span>';
+      break;
+    }
+    if (!msg) msg = '<span class="hi">N 一直试到 120 都能涂；上限就设在 120，不再往下试。</span>';
+    N = Math.max(3, Math.min(60, best)); sN.set(N, true);
+    res = solve(N, k, r, 3000);
+    if (res.status === 'found') for (x = 1; x <= N; x++) col[x] = res.c[x];
+    draw();
+  }
+
+  /* ---------- 绘图 ---------- */
+  function layout() {
+    var single = N <= 36, perRow = single ? N : Math.ceil(N / 2);
+    return { single: single, perRow: perRow, cw: 600 / perRow, ys: single ? [150] : [95, 165] };
+  }
+  function monoAPs() {
+    var res = [], a, d, j, ok;
+    for (a = 1; a <= N; a++) for (d = 1; a + (k - 1) * d <= N; d++) {
+      ok = true; for (j = 1; j < k; j++) if (col[a + j * d] !== col[a]) { ok = false; break; }
+      if (ok) res.push([a, d]);
+    }
+    return res;
+  }
+  function draw() {
+    var C = Lab.colors(), L = layout(), x, h = 40, aps = monoAPs(), bold = {}, ps;
+    cv.clear(C.card);
+    aps.forEach(function (p) { for (var j = 0; j < k; j++) bold[p[0] + j * p[1]] = 1; });
+    if (L.single) {
+      ctx.lineWidth = 1.8;
+      aps.slice(0, 40).forEach(function (p) {
+        var a = p[0], span = (k - 1) * p[1], mid = 20 + (a - 1 + span / 2 + 0.5) * L.cw;
+        ctx.strokeStyle = PAL[col[a]]; ctx.globalAlpha = 0.8; ctx.beginPath();
+        ctx.ellipse(mid, 150, span * L.cw / 2, 22 + 100 * span / (N - 1), 0, Math.PI, 2 * Math.PI); ctx.stroke(); ctx.globalAlpha = 1;
+      });
+    }
+    for (x = 1; x <= N; x++) {
+      var rw = L.single ? 0 : (x > L.perRow ? 1 : 0), cc = x - 1 - rw * L.perRow;
+      ps = { x: 20 + cc * L.cw, y: L.ys[rw] };
+      ctx.fillStyle = PAL[col[x]]; ctx.globalAlpha = bold[x] ? 1 : 0.85; ctx.fillRect(ps.x + 1, ps.y, L.cw - 2, h); ctx.globalAlpha = 1;
+      if (bold[x]) { ctx.strokeStyle = C.ink; ctx.lineWidth = 2.4; ctx.strokeRect(ps.x + 1, ps.y, L.cw - 2, h); }
+      if (L.cw >= 13) Lab.label(ctx, String(x), ps.x + L.cw / 2, ps.y + h / 2, '#fff', 'center', Math.min(13.5, L.cw * 0.7));
+    }
+    Lab.label(ctx, '点击数字换颜色；带黑框的格子属于某个同色 ' + k + ' 项等差数列（共 ' + aps.length + ' 个）', 20, 18, C.ink2, 'left', 13);
+    if (!aps.length) Lab.label(ctx, '✓ 这个涂法没有同色 ' + k + ' 项等差数列', 320, 232, C.good, 'center', 14);
+    var first = aps[0], desc = '';
+    if (first) { var seq = []; for (var j = 0; j < k; j++) seq.push(first[0] + j * first[1]); desc = '\n例如：' + seq.join(', ') + '（公差 ' + first[1] + '）'; }
+    out.html(
+      'N = ' + N + '，' + r + ' 种颜色，k = ' + k + '\n' +
+      (aps.length ? '同色 ' + k + ' 项等差数列：<span class="no">' + aps.length + ' 个</span>' + desc : '<span class="ok">没有同色 ' + k + ' 项等差数列 ✓</span>') +
+      (msg ? '\n' + msg : '') +
+      '\n已知：W₂(3)=9，W₂(4)=35，W₂(5)=178，W₂(6)=1132；W₃(3)=27，W₃(4)=293'
+    );
+  }
+  cv.cv.addEventListener('click', function (e) {
+    var p = cv.pos(e), L = layout(), rw, cc, v;
+    for (rw = 0; rw < L.ys.length; rw++) if (p.y >= L.ys[rw] && p.y <= L.ys[rw] + 40) {
+      cc = Math.floor((p.x - 20) / L.cw);
+      v = rw * L.perRow + cc + 1;
+      if (cc >= 0 && cc < L.perRow && v <= N) { col[v] = (col[v] + 1) % r; msg = ''; draw(); }
+    }
+  });
+  draw();
+})();
+</script>

@@ -1,0 +1,133 @@
+<div class="lab-grid">
+  <div class="lab-stage" id="stage"></div>
+  <div class="lab-panel" id="panel"></div>
+</div>
+
+<section class="blk"><h2><span class="ic">🎮</span>怎么玩</h2>
+<ol class="lab-steps">
+<li>想象一块"咖啡粉层"：方格网的每个交叉点是一粒粉，相邻两粒之间有一条细缝，每条细缝<b>独立地</b>以概率 $p$ 畅通。畅通的缝连起来的一大块叫"连通团"。上图里每个团有自己的颜色；<b>蓝色</b>是最大的团，<b>橙色</b>是同时碰到左右两边的团（水可以从左边一直渗到右边），灰点是孤立的粉粒。</li>
+<li>拖动 $p$ 从 0 到 1：先是零零碎碎的小团，在 $p$ 接近 $0.5$ 的时候，突然冒出一个横贯全图的大团，然后越来越大，最后几乎吞掉整张图。</li>
+<li>下面的曲线可以切换：<b>当前这张图</b>里最大团占全部粒子的比例随 $p$ 怎么变；<b>水能渗过的概率</b>（多次实验取平均，$L$ 越大，转折越陡，并且大家几乎都交在 $p=\tfrac12$ 附近）；以及<b>恰在 $p=\tfrac12$ 时最大团的占比随图变大怎么变</b>。</li>
+<li>点"新的随机构型"重新抽一张图，看看在同一个 $p$ 下，大团的形状和大小每次差多少。</li>
+</ol></section>
+
+<section class="blk"><h2><span class="ic">👀</span>你会发现</h2>
+<p>转折非常陡，而且图越大越陡。切到"水能渗过的概率"那条曲线读一读：在 $100\times100$ 的图里，$p=0.45$ 时水几乎一定渗不过去，$p=0.55$ 时几乎一定渗得过去；$10\times10$ 的小图则平缓得多（大约是 0.3 与 0.8）。各个大小的曲线都交在 $p=\tfrac12$ 附近、"约一半"的高度。这个"突然变脸"就是<b>相变</b>，分界值 $p_c=\tfrac12$（方格网上的边渗流，这是 Kesten 在 1980 年严格证明的）。</p>
+<p>而在恰好 $p=\tfrac12$ 时，最大团虽然也很大，但是布满空洞、像分形一样：切到第三条曲线，$L$ 从 10 增大到 160，最大团占全图的比例大约从 0.5 一路<b>缓缓下降</b>到 0.35 左右（每次刷新页面数字略有涨落），不像 $p>\tfrac12$ 时稳定在一个接近 1 的正数上。物理学预言这种下降大致按 $L^{-5/48}$ 的幂律，非常慢，所以需要很大的图才能看清趋势；它的含义是：临界点上没有"占正比例的无限大团"，最大团的比例慢慢趋于 0。</p></section>
+
+<section class="blk"><h2><span class="ic">📖</span>背后的数学</h2>
+<p>把"连通团有无限大"的概率记作 $\theta(p)$。$p\lt p_c$ 时 $\theta=0$，$p\gt p_c$ 时 $\theta>0$。问题是：恰好 $p=p_c$ 时呢？二维方格网上答案是 $\theta(p_c)=0$（Harris、Kesten）；维数 $d\ge11$ 时也已知（Hara–Slade 的蕾丝展开）；而最贴近现实的三维方格网（边渗流的 $p_c$ 数值上约 $0.2488$）却一直是悬案。Benjamini 与 Schramm 在 1996 年猜想：对所有"处处差不多"（准传递）的图，只要 $p_c\lt1$，临界点上都没有无限团。页面下方列出的问题 213，稿件宣称证明了这个猜想，包括三维方格网。这是稿件的宣称，如果成立，意义极大，需要特别谨慎地独立审查。</p></section>
+
+<script>
+(function () {
+  var stage = Lab.$('#stage'), panel = Lab.$('#panel');
+  var c1 = Lab.canvas(stage, 640, 430), x1 = c1.ctx;
+  var c2 = Lab.canvas(stage, 640, 270), x2 = c2.ctx;
+  var L = 50, p = 0.5, U = null, res = null, mode = 'theta', cache = {}, bm = null;
+
+  var sL = Lab.select(panel, { label: '图的大小 L × L', value: '50', options: [['20', '20 × 20'], ['30', '30 × 30'], ['50', '50 × 50'], ['80', '80 × 80'], ['100', '100 × 100']], onChange: function (v) { L = +v; fresh(); } });
+  var sP = Lab.slider(panel, { label: '每条缝畅通的概率 p', min: 0, max: 1, step: 0.005, value: 0.5, fmt: function (v) { return Lab.fmt(v, 3); }, onInput: function (v) { p = v; update(false); } });
+  var sM = Lab.select(panel, { label: '下面的曲线', value: 'theta', options: [['theta', '当前这张图：最大团占比 θ(p)'], ['span', '水能渗过的概率（多次平均）'], ['size', '恰在 p = 1/2：最大团占比随 L 的变化']], onChange: function (v) { mode = v; drawChart(); } });
+  var row = Lab.row(panel);
+  Lab.button(row, '新的随机构型', function () { fresh(); }, 'pri');
+  Lab.button(row, 'p = 0.5', function () { p = 0.5; sP.set(0.5, true); update(false); });
+  var out = Lab.out(panel);
+  Lab.hint(panel, '提示：同一张图里各个 p 的开关用的是同一组随机数（p 变大时，原来畅通的缝仍然畅通），所以曲线是单调的、画面也是连续变化的。');
+  Lab.onTheme(function () { update(false); });
+
+  function fresh() { U = new Float64Array(2 * L * (L - 1)); for (var i = 0; i < U.length; i++) U[i] = Math.random(); update(true); }
+  function find(par, a) { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; }
+  /* 在 (L × L) 的格点上、边的随机数 u、概率 pp 下，返回团的信息 */
+  function analyse(Lg, u, pp, wantPar) {
+    var n = Lg * Lg, par = new Int32Array(n), i, x, y, H = Lg * (Lg - 1), a, b, sz = new Int32Array(n), big = 0, bigRoot = -1, spans = false, mark = null;
+    for (i = 0; i < n; i++) par[i] = i;
+    for (y = 0; y < Lg; y++) for (x = 0; x < Lg - 1; x++) if (u[y * (Lg - 1) + x] < pp) { a = find(par, y * Lg + x); b = find(par, y * Lg + x + 1); if (a !== b) par[a] = b; }
+    for (y = 0; y < Lg - 1; y++) for (x = 0; x < Lg; x++) if (u[H + y * Lg + x] < pp) { a = find(par, y * Lg + x); b = find(par, (y + 1) * Lg + x); if (a !== b) par[a] = b; }
+    for (i = 0; i < n; i++) { a = find(par, i); sz[a]++; if (sz[a] > big) { big = sz[a]; bigRoot = a; } }
+    mark = new Uint8Array(n);
+    for (y = 0; y < Lg; y++) mark[find(par, y * Lg)] = 1;
+    var spanRoot = -1;
+    for (y = 0; y < Lg; y++) { a = find(par, y * Lg + Lg - 1); if (mark[a]) { spans = true; if (spanRoot < 0 || sz[a] > sz[spanRoot]) spanRoot = a; } }
+    return { big: big, bigRoot: bigRoot, spans: spans, spanRoot: spanRoot, par: wantPar ? par : null, sz: sz };
+  }
+  function update(newCfg) {
+    if (newCfg) for (var ck in cache) if (ck.indexOf('theta') === 0) delete cache[ck];
+    res = analyse(L, U, p, true);
+    render();
+    drawChart();
+  }
+  function render() {
+    var C = Lab.colors(), M = 2 * L - 1, d, bg, i, x, y, k, a, col, dark = Lab.isDark(), par = res.par, sz = res.sz, H = L * (L - 1), r;
+    if (!bm || bm.w !== M) bm = Lab.bitmap(M, M);
+    d = bm.data; bg = Lab.parseColor(C.bg);
+    var acc = Lab.parseColor(C.accent), orange = [245, 158, 11], grey = Lab.parseColor(C.line);
+    for (i = 0; i < M * M; i++) { d[4 * i] = bg[0]; d[4 * i + 1] = bg[1]; d[4 * i + 2] = bg[2]; d[4 * i + 3] = 255; }
+    function colOf(root) {
+      if (root === res.spanRoot && res.spans) return orange;
+      if (root === res.bigRoot) return acc;
+      if (sz[root] === 1) return grey;
+      return Lab.rgb((root * 137) % 360, 55, dark ? 60 : 50);
+    }
+    function put(px, py, c) { var q = 4 * (py * M + px); d[q] = c[0]; d[q + 1] = c[1]; d[q + 2] = c[2]; }
+    for (y = 0; y < L; y++) for (x = 0; x < L; x++) {
+      r = find(par, y * L + x); put(2 * x, 2 * y, colOf(r));
+      if (x < L - 1 && U[y * (L - 1) + x] < p) put(2 * x + 1, 2 * y, colOf(r));
+      if (y < L - 1 && U[H + y * L + x] < p) put(2 * x, 2 * y + 1, colOf(r));
+    }
+    bm.flush();
+    var S = Math.floor(410 / M) * M;
+    c1.clear(C.card);
+    bm.blit(x1, (640 - S) / 2, (430 - S) / 2, S, S);
+    x1.strokeStyle = C.line; x1.lineWidth = 1; x1.strokeRect((640 - S) / 2 - 0.5, (430 - S) / 2 - 0.5, S + 1, S + 1);
+    var ncl = 0; for (i = 0; i < L * L; i++) if (sz[i] > 0) ncl++;
+    out.html('L = ' + L + '，p = ' + Lab.fmt(p, 3) + '\n连通团：共 ' + Lab.big(ncl) + ' 个\n最大团：' + Lab.big(res.big) + ' 个粒子，占 <b>' + Lab.fmt(100 * res.big / (L * L), 1) + '%</b>\n水能从左边渗到右边吗？' + (res.spans ? '<span class="ok"> 能（橙色那一团）</span>' : '<span class="no"> 不能</span>'));
+  }
+
+  /* ---------- 曲线 ---------- */
+  function drawChart() {
+    var C = Lab.colors(), box = { x: 62, y: 22, w: 560, h: 190 }, ax, i, pts, k;
+    c2.clear(C.card);
+    if (mode === 'theta') {
+      var key = 'theta' + L;
+      if (!cache[key]) { cache[key] = []; for (k = 0; k <= 50; k++) cache[key].push([k / 50, analyse(L, U, k / 50, false).big / (L * L)]); }
+      ax = Lab.axes(x2, box, [0, 1], [0, 1], { nx: 5, ny: 5, xlabel: '每条缝畅通的概率 p', ylabel: '最大团占比', fx: function (v) { return Lab.fmt(v, 1); }, fy: function (v) { return Lab.fmt(v, 1); } });
+      x2.strokeStyle = C.accent; x2.lineWidth = 2.2; Lab.path(x2, cache[key].map(function (q) { return [ax.X(q[0]), ax.Y(q[1])]; })); x2.stroke();
+      vline(ax, 0.5, C);
+      Lab.dot(x2, ax.X(p), ax.Y(res.big / (L * L)), 5, C.bad, C.card);
+      Lab.label(x2, '当前这张 ' + L + '×' + L + ' 的图（红点 = 现在的 p）', box.x + 8, box.y + 10, C.ink2, 'left', 12.5);
+    } else if (mode === 'span') {
+      var key2 = 'span';
+      if (!cache[key2]) { cache[key2] = {}; [10, 30, 100].forEach(function (Lg, idx) { cache[key2][Lg] = spanCurve(Lg, [120, 60, 24][idx]); }); }
+      ax = Lab.axes(x2, box, [0.3, 0.7], [0, 1], { nx: 8, ny: 5, xlabel: '每条缝畅通的概率 p', ylabel: '水能渗过的概率', fx: function (v) { return Lab.fmt(v, 2); }, fy: function (v) { return Lab.fmt(v, 1); } });
+      var cols = ['#e69f00', '#3b82f6', '#e5484d'], names = ['L = 10', 'L = 30', 'L = 100'];
+      [10, 30, 100].forEach(function (Lg, idx) {
+        x2.strokeStyle = cols[idx]; x2.lineWidth = 2.2; Lab.path(x2, cache[key2][Lg].map(function (q) { return [ax.X(q[0]), ax.Y(q[1])]; })); x2.stroke();
+        Lab.label(x2, names[idx], box.x + box.w - 6, box.y + 14 + idx * 15, cols[idx], 'right', 12.5);
+      });
+      vline(ax, 0.5, C);
+    } else {
+      var key3 = 'size';
+      if (!cache[key3]) { cache[key3] = []; [[10, 300], [20, 150], [40, 80], [80, 40], [160, 16]].forEach(function (q) { cache[key3].push([q[0], avgBig(q[0], 0.5, q[1])]); }); }
+      ax = Lab.axes(x2, box, [Math.log10(8), Math.log10(200)], [0, 1], { xticks: [Math.log10(10), Math.log10(20), Math.log10(40), Math.log10(80), Math.log10(160)], yticks: [0, 0.2, 0.4, 0.6, 0.8, 1], xlabel: '图的边长 L（对数刻度）', ylabel: '最大团占比', fx: function (v) { return Lab.fmt(Math.pow(10, v), 0); }, fy: function (v) { return Lab.fmt(v, 1); } });
+      x2.strokeStyle = C.accent; x2.lineWidth = 2.2; Lab.path(x2, cache[key3].map(function (q) { return [ax.X(Math.log10(q[0])), ax.Y(q[1])]; })); x2.stroke();
+      cache[key3].forEach(function (q) { Lab.dot(x2, ax.X(Math.log10(q[0])), ax.Y(q[1]), 4.5, C.accent, C.card); Lab.label(x2, Lab.fmt(q[1], 2), ax.X(Math.log10(q[0])), ax.Y(q[1]) - 12, C.ink2, 'center', 12); });
+      Lab.label(x2, '恰在 p = 1/2，每个 L 取多次平均', box.x + 8, box.y + 10, C.ink2, 'left', 12.5);
+    }
+  }
+  function vline(ax, v, C) { x2.setLineDash([4, 4]); Lab.line(x2, ax.X(v), ax.box.y, ax.X(v), ax.box.y + ax.box.h, C.warn, 1.4); x2.setLineDash([]); }
+  function spanCurve(Lg, trials) {
+    var ps = [], k, t, cnt, u, n = 2 * Lg * (Lg - 1), j, out = [];
+    for (k = 0; k <= 20; k++) ps.push(0.3 + 0.02 * k);
+    var tot = new Float64Array(ps.length);
+    for (t = 0; t < trials; t++) { u = new Float64Array(n); for (j = 0; j < n; j++) u[j] = Math.random(); for (k = 0; k < ps.length; k++) if (analyse(Lg, u, ps[k], false).spans) tot[k]++; }
+    for (k = 0; k < ps.length; k++) out.push([ps[k], tot[k] / trials]);
+    return out;
+  }
+  function avgBig(Lg, pp, trials) {
+    var t, j, n = 2 * Lg * (Lg - 1), u, s = 0;
+    for (t = 0; t < trials; t++) { u = new Float64Array(n); for (j = 0; j < n; j++) u[j] = Math.random(); s += analyse(Lg, u, pp, false).big / (Lg * Lg); }
+    return s / trials;
+  }
+  fresh();
+})();
+</script>

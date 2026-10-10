@@ -1,0 +1,29 @@
+数学小白导览 / openai-math-study
+Copyright (c) 2026 GeziP
+
+本仓库包含下列第三方材料，各自保留原有的许可。
+This repository includes the following third-party material, each under its own license.
+
+
+1. openai/math — https://github.com/openai/math
+   许可 / License : Apache License, Version 2.0（全文见 third_party/openai-math/LICENSE，与上游 LICENSE 相同）
+   用在哪里       : data/families.json、data/upstream.json，以及生成的网页里原样引用的上游标题与摘要
+   我们做了什么   : 从上游 overview.tex 抽取每个“结果家族”的标题、摘要、学科与论文清单，
+                    把其中的 LaTeX 标记整理成网页可用的文字与公式；再按上游目录清单标注
+                    “论文文件是否存在”“是否附有 Lean 说明”。整理由 tools/parse_overview.py 与
+                    tools/sync_upstream.py 完成。这是对原始数据的修改版本，并非上游原样。
+   上游 NOTICE    : 上游仓库没有提供 NOTICE 文件。
+   不在本仓库的   : 论文的 PDF 与源码、Lean 代码、推理摘要。网页只链接到上游 GitHub 上的原文件，
+                    它们的权利与许可以上游仓库为准。
+   声明           : 本项目与 OpenAI 没有隶属或合作关系，也未获其背书。
+
+   Derived data (titles, abstracts, subject and manuscript listings) was extracted from the
+   upstream overview.tex and reformatted for the web; it is a modified version of the original.
+   The upstream repository ships no NOTICE file. Manuscripts, sources and Lean code are not
+   copied here; pages only link to them on GitHub. This project is unofficial and not
+   affiliated with or endorsed by OpenAI.
+
+
+2. KaTeX 0.16.11 — https://katex.org
+   许可 / License : MIT License, Copyright (c) 2013-2020 Khan Academy and other contributors
+   用在哪里       : assets/katex/（JavaScript、CSS、woff2 字体），许可证全文见 assets/katex/LICENSE
