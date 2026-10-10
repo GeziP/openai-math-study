@@ -25,6 +25,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      # 公式检查要用 Node；显式指定版本，不依赖 runner 镜像里恰好预装了什么
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
       - name: 文本处理单元测试
         run: python -m unittest discover -s tools -p "test_*.py" -v
 
